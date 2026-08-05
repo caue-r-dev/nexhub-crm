@@ -1,0 +1,98 @@
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { BR_TZ } from '@/lib/date-range'
+import { getCurrentTenantNicheSlug } from '@/lib/tenant'
+import { ClientTabs } from '@/components/clientes/ClientTabs'
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'Pendente',
+  confirmed: 'Confirmado',
+  cancelled: 'Cancelado',
+  done: 'Realizado',
+  no_show: 'Faltou',
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  pending: 'bg-status-pending',
+  confirmed: 'bg-status-confirmed',
+  cancelled: 'bg-status-cancelled',
+  done: 'bg-text-secondary',
+  no_show: 'bg-text-secondary',
+}
+
+export default async function FichaClientePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const supabase = await createClient()
+  const nicheSlug = await getCurrentTenantNicheSlug()
+
+  const { data: client } = await supabase.from('clients').select('*').eq('id', id).single()
+  if (!client) notFound()
+
+  const { data: appointments } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('client_id', id)
+    .order('datetime', { ascending: false })
+    .limit(10)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-text">{client.name}</h1>
+        <Link
+          href={`/clientes/${id}/editar`}
+          className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text"
+        >
+          Editar
+        </Link>
+      </div>
+
+      {nicheSlug === 'dentista' && <ClientTabs clientId={id} active="ficha" />}
+
+      <div className="grid max-w-md grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-4">
+        <div>
+          <p className="text-xs text-text-secondary">Telefone</p>
+          <p className="text-text">{client.phone ?? '—'}</p>
+        </div>
+        <div>
+          <p className="text-xs text-text-secondary">Documento</p>
+          <p className="text-text">{client.document ?? '—'}</p>
+        </div>
+        <div>
+          <p className="text-xs text-text-secondary">Nascimento</p>
+          <p className="text-text">{client.birth_date ?? '—'}</p>
+        </div>
+        <div>
+          <p className="text-xs text-text-secondary">Convênio</p>
+          <p className="text-text">{client.convenio ?? 'Particular'}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-text">Últimos agendamentos</h2>
+        <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
+          {appointments?.length ? (
+            appointments.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                <span className={`h-2 w-2 rounded-full ${STATUS_COLOR[a.status]}`} />
+                <span className="text-text">
+                  {new Date(a.datetime).toLocaleString('pt-BR', { timeZone: BR_TZ })}
+                </span>
+                <span className="ml-auto text-sm text-text-secondary">
+                  {STATUS_LABEL[a.status]}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="px-4 py-6 text-center text-text-secondary">Nenhum agendamento ainda.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

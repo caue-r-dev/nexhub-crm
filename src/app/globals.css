@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+/*
+  Paletas do tenant — ver task_plan.md, seção "E — Estilo".
+  Único ponto de leitura: layout raiz aplica data-palette no <html>
+  a partir de tenants.theme_palette. Nenhuma lógica condicional de cor
+  deve existir fora daqui.
+*/
+:root,
+[data-palette="petroleo"] {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --accent: #0f6e56;
+  --text: #1c1c1a;
+  --text-secondary: #5f5e5a;
+  --border: #e8e6df;
+}
+
+[data-palette="bege"] {
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --accent: #b45309;
+  --text: #292420;
+  --text-secondary: #78716c;
+  --border: #ede6dc;
+}
+
+[data-palette="neutro"] {
+  --bg: #ffffff;
+  --surface: #fafafa;
+  --accent: #4f46e5;
+  --text: #18181b;
+  --text-secondary: #71717a;
+  --border: #e4e4e7;
+}
+
+/* Cores de status da agenda — fixas, independem da paleta escolhida */
+:root {
+  --status-pending: #2563eb;
+  --status-confirmed: #16a34a;
+  --status-cancelled: #dc2626;
+}
+
+/* Derivados do accent de cada paleta — nunca hardcoded por paleta,
+   sempre relativo ao --accent atual (troca de paleta continua sendo
+   um único ponto de leitura). */
+:root {
+  --accent-hover: color-mix(in srgb, var(--accent) 85%, black);
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
+  --shadow-sm: 0 1px 2px rgba(15, 15, 10, 0.04), 0 1px 1px rgba(15, 15, 10, 0.03);
+  --shadow-md: 0 4px 12px rgba(15, 15, 10, 0.06), 0 2px 4px rgba(15, 15, 10, 0.04);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
+  --color-status-pending: var(--status-pending);
+  --color-status-confirmed: var(--status-confirmed);
+  --color-status-cancelled: var(--status-cancelled);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Polish global — sem precisar tocar cada componente um por um.
+   Seletores por classe literal (Tailwind gera classes fixas no DOM),
+   não é @apply, então não quebra se a ordem das classes mudar. */
+@layer base {
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      opacity 150ms ease,
+      color 150ms ease;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  [contenteditable]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+/* Botão sólido (bg-accent) — hover mais escuro + leve elevação no clique. */
+.bg-accent:not(:disabled):hover {
+  background-color: var(--accent-hover);
+}
+.bg-accent:not(:disabled):active {
+  transform: translateY(0.5px);
+}
+
+/* Padrão de card usado em toda a área logada — leve sombra e hover sutil
+   quando o card inteiro é clicável (dentro de <a>/<Link>). */
+.rounded-xl.border.border-border.bg-surface {
+  box-shadow: var(--shadow-sm);
+}
+a:has(> .rounded-xl.border.border-border.bg-surface):hover .rounded-xl.border.border-border.bg-surface,
+a.rounded-xl.border.border-border.bg-surface:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+}
+
+/* Linhas de lista clicáveis (Link dentro de container divide-y) */
+a.hover\:bg-bg:hover {
+  background-color: var(--bg);
+}
