@@ -8,16 +8,22 @@ import type { AppointmentType } from '@/lib/supabase/types'
 
 type Client = { id: string; name: string }
 type Label = { id: string; name: string; color: string }
+type Professional = { id: string; name: string }
+type Package = { id: string; client_id: string; service_name: string; used_sessions: number; total_sessions: number }
 
 const PRESET_COLORS = ['#0F6E56', '#B45309', '#4F46E5', '#DC2626', '#0891B2', '#7C3AED']
 
 export function AppointmentForm({
   clients: initialClients,
   labels: initialLabels,
+  professionals,
+  packages,
   defaultDatetime,
 }: {
   clients: Client[]
   labels: Label[]
+  professionals: Professional[]
+  packages: Package[]
   defaultDatetime?: string
 }) {
   const [type, setType] = useState<AppointmentType>('consulta')
@@ -26,6 +32,8 @@ export function AppointmentForm({
   const [clientId, setClientId] = useState('')
   const [title, setTitle] = useState('')
   const [labelId, setLabelId] = useState('')
+  const [professionalId, setProfessionalId] = useState('')
+  const [packageId, setPackageId] = useState('')
   const [datetime, setDatetime] = useState(defaultDatetime ?? '')
   const [durationMin, setDurationMin] = useState(30)
   const [notes, setNotes] = useState('')
@@ -85,6 +93,8 @@ export function AppointmentForm({
         clientId: type === 'consulta' ? clientId : undefined,
         title: type === 'compromisso' ? title : undefined,
         labelId: labelId || undefined,
+        professionalId: professionalId || undefined,
+        packageId: type === 'consulta' ? packageId || undefined : undefined,
         datetime: isoDatetime,
         durationMin,
         notes,
@@ -121,7 +131,10 @@ export function AppointmentForm({
             <select
               className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
               value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              onChange={(e) => {
+                setClientId(e.target.value)
+                setPackageId('')
+              }}
             >
               <option value="">Selecione um cliente</option>
               {clients.map((c) => (
@@ -173,6 +186,27 @@ export function AppointmentForm({
               </div>
             </div>
           )}
+
+          {clientId && (() => {
+            const clientPackages = packages.filter((p) => p.client_id === clientId && p.used_sessions < p.total_sessions)
+            return clientPackages.length > 0 ? (
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-text">Usar pacote (opcional)</span>
+                <select
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+                  value={packageId}
+                  onChange={(e) => setPackageId(e.target.value)}
+                >
+                  <option value="">Não usar pacote</option>
+                  {clientPackages.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.service_name} ({p.used_sessions}/{p.total_sessions})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null
+          })()}
         </div>
       ) : (
         <label className="flex flex-col gap-1">
@@ -195,6 +229,24 @@ export function AppointmentForm({
           onChange={(e) => setDatetime(e.target.value)}
         />
       </label>
+
+      {professionals.length > 0 && (
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-text">Profissional</span>
+          <select
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+            value={professionalId}
+            onChange={(e) => setProfessionalId(e.target.value)}
+          >
+            <option value="">Sem profissional definido</option>
+            {professionals.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="flex flex-col gap-1">
         <span className="text-sm font-medium text-text">Duração (min)</span>

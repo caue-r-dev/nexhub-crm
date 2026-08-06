@@ -40,6 +40,12 @@ export default async function FichaClientePage({
     .order('datetime', { ascending: false })
     .limit(10)
 
+  const { data: packages } = await supabase
+    .from('packages')
+    .select('*')
+    .eq('client_id', id)
+    .order('purchased_at', { ascending: false })
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -70,6 +76,42 @@ export default async function FichaClientePage({
         <div>
           <p className="text-xs text-text-secondary">Convênio</p>
           <p className="text-text">{client.convenio ?? 'Particular'}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-text">Pacotes</h2>
+          <Link href={`/clientes/${id}/pacotes/novo`} className="text-sm font-medium text-accent">
+            + Novo pacote
+          </Link>
+        </div>
+        <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
+          {packages?.length ? (
+            packages.map((p) => {
+              const expired = !!p.expires_at && p.expires_at < new Date().toISOString().slice(0, 10)
+              const finished = p.used_sessions >= p.total_sessions
+              return (
+                <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-text">{p.service_name}</p>
+                    {p.expires_at && (
+                      <p className={`text-xs ${expired ? 'text-status-cancelled' : 'text-text-secondary'}`}>
+                        Válido até {new Date(`${p.expires_at}T00:00:00`).toLocaleDateString('pt-BR')}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={`text-sm font-medium ${finished ? 'text-status-cancelled' : 'text-text'}`}
+                  >
+                    {p.used_sessions}/{p.total_sessions} sessões
+                  </span>
+                </div>
+              )
+            })
+          ) : (
+            <p className="px-4 py-6 text-center text-text-secondary">Nenhum pacote ainda.</p>
+          )}
         </div>
       </div>
 

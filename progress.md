@@ -358,3 +358,61 @@ usuário, ou instruções pra ele montar):
   Ver `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`.
 - Chaves Supabase usadas são do formato novo (`sb_publishable_...` / `sb_secret_...`), não JWT
   anon/service_role antigos — compatíveis com `@supabase/ssr` e `@supabase/supabase-js` 2.112.
+
+## Agenda multi-profissional + Financeiro com gráficos (A1-A4)
+
+- Migration `007_agenda_profissionais_pacotes_pix.sql`: `professionals`, `packages`,
+  `appointments.professional_id`/`package_id`/`payment_status`/`deposit_amount`,
+  `tenants.pix_key`/`pix_receiver_name`.
+- Agenda redesenhada pro layout tipo Google Calendar (grade absoluta 30min, colunas por
+  profissional), visão Dia (todos profissionais visíveis, chips de filtro) e Semana (1
+  profissional via dropdown). Baseado em `agenda-prototype.jsx` fornecido, mas com popover de
+  status reaproveitado do app (não existia no protótipo).
+- CRUD de profissionais (`/agenda/profissionais/novo` e `/[id]/editar`): nome + cor
+  pré-definida (8 opções), ativo/inativo.
+- Campo profissional (opcional) no form de novo agendamento.
+- Validado manualmente em browser: coluna aparece na hora certa, popover de status abre,
+  troca de profissional na visão Semana funciona.
+- Financeiro: gráfico de barras (Recharts) com receita mensal (recebido vs a receber) dos
+  últimos 6 meses, logo abaixo dos cards de resumo.
+  - **Bug pego e corrigido antes de reportar**: construir os buckets mensais com
+    `Date.UTC(ano, mes, 1)` (meia-noite UTC) e formatar em `America/Sao_Paulo` joga a data pro
+    mês anterior (UTC-3 rolls back pro dia 30/31 do mês passado). Fix: usar meio-dia UTC
+    (`Date.UTC(ano, mes, 1, 12)`) pra evitar o rollback de fuso.
+
+Pendente (não implementado ainda): A5 (pacotes/sessões) e A6 (Pix estático).
+
+## A5 — Pacotes e sessões
+
+- Tela de pacotes na ficha do cliente (`/clientes/[id]`): lista nome do serviço, sessões
+  usadas/total, validade (com destaque se vencido). `+ Novo pacote` em
+  `/clientes/[id]/pacotes/novo` (`PackageForm.tsx` + `createPackageAction`).
+- Form de novo agendamento ganhou select "Usar pacote (opcional)", só aparece quando o
+  cliente selecionado tem pacote com saldo (`used_sessions < total_sessions`).
+- `updateAppointmentStatusAction`: ao marcar agendamento vinculado a pacote como `done`,
+  incrementa `packages.used_sessions` em 1 — com guarda pra não incrementar duas vezes
+  (só dispara se status anterior não era `done`).
+- Escopo mínimo conforme spec: sem renovação automática, sem cobrança recorrente — só
+  controle manual de saldo.
+- Validado manualmente em browser: pacote criado (0/3) → agendamento vinculado → marcado
+  Realizado → pacote foi pra 1/3.
+
+Pendente: A6 (Pix estático).
+
+## A6 — Pix antecipado no agendamento (QR estático, sem gateway)
+
+- Libs: `pix-utils` (payload BR Code padrão Bacen) + `qrcode` (renderiza a imagem como
+  data URL). Sem PSP/gateway, sem webhook — dinheiro cai direto na conta do tenant.
+- `/configuracoes/pix`: tenant cadastra a própria chave Pix + nome do recebedor
+  (`updatePixSettingsAction`, fallback do nome pro `tenants.name` se não preenchido).
+- `/agenda/[id]/pix`: tela do agendamento com valor do sinal editável
+  (`setDepositAmountAction` — seta `payment_status: 'aguardando'` na primeira vez), QR Code
+  E o Pix Copia e Cola em texto com botão de copiar (`CopyBrCode.tsx`), e botão manual
+  "Marcar como pago" (`markAppointmentPaidAction` → `payment_status: 'confirmado'`, sem
+  confirmação automática — mesmo modelo operacional da Poliform).
+- Popover de agendamento na Agenda ganhou link "Pix / sinal"; header da Agenda ganhou
+  atalho "Pix" pra configuração da chave.
+- Validado manualmente em browser: chave salva → QR gerado com valor R$80 → status virou
+  "Aguardando pagamento" → "Marcar como pago" → status "Pago", botão some.
+
+Com isso, A1-A6 do kickoff_agenda_profissionais_pacotes.md estão completos e validados.

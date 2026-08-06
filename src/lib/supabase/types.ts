@@ -17,6 +17,7 @@ export type OdontogramStatus =
   | 'canal'
   | 'extracao_indicada'
 export type TreatmentStatus = 'planejado' | 'em_andamento' | 'concluido' | 'cancelado'
+export type PaymentStatus = 'nao_solicitado' | 'aguardando' | 'confirmado'
 
 export type BudgetItem = {
   description: string
@@ -82,6 +83,8 @@ export interface Database {
           chatwoot_inbox_id: number | null
           evolution_base_url: string | null
           evolution_api_key: string | null
+          pix_key: string | null
+          pix_receiver_name: string | null
         }
         Insert: {
           id?: string
@@ -102,6 +105,8 @@ export interface Database {
           chatwoot_inbox_id?: number | null
           evolution_base_url?: string | null
           evolution_api_key?: string | null
+          pix_key?: string | null
+          pix_receiver_name?: string | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [
@@ -231,6 +236,10 @@ export interface Database {
           label_id: string | null
           reminder_24h_sent_at: string | null
           reminder_2h_sent_at: string | null
+          professional_id: string | null
+          package_id: string | null
+          payment_status: PaymentStatus
+          deposit_amount: number | null
         }
         Insert: {
           id?: string
@@ -246,6 +255,10 @@ export interface Database {
           label_id?: string | null
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
+          professional_id?: string | null
+          package_id?: string | null
+          payment_status?: PaymentStatus
+          deposit_amount?: number | null
         }
         Update: Partial<Database['public']['Tables']['appointments']['Insert']>
         Relationships: [
@@ -265,6 +278,18 @@ export interface Database {
             foreignKeyName: 'appointments_label_id_fkey'
             columns: ['label_id']
             referencedRelation: 'appointment_labels'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'appointments_package_id_fkey'
+            columns: ['package_id']
+            referencedRelation: 'packages'
             referencedColumns: ['id']
           },
         ]
@@ -467,6 +492,66 @@ export interface Database {
             foreignKeyName: 'evolutions_appointment_id_fkey'
             columns: ['appointment_id']
             referencedRelation: 'appointments'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      professionals: {
+        Row: {
+          id: string
+          tenant_id: string
+          name: string
+          color: string
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          name: string
+          color: string
+          active?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['professionals']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'professionals_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          id: string
+          tenant_id: string
+          client_id: string
+          service_name: string
+          total_sessions: number
+          used_sessions: number
+          price: number | null
+          purchased_at: string
+          expires_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          client_id: string
+          service_name: string
+          total_sessions: number
+          used_sessions?: number
+          price?: number | null
+          purchased_at?: string
+          expires_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['packages']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'packages_client_id_fkey'
+            columns: ['client_id']
+            referencedRelation: 'clients'
             referencedColumns: ['id']
           },
         ]

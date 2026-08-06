@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { CircleCheck, Clock, TriangleAlert, Plus, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { TransactionStatusSelect } from '@/components/financeiro/TransactionStatusSelect'
+import { RevenueChart } from '@/components/financeiro/RevenueChart'
+import { BR_TZ } from '@/lib/date-range'
 
 function formatBRL(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -15,6 +17,30 @@ function initials(name: string) {
     .map((p) => p[0])
     .join('')
     .toUpperCase()
+}
+
+type Transaction = { amount: number; status: string; due_date: string | null; created_at: string }
+
+const MONTH_LABEL = new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: BR_TZ })
+
+function buildMonthlyData(rows: Transaction[]) {
+  const now = new Date()
+  const buckets = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1, 12))
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+    return { key, month: MONTH_LABEL.format(d).replace('.', ''), recebido: 0, aReceber: 0 }
+  })
+
+  for (const t of rows) {
+    const dateStr = t.due_date ?? t.created_at.slice(0, 10)
+    const key = dateStr.slice(0, 7)
+    const bucket = buckets.find((b) => b.key === key)
+    if (!bucket) continue
+    if (t.status === 'received') bucket.recebido += t.amount
+    else bucket.aReceber += t.amount
+  }
+
+  return buckets.map(({ month, recebido, aReceber }) => ({ month, recebido, aReceber }))
 }
 
 export default async function FinanceiroPage() {
@@ -31,6 +57,8 @@ export default async function FinanceiroPage() {
   const pendencias = rows.filter((t) => t.status === 'overdue').reduce((sum, t) => sum + t.amount, 0)
 
   const todayStr = new Date().toISOString().slice(0, 10)
+
+  const monthlyData = buildMonthlyData(rows)
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,6 +102,8 @@ export default async function FinanceiroPage() {
           </div>
         </div>
       </div>
+
+      <RevenueChart data={monthlyData} />
 
       <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
         {rows.length ? (
