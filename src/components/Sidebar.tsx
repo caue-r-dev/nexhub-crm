@@ -85,6 +85,18 @@ export function Sidebar() {
         className="flex flex-col gap-1 p-2"
         style={{ borderTop: '1px solid color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}
       >
+        <button
+          type="button"
+          onClick={toggle}
+          className={`sidebar-link flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            collapsed ? 'justify-center' : ''
+          }`}
+          style={textMuted}
+        >
+          {collapsed ? <PanelLeftOpen className="h-5 w-5 shrink-0" /> : <PanelLeftClose className="h-5 w-5 shrink-0" />}
+          {!collapsed && <span>Recolher</span>}
+        </button>
+
         <form action={signOutAction}>
           <button
             type="submit"
@@ -98,18 +110,6 @@ export function Sidebar() {
             {!collapsed && <span>Sair</span>}
           </button>
         </form>
-
-        <button
-          type="button"
-          onClick={toggle}
-          className={`sidebar-link flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-            collapsed ? 'justify-center' : ''
-          }`}
-          style={textMuted}
-        >
-          {collapsed ? <PanelLeftOpen className="h-5 w-5 shrink-0" /> : <PanelLeftClose className="h-5 w-5 shrink-0" />}
-          {!collapsed && <span>Recolher</span>}
-        </button>
       </div>
 
       <style jsx>{`
