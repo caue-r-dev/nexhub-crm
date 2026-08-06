@@ -96,7 +96,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: tenantId } = await params
   if (!(await authorize(tenantId))) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
@@ -114,13 +114,24 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 
   try {
+    // Só checa o estado da conexão — NÃO chama /instance/connect aqui.
+    // O WhatsApp/Baileys tem limite de regeneração de QR: se o polling
+    // pedir um QR novo a cada poucos segundos, o número atinge o limite
+    // e a conexão trava de vez ("QRCode generation limit reached"). O QR
+    // mostrado é o único gerado no POST inicial; só refaz sob pedido
+    // explícito do usuário (ver query param abaixo).
     const state = await getConnectionState(tenant.evolution_instance_name)
     if (state === 'open') {
       return NextResponse.json({ status: state })
     }
 
-    const qr = await getInstanceQrCode(tenant.evolution_instance_name)
-    return NextResponse.json({ status: state, qrCode: qr.base64 })
+    const url = new URL(req.url)
+    if (url.searchParams.get('refreshQr') === '1') {
+      const qr = await getInstanceQrCode(tenant.evolution_instance_name)
+      return NextResponse.json({ status: state, qrCode: qr.base64 })
+    }
+
+    return NextResponse.json({ status: state })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Erro desconhecido.' }, { status: 500 })
   }

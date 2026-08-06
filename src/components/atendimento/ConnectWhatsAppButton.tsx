@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-const POLL_MS = 4000
+// Só checa status nesse intervalo (leve, não gera QR novo — ver comentário
+// na rota). QR não é regerado automaticamente: o WhatsApp/Baileys tem
+// limite de regeneração e pedir QR novo a cada poucos segundos derruba a
+// conexão de vez ("QRCode generation limit reached").
+const POLL_MS = 5000
 
 export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
   const router = useRouter()
@@ -11,6 +15,7 @@ export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [status, setStatus] = useState<'starting' | 'connecting' | 'open' | 'error'>('starting')
   const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function stopPolling() {
@@ -21,6 +26,24 @@ export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
   }
 
   useEffect(() => stopPolling, [])
+
+  function pollStatus() {
+    pollRef.current = setInterval(async () => {
+      const pollRes = await fetch(`/api/tenants/${tenantId}/connect-whatsapp`)
+      const pollData = await pollRes.json()
+
+      if (!pollRes.ok) return
+
+      if (pollData.status === 'open') {
+        stopPolling()
+        setStatus('open')
+        setTimeout(() => {
+          setOpen(false)
+          router.refresh()
+        }, 1500)
+      }
+    }, POLL_MS)
+  }
 
   async function start() {
     setOpen(true)
@@ -38,25 +61,15 @@ export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
 
     setQrCode(data.qrCode)
     setStatus('connecting')
+    pollStatus()
+  }
 
-    pollRef.current = setInterval(async () => {
-      const pollRes = await fetch(`/api/tenants/${tenantId}/connect-whatsapp`)
-      const pollData = await pollRes.json()
-
-      if (!pollRes.ok) return
-
-      if (pollData.status === 'open') {
-        stopPolling()
-        setStatus('open')
-        setTimeout(() => {
-          setOpen(false)
-          router.refresh()
-        }, 1500)
-        return
-      }
-
-      if (pollData.qrCode) setQrCode(pollData.qrCode)
-    }, POLL_MS)
+  async function refreshQr() {
+    setRefreshing(true)
+    const res = await fetch(`/api/tenants/${tenantId}/connect-whatsapp?refreshQr=1`)
+    const data = await res.json()
+    setRefreshing(false)
+    if (res.ok && data.qrCode) setQrCode(data.qrCode)
   }
 
   function close() {
@@ -101,9 +114,23 @@ export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
                 ) : (
                   <p className="text-text-secondary">Gerando QR Code...</p>
                 )}
-                <button type="button" onClick={close} className="text-sm font-medium text-text-secondary">
-                  Cancelar
-                </button>
+                <p className="text-xs text-text-secondary">
+                  O código expira depois de um tempo. Se parar de funcionar, gere um novo — evite clicar várias
+                  vezes seguidas.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={refreshQr}
+                    disabled={refreshing}
+                    className="text-sm font-medium text-accent disabled:opacity-40"
+                  >
+                    {refreshing ? 'Gerando...' : 'Gerar novo QR'}
+                  </button>
+                  <button type="button" onClick={close} className="text-sm font-medium text-text-secondary">
+                    Cancelar
+                  </button>
+                </div>
               </>
             )}
 

@@ -594,3 +594,21 @@ agendamento na Agenda, redesenho completo do Atendimento.
   (resetei senha de um usuário de teste pra conseguir logar): clique em
   "Conectar WhatsApp" na aba Atendimento → QR real apareceu na tela em ~3s.
   Limpo depois (Account/instância deletadas, tenant resetado).
+
+## Bug crítico corrigido: polling matava a conexão do WhatsApp
+
+- Sintoma reportado: conectou o WhatsApp, mandou mensagem de teste, nada
+  chegou no painel, nenhuma conversa importada.
+- **Causa raiz**: o polling de status (`GET /connect-whatsapp` a cada 4s)
+  chamava `/instance/connect` a cada tick pra "atualizar" o QR — isso pede
+  um QR novo ao WhatsApp/Baileys repetidamente. O WhatsApp tem limite de
+  regeneração de QR; estourar esse limite trava a sessão de vez. Confirmei
+  isso direto no Chatwoot: a conversa criada tinha só uma mensagem do bot
+  ("🚨 QRCode generation limit reached, to generate a new QRCode, send the
+  'init' message again"), nunca conectou de verdade.
+- **Fix**: `GET` só checa `connectionState` (leve, não gera QR) por padrão.
+  QR só é regerado sob pedido explícito (`?refreshQr=1`, botão "Gerar novo
+  QR" na UI) — nunca automático no polling. Polling subiu de 4s pra 5s.
+- Limpo os dois tenants afetados (residual do meu teste + do teste real do
+  Cauê) — Account/instância deletadas, campos resetados pra null, prontos
+  pra reconectar do zero com o código corrigido.
