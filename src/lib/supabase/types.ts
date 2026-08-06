@@ -85,6 +85,8 @@ export interface Database {
           evolution_api_key: string | null
           pix_key: string | null
           pix_receiver_name: string | null
+          reminder_message_24h: string | null
+          reminder_message_2h: string | null
         }
         Insert: {
           id?: string
@@ -107,6 +109,8 @@ export interface Database {
           evolution_api_key?: string | null
           pix_key?: string | null
           pix_receiver_name?: string | null
+          reminder_message_24h?: string | null
+          reminder_message_2h?: string | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [

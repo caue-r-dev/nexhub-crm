@@ -647,3 +647,20 @@ agendamento na Agenda, redesenho completo do Atendimento.
 - Tenants que conectarem **de agora em diante** (fluxo normal, sem precisar
   desse passo manual) já importam o histórico automaticamente na primeira
   conexão.
+
+## Mensagem de lembrete personalizável por tenant
+
+- Migration `008_lembretes_mensagem_personalizada.sql`: `tenants.reminder_message_24h`
+  e `reminder_message_2h` (nullable, aditiva) — já rodada pelo Cauê.
+- `/configuracoes/lembretes`: tenant edita os dois textos com placeholders
+  `{{nome}}`/`{{data}}`/`{{hora}}`/`{{clinica}}` e prévia ao vivo. Link a
+  partir da tela de Atendimento. Vazio = usa o texto padrão (mesmo de antes).
+- `api/automations/reminders/route.ts`: `buildMessage` agora aplica o
+  template do tenant (se houver) via substituição de placeholder, com
+  fallback pro texto fixo de sempre — n8n não precisa de nenhuma mudança,
+  continua sendo o mesmo cron único rodando pra todos os tenants.
+- Confirmado: n8n **não** precisa de setup manual por cliente — o endpoint já
+  varre todos os tenants numa query só, sempre foi assim desde o
+  `006_fase3_automacoes_lembretes.sql`.
+- Testado salvando de verdade pela UI (tenant "Salão Teste 2") e conferido
+  no banco que persistiu certo; resetado depois (era só teste).

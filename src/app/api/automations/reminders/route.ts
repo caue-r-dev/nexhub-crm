@@ -16,13 +16,25 @@ function formatDateTime(iso: string) {
   return { date, time }
 }
 
-function buildMessage(window: '24h' | '2h', clientName: string, tenantName: string, iso: string) {
+const DEFAULT_TEMPLATE_24H =
+  'Olá {{nome}}! Passando pra confirmar sua consulta amanhã ({{data}} às {{hora}}) na {{clinica}}. Podemos confirmar sua presença?'
+const DEFAULT_TEMPLATE_2H = 'Olá {{nome}}! Só lembrando que sua consulta é hoje às {{hora}} na {{clinica}}. Te esperamos!'
+
+function applyTemplate(template: string, vars: Record<string, string>) {
+  return template.replace(/{{\s*(\w+)\s*}}/g, (match, key) => vars[key] ?? match)
+}
+
+function buildMessage(
+  window: '24h' | '2h',
+  clientName: string,
+  tenantName: string,
+  iso: string,
+  customTemplate: string | null
+) {
   const { date, time } = formatDateTime(iso)
   const firstName = clientName.split(' ')[0]
-  if (window === '24h') {
-    return `Olá ${firstName}! Passando pra confirmar sua consulta amanhã (${date} às ${time}) na ${tenantName}. Podemos confirmar sua presença?`
-  }
-  return `Olá ${firstName}! Só lembrando que sua consulta é hoje às ${time} na ${tenantName}. Te esperamos!`
+  const template = customTemplate?.trim() || (window === '24h' ? DEFAULT_TEMPLATE_24H : DEFAULT_TEMPLATE_2H)
+  return applyTemplate(template, { nome: firstName, data: date, hora: time, clinica: tenantName })
 }
 
 type WindowConfig = { label: '24h' | '2h'; column: 'reminder_24h_sent_at' | 'reminder_2h_sent_at'; fromHours: number; toHours: number }
@@ -51,7 +63,9 @@ export async function POST(request: Request) {
 
     const { data: appointments, error } = await admin
       .from('appointments')
-      .select('id, datetime, tenant_id, client_id, clients(name, phone), tenants(name, evolution_base_url, evolution_api_key, evolution_instance_name)')
+      .select(
+        'id, datetime, tenant_id, client_id, clients(name, phone), tenants(name, evolution_base_url, evolution_api_key, evolution_instance_name, reminder_message_24h, reminder_message_2h)'
+      )
       .eq('type', 'consulta')
       .in('status', ['pending', 'confirmed'])
       .not('client_id', 'is', null)
@@ -71,6 +85,8 @@ export async function POST(request: Request) {
         evolution_base_url: string | null
         evolution_api_key: string | null
         evolution_instance_name: string | null
+        reminder_message_24h: string | null
+        reminder_message_2h: string | null
       } | null
 
       if (!client?.phone || !tenant?.evolution_base_url || !tenant.evolution_api_key || !tenant.evolution_instance_name) {
@@ -84,7 +100,8 @@ export async function POST(request: Request) {
         continue
       }
 
-      const message = buildMessage(w.label, client.name, tenant.name, appt.datetime)
+      const customTemplate = w.label === '24h' ? tenant.reminder_message_24h : tenant.reminder_message_2h
+      const message = buildMessage(w.label, client.name, tenant.name, appt.datetime, customTemplate)
 
       if (dryRun) {
         results.push({ window: w.label, appointmentId: appt.id, client: client.name, sent: false, error: 'dry-run' })

@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { MessageSquareText } from 'lucide-react'
 import { listConversationsAction } from '@/app/actions/chat'
 import { getCurrentTenant } from '@/lib/tenant'
 import { ChatApp } from '@/components/atendimento/ChatApp'
@@ -22,7 +24,16 @@ export default async function AtendimentoPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold text-text">Atendimento</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-text">Atendimento</h1>
+        <Link
+          href="/configuracoes/lembretes"
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
+        >
+          <MessageSquareText className="h-4 w-4" />
+          <span className="hidden sm:inline">Mensagens de lembrete</span>
+        </Link>
+      </div>
       <ChatApp initial={result.conversations} />
     </div>
   )
