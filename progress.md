@@ -526,3 +526,53 @@ agendamento na Agenda, redesenho completo do Atendimento.
   pra telas sem tenant, só pararam de vazar pra dentro do app autenticado.
   Confirmado via DevTools: `getComputedStyle(aside).backgroundColor` = `rgb(180, 83, 9)`
   (exatamente o accent da paleta terracota) em Início/Agenda/Financeiro/Atendimento.
+
+## Automação de onboarding de WhatsApp por tenant (painel admin)
+
+- Pesquisei a fundo antes de codar (conforme pedido): Chatwoot Platform API
+  (accounts/users/account_users, token de super-admin via Platform App —
+  precisa existir previamente, não tem UI, só Rails console) e Evolution API
+  v2 (`/instance/create` com integração nativa `chatwoot*` + `autoCreate`
+  criando o inbox sozinho, QR via `/instance/connect`, status via
+  `/instance/connectionState`).
+- **Bloqueio reportado antes de prosseguir**: não existia nenhuma credencial
+  de nível plataforma no projeto (só as por-tenant já configuradas
+  manualmente). Cauê forneceu `CHATWOOT_PLATFORM_TOKEN`, `CHATWOOT_BASE_URL`,
+  `EVOLUTION_API_KEY`, `EVOLUTION_BASE_URL` como env vars **Sensitive** no
+  Vercel (Preview/Production) — tive que readicionar em Development também
+  pra rodar local (Sensitive não é legível de volta nem pelo CLI, só escrita
+  única; valores vieram direto do Cauê no chat pra escrever local).
+- **Fluxo implementado** (`src/lib/chatwoot-platform.ts`,
+  `src/lib/evolution-admin.ts`, `src/app/api/tenants/[id]/connect-whatsapp/
+  route.ts`): POST cria Account nova isolada no Chatwoot (Platform API), cria
+  User com senha aleatória + `access_token`, linka como administrator na
+  Account, cria instância Evolution já configurada com a integração Chatwoot
+  nativa (`autoCreate`), busca o `inbox_id` criado automaticamente, salva tudo
+  no tenant (`chatwoot_account_id`, `chatwoot_api_token`, `chatwoot_inbox_id`,
+  `evolution_instance_name` etc.) e devolve só o QR Code pro client — token
+  nunca sai do backend. GET no mesmo endpoint faz polling de
+  `connectionState` + reemite QR fresco enquanto não conectar.
+- Botão "Conectar WhatsApp" **só no painel admin** (`ConnectWhatsAppButton.tsx`
+  na tela do tenant) — decisão deliberada de não expor no app do tenant, já
+  que a operação usa credenciais de plataforma e cria recursos externos
+  cobráveis; tenant comum não deveria poder disparar isso sozinho.
+- **Bug pego e corrigido durante o teste real** (não só lido do código):
+  1. Senha aleatória gerada só com base64url não passava na validação de
+     senha do Chatwoot (exige caractere especial) — 422 na criação do user.
+     Corrigido acrescentando um sufixo fixo com especial.
+  2. `/instance/create` nem sempre devolve o QR inline (veio `null` no teste
+     real) — adicionado fallback pra `/instance/connect` quando isso
+     acontece, tanto na criação quanto no polling.
+- **Testado de ponta a ponta com tenant real** ("Salão Teste 2", sem
+  WhatsApp configurado) rodando a mesma lógica da rota via script: Account
+  isolada criada (confirmei que é uma Account **nova**, não reaproveitou a
+  Account 1 do playnex-iptv), User linkado, instância Evolution criada com
+  chatwoot apontando certo, inbox auto-criado encontrado e salvo, QR real
+  gerado e válido (13KB, `data:image/png;base64,...`). Dados de teste
+  limpos depois (Account/instância deletadas, tenant resetado pra null) —
+  fica pronto pra você testar o fluxo real pela UI do painel admin.
+- **O que eu não consigo validar sozinho**: escanear o QR com um celular
+  real e confirmar que mensagem enviada pela interface chega no WhatsApp —
+  isso só você pode fazer. O botão está em
+  `/admin/tenants/ac4c0547-a3fc-4845-accd-02fc9f85111c` (tenant "Salão Teste
+  2", limpo e pronto) ou qualquer outro tenant sem `chatwoot_account_id`.
