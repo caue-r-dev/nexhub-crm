@@ -631,3 +631,19 @@ agendamento na Agenda, redesenho completo do Atendimento.
   8) — achei o inbox criado manualmente durante o diagnóstico e salvei o
   `chatwoot_inbox_id` certo, sem precisar desconectar/reconectar o WhatsApp
   dele de novo.
+
+## Import de histórico do WhatsApp habilitado
+
+- `chatwootImportContacts`/`chatwootImportMessages` estavam `false` — nenhum
+  histórico de conversa entrava, só mensagens novas dali pra frente.
+- Ligado nos dois pontos (`/instance/create` e `/chatwoot/set`), com
+  `daysLimitImportMessages: 9999` (carregar tudo, igual decisão já tomada
+  antes no fluxo manual do playnex-iptv).
+- Import histórico só dispara na abertura da conexão/sync inicial — pra
+  tenants que já estavam conectados sem essa flag, precisei reenviar a
+  config via `/chatwoot/set` + `POST /instance/restart/{instance}` pra
+  forçar um novo sync. Testado ao vivo no tenant "Salão Teste 2": 3
+  conversas antigas importadas depois do restart.
+- Tenants que conectarem **de agora em diante** (fluxo normal, sem precisar
+  desse passo manual) já importam o histórico automaticamente na primeira
+  conexão.
