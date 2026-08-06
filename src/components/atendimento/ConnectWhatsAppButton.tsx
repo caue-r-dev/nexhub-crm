@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 
 const POLL_MS = 4000
 
-export function ConnectWhatsAppButton({ tenantId, alreadyConnected }: { tenantId: string; alreadyConnected: boolean }) {
+export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [qrCode, setQrCode] = useState<string | null>(null)
@@ -64,10 +64,6 @@ export function ConnectWhatsAppButton({ tenantId, alreadyConnected }: { tenantId
     setOpen(false)
   }
 
-  if (alreadyConnected) {
-    return <span className="text-sm font-medium text-status-confirmed">WhatsApp conectado</span>
-  }
-
   return (
     <>
       <button
@@ -81,7 +77,7 @@ export function ConnectWhatsAppButton({ tenantId, alreadyConnected }: { tenantId
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-xl bg-surface p-6 text-center">
-            {status === 'starting' && <p className="text-text-secondary">Criando conta e instância...</p>}
+            {status === 'starting' && <p className="text-text-secondary">Criando conexão...</p>}
 
             {status === 'error' && (
               <>

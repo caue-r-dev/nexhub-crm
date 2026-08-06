@@ -576,3 +576,21 @@ agendamento na Agenda, redesenho completo do Atendimento.
   isso só você pode fazer. O botão está em
   `/admin/tenants/ac4c0547-a3fc-4845-accd-02fc9f85111c` (tenant "Salão Teste
   2", limpo e pronto) ou qualquer outro tenant sem `chatwoot_account_id`.
+
+## Conectar WhatsApp movido pro app do tenant (correção de escopo)
+
+- Feedback do Cauê: quem deve clicar "Conectar WhatsApp" é o próprio cliente
+  (dono do WhatsApp que vai escanear), não o admin. Movido o botão do painel
+  admin pra tela de Atendimento (aparece junto da mensagem "não configurado
+  pra esse tenant").
+- `src/app/api/tenants/[id]/connect-whatsapp/route.ts`: autorização trocada
+  de "só admin" pra "admin OU o próprio tenant dono do id" (`getCurrentTenant()`
+  comparado com o `:id` da rota) — continua impossível um tenant conectar
+  WhatsApp de outro.
+- Painel admin agora só mostra status somente-leitura ("Conectado" /
+  "Não conectado — o próprio cliente conecta na aba Atendimento").
+- Componente movido de `components/admin` pra `components/atendimento`.
+- **Testado de ponta a ponta pela UI real** logado como tenant sem WhatsApp
+  (resetei senha de um usuário de teste pra conseguir logar): clique em
+  "Conectar WhatsApp" na aba Atendimento → QR real apareceu na tela em ~3s.
+  Limpo depois (Account/instância deletadas, tenant resetado).

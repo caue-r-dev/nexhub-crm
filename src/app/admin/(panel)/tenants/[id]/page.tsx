@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { TenantAdminForm } from '@/components/admin/TenantAdminForm'
-import { ConnectWhatsAppButton } from '@/components/admin/ConnectWhatsAppButton'
 
 export default async function AdminTenantPage({
   params,
@@ -23,7 +22,9 @@ export default async function AdminTenantPage({
 
       <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4">
         <span className="text-sm font-medium text-text">WhatsApp / Atendimento</span>
-        <ConnectWhatsAppButton tenantId={tenant.id} alreadyConnected={!!tenant.chatwoot_account_id} />
+        <span className={`text-sm ${tenant.chatwoot_account_id ? 'font-medium text-status-confirmed' : 'text-text-secondary'}`}>
+          {tenant.chatwoot_account_id ? 'Conectado' : 'Não conectado — o próprio cliente conecta na aba Atendimento'}
+        </span>
       </div>
 
       <TenantAdminForm

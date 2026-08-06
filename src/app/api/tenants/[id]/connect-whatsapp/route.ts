@@ -1,23 +1,33 @@
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { getCurrentAdmin } from '@/lib/admin'
+import { getCurrentTenant } from '@/lib/tenant'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createPlatformAccount, createPlatformUser, linkAccountUser, findInboxByName } from '@/lib/chatwoot-platform'
 import { createInstanceWithChatwoot, getInstanceQrCode, getConnectionState } from '@/lib/evolution-admin'
 
-// Onboarding automático de WhatsApp por tenant — só acessível pelo painel
-// admin (usa credenciais de plataforma: Chatwoot Platform API + Evolution
-// API global). Nunca deve ser exposto/chamado a partir do app do tenant.
+// Onboarding automático de WhatsApp por tenant — usa credenciais de
+// plataforma (Chatwoot Platform API + Evolution API global), mas quem chama
+// é o próprio tenant (dono do id) ou um admin. Nunca devolve token/segredo
+// pro client, só o QR temporário e o status de conexão.
 
 function instanceNameFor(tenantId: string) {
   return `nexhub-${tenantId.slice(0, 8)}`
 }
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function authorize(tenantId: string): Promise<boolean> {
   const admin = await getCurrentAdmin()
-  if (!admin) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  if (admin) return true
 
+  const tenant = await getCurrentTenant()
+  return tenant?.id === tenantId
+}
+
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: tenantId } = await params
+  if (!(await authorize(tenantId))) {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
   const db = createAdminClient()
 
   const { data: tenant } = await db.from('tenants').select('id, name, chatwoot_account_id').eq('id', tenantId).single()
@@ -87,10 +97,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await getCurrentAdmin()
-  if (!admin) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-
   const { id: tenantId } = await params
+  if (!(await authorize(tenantId))) {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
   const db = createAdminClient()
 
   const { data: tenant } = await db
