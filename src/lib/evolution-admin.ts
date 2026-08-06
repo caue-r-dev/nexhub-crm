@@ -44,7 +44,6 @@ export async function createInstanceWithChatwoot(input: CreateInstanceInput): Pr
       chatwootNameInbox: input.chatwootNameInbox,
       chatwootMergeBrazilContacts: true,
       chatwootImportMessages: false,
-      chatwootAutoCreate: true,
       chatwootOrganization: 'NexHub',
     }),
     cache: 'no-store',
@@ -52,6 +51,36 @@ export async function createInstanceWithChatwoot(input: CreateInstanceInput): Pr
 
   if (!res.ok) {
     throw new Error(`Evolution API ${res.status}: ${await res.text()}`)
+  }
+
+  // `/instance/create` ignora silenciosamente `chatwootAutoCreate` — esse
+  // campo só existe em `/chatwoot/set/{instance}` (nomes sem prefixo
+  // "chatwoot"). Sem essa segunda chamada o inbox nunca é criado no
+  // Chatwoot mesmo com a integração "enabled". Confirmado testando direto
+  // na API: 0 inboxes até reenviar a config por aqui.
+  const setRes = await fetch(`${BASE_URL}/chatwoot/set/${input.instanceName}`, {
+    method: 'POST',
+    headers: { apikey: ADMIN_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      enabled: true,
+      accountId: String(input.chatwootAccountId),
+      token: input.chatwootToken,
+      url: input.chatwootUrl,
+      signMsg: true,
+      reopenConversation: true,
+      conversationPending: false,
+      nameInbox: input.chatwootNameInbox,
+      mergeBrazilContacts: true,
+      importContacts: false,
+      importMessages: false,
+      autoCreate: true,
+      organization: 'NexHub',
+    }),
+    cache: 'no-store',
+  })
+
+  if (!setRes.ok) {
+    throw new Error(`Evolution API (chatwoot/set) ${setRes.status}: ${await setRes.text()}`)
   }
 
   const data = await res.json()

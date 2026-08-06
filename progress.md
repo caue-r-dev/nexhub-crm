@@ -612,3 +612,22 @@ agendamento na Agenda, redesenho completo do Atendimento.
 - Limpo os dois tenants afetados (residual do meu teste + do teste real do
   Cauê) — Account/instância deletadas, campos resetados pra null, prontos
   pra reconectar do zero com o código corrigido.
+
+## Segundo bug crítico: inbox nunca era criado no Chatwoot (autoCreate no campo errado)
+
+- Sintoma: WhatsApp conectava (status "open"), mas mensagem de teste não
+  aparecia no painel — 0 conversas, 0 inboxes na Account do Chatwoot.
+- **Causa raiz**: `chatwootAutoCreate` só existe no endpoint
+  `POST /chatwoot/set/{instance}` (nomes sem prefixo `chatwoot`) — no
+  `POST /instance/create` esse campo é **ignorado silenciosamente**. Mandava
+  `chatwootAutoCreate: true` no create e a Evolution nunca criava o inbox,
+  mesmo com a integração aparecendo `"enabled": true`.
+- Confirmei ao vivo: reenviando a config via `/chatwoot/set/{instance}` com
+  `autoCreate: true` no campo certo, o inbox apareceu na hora.
+- **Fix**: `createInstanceWithChatwoot` agora faz as duas chamadas — cria a
+  instância e, na sequência, `/chatwoot/set/{instance}` com os nomes de
+  campo corretos garantindo o `autoCreate`.
+- Reparei na hora o tenant que já estava conectado (Salão Teste 2, account
+  8) — achei o inbox criado manualmente durante o diagnóstico e salvei o
+  `chatwoot_inbox_id` certo, sem precisar desconectar/reconectar o WhatsApp
+  dele de novo.
