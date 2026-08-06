@@ -64,45 +64,45 @@ export default async function Home() {
         <p className="text-text-secondary">Agenda, clientes e financeiro num só lugar.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent-soft">
-            <CalendarClock className="h-7 w-7 text-accent" />
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex min-h-[140px] items-center gap-5 rounded-xl border border-border bg-surface p-8">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent-soft">
+            <CalendarClock className="h-6 w-6 text-accent" />
           </div>
           <div>
-            <p className="text-sm text-text-secondary">Agendamentos hoje</p>
-            <p className="text-3xl font-semibold text-text">{appointmentsToday.length}</p>
+            <p className="text-base text-text-secondary">Agendamentos hoje</p>
+            <p className="text-4xl font-semibold text-text">{appointmentsToday.length}</p>
             {nextTime && <p className="text-xs text-text-secondary">Próximo às {nextTime}</p>}
           </div>
         </div>
 
-        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-status-confirmed/10">
-            <Wallet className="h-7 w-7 text-status-confirmed" />
+        <div className="flex min-h-[140px] items-center gap-5 rounded-xl border border-border bg-surface p-8">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-status-confirmed/10">
+            <Wallet className="h-6 w-6 text-status-confirmed" />
           </div>
           <div>
-            <p className="text-sm text-text-secondary">A receber esta semana</p>
-            <p className="text-3xl font-semibold text-text">{formatBRL(aReceberSemana)}</p>
+            <p className="text-base text-text-secondary">A receber esta semana</p>
+            <p className="text-4xl font-semibold text-text">{formatBRL(aReceberSemana)}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-status-cancelled/10">
-            <TriangleAlert className="h-7 w-7 text-status-cancelled" />
+        <div className="flex min-h-[140px] items-center gap-5 rounded-xl border border-border bg-surface p-8">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-status-cancelled/10">
+            <TriangleAlert className="h-6 w-6 text-status-cancelled" />
           </div>
           <div>
-            <p className="text-sm text-text-secondary">Pendências</p>
-            <p className="text-3xl font-semibold text-text">{formatBRL(pendencias)}</p>
+            <p className="text-base text-text-secondary">Pendências</p>
+            <p className="text-4xl font-semibold text-text">{formatBRL(pendencias)}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent-soft">
-            <UserPlus className="h-7 w-7 text-accent" />
+        <div className="flex min-h-[140px] items-center gap-5 rounded-xl border border-border bg-surface p-8">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent-soft">
+            <UserPlus className="h-6 w-6 text-accent" />
           </div>
           <div>
-            <p className="text-sm text-text-secondary">Novos clientes na semana</p>
-            <p className="text-3xl font-semibold text-text">{newClientsCount ?? 0}</p>
+            <p className="text-base text-text-secondary">Novos clientes na semana</p>
+            <p className="text-4xl font-semibold text-text">{newClientsCount ?? 0}</p>
           </div>
         </div>
       </div>

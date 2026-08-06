@@ -16,6 +16,12 @@ const LINKS = [
 
 const STORAGE_KEY = 'nexhub_sidebar_collapsed'
 
+// Texto/ícone da sidebar usam --sidebar-text (branco nas 3 paletas atuais,
+// declarado por paleta em globals.css — ver comentário lá). Item inativo
+// usa opacidade reduzida da mesma cor via color-mix, não um hex separado.
+const textMuted = { color: 'color-mix(in srgb, var(--sidebar-text) 70%, transparent)' }
+const textFull = { color: 'var(--sidebar-text)' }
+
 export function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
@@ -35,7 +41,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`sticky top-0 flex h-screen shrink-0 flex-col bg-brand-sidebar transition-[width] duration-200 ${
+      className={`sticky top-0 flex h-screen shrink-0 flex-col bg-accent transition-[width] duration-200 ${
         collapsed ? 'w-16' : 'w-60'
       }`}
     >
@@ -60,18 +66,13 @@ export function Sidebar() {
               key={link.href}
               href={link.href}
               title={collapsed ? link.label : undefined}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                active ? 'text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
-              } ${collapsed ? 'justify-center' : ''}`}
-              style={
-                active
-                  ? {
-                      backgroundColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
-                      borderLeft: '3px solid var(--accent)',
-                      marginLeft: '-3px',
-                    }
-                  : undefined
-              }
+              className={`sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                collapsed ? 'justify-center' : ''
+              }`}
+              style={{
+                ...(active ? textFull : textMuted),
+                backgroundColor: active ? 'var(--accent-hover)' : undefined,
+              }}
             >
               <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && <span className="truncate">{link.label}</span>}
@@ -80,14 +81,18 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="flex flex-col gap-1 border-t border-white/10 p-2">
+      <div
+        className="flex flex-col gap-1 p-2"
+        style={{ borderTop: '1px solid color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}
+      >
         <form action={signOutAction}>
           <button
             type="submit"
             title={collapsed ? 'Sair' : undefined}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white ${
+            className={`sidebar-link flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
               collapsed ? 'justify-center' : ''
             }`}
+            style={textMuted}
           >
             <LogOut className="h-5 w-5 shrink-0" />
             {!collapsed && <span>Sair</span>}
@@ -97,14 +102,22 @@ export function Sidebar() {
         <button
           type="button"
           onClick={toggle}
-          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white ${
+          className={`sidebar-link flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
             collapsed ? 'justify-center' : ''
           }`}
+          style={textMuted}
         >
           {collapsed ? <PanelLeftOpen className="h-5 w-5 shrink-0" /> : <PanelLeftClose className="h-5 w-5 shrink-0" />}
           {!collapsed && <span>Recolher</span>}
         </button>
       </div>
+
+      <style jsx>{`
+        .sidebar-link:hover {
+          background-color: color-mix(in srgb, var(--sidebar-text) 8%, transparent);
+          color: var(--sidebar-text);
+        }
+      `}</style>
     </aside>
   )
 }

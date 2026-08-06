@@ -6,6 +6,13 @@
   a partir de tenants.theme_palette. Nenhuma lógica condicional de cor
   deve existir fora daqui.
 */
+/* --sidebar-text: cor de texto/ícone com contraste sobre --accent quando
+   ele vira fundo sólido (sidebar inteira). Calculado por paleta na hora de
+   cadastrar a paleta — não é derivado automaticamente do --accent porque
+   CSS puro não calcula luminância; cada bloco declara o valor certo pro
+   seu próprio accent. As 3 paletas atuais têm accent escuro o suficiente
+   pra texto branco; uma paleta futura clara deve declarar um --sidebar-text
+   escuro aqui em vez de herdar branco. */
 :root,
 [data-palette="petroleo"] {
   --bg: #fafaf9;
@@ -14,6 +21,7 @@
   --text: #1c1c1a;
   --text-secondary: #5f5e5a;
   --border: #e8e6df;
+  --sidebar-text: #ffffff;
 }
 
 [data-palette="bege"] {
@@ -23,6 +31,7 @@
   --text: #292420;
   --text-secondary: #78716c;
   --border: #ede6dc;
+  --sidebar-text: #ffffff;
 }
 
 [data-palette="neutro"] {
@@ -32,6 +41,7 @@
   --text: #18181b;
   --text-secondary: #71717a;
   --border: #e4e4e7;
+  --sidebar-text: #ffffff;
 }
 
 /* Cores de status da agenda — fixas, independem da paleta escolhida */
@@ -42,8 +52,10 @@
 }
 
 /* Cor de marca NexHub — fixa, não é sobrescrita pela paleta do tenant.
-   Usada só no "chrome" da marca (sidebar, logo), nunca no conteúdo
-   tenant-scoped (que continua usando --accent). */
+   A sidebar usa --accent do tenant como fundo (ver Sidebar.tsx); esses
+   tokens ficam só como fallback pra telas sem tenant resolvido (ex.: fluxo
+   de cadastro antes de escolher paleta) e não devem vazar pra dentro da
+   área logada. */
 :root {
   --brand-primary: #4338ca;
   --brand-primary-soft: color-mix(in srgb, var(--brand-primary) 18%, transparent);
@@ -75,6 +87,7 @@
   --color-brand: var(--brand-primary);
   --color-brand-soft: var(--brand-primary-soft);
   --color-brand-sidebar: var(--brand-sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
 }
 
 body {

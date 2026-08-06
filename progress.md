@@ -481,3 +481,48 @@ agendamento na Agenda, redesenho completo do Atendimento.
   diferente por falta de credenciais de login** — mas o mecanismo é o mesmo `var(--accent)`
   já comprovado funcionando nos botões/blocos da Agenda, então deve se comportar igual pra
   qualquer paleta.
+
+## Correções pendentes + logout (task_correcoes_pendentes_nexhub.md)
+
+- **Item 1 (faixa azul-marinho no rodapé)**: investigado a fundo — grep por hex próximos
+  de `#132458`/`#1a1f5c` em todo `src/`, revisão de `html`/`body`/qualquer `footer` no
+  CSS, teste em viewport grande (1440x900) e reload limpo do dev server. **Não encontrei
+  nenhum elemento navy no código nem consegui reproduzir visualmente.** Suspeita forte: o
+  círculo preto com "N" que o usuário mencionou como "avatar do usuário" (item 3) é na
+  verdade o ícone flutuante da extensão Claude-in-Chrome no navegador, não faz parte do
+  app — e a faixa azul pode ser a barra de tarefas do Windows (modo escuro) capturada
+  junto no print, não algo renderizado pela página. Reportado ao usuário pra confirmar via
+  DevTools em vez de eu adivinhar mais.
+- **Item 2 (densidade ainda pequena)**: causa raiz real encontrada — **nada do trabalho
+  de frontend das duas rodadas anteriores (sidebar, cores, dashboard, densidade) tinha
+  sido commitado/deployado ainda**, só existia no working directory local. Se o usuário
+  testou via algo diferente do dev server local (cache de build antigo, aba não
+  recarregada), veria a versão antiga. Reconfirmei visualmente que os cards JÁ estavam
+  grandes no dev server atual (screenshots tiradas após restart limpo do `next dev`) —
+  código correto, sem mudança adicional necessária além de garantir que estava tudo
+  rodando fresco.
+- **Item 3 (logout)**: `src/app/actions/auth.ts` (`signOutAction`, Supabase
+  `auth.signOut()` + `redirect('/login')`), botão "Sair" (`lucide-react` `LogOut`) no
+  rodapé da sidebar, acima do botão de recolher. Testado ponta a ponta: clique → sessão
+  encerrada → redireciona pra `/login` → login de novo funciona normal.
+- **Commit + deploy**: todo o trabalho de frontend das últimas duas rodadas (que nunca
+  tinha sido enviado) foi commitado e deployado agora — produção
+  (`https://nexhub-crm.vercel.app`) atualizada.
+
+## Cards com valores exatos + sidebar 100% na cor do tenant
+
+- **Cards da Início** (`task_cards_valores_exatos.md`): valores literais aplicados —
+  padding 32px, min-height 140px, ícone 56px, número 36px (text-4xl), label 16px
+  (text-base), gap 24px entre cards. Medido via DevTools (`getBoundingClientRect` +
+  `getComputedStyle`) após restart limpo do dev server: altura real 154px (vs. 104px
+  antes), todos os valores batendo exatamente com o spec.
+- **Sidebar 100% na cor do tenant** (`task_sidebar_cor_completa.md`): correção de rota
+  anterior — fundo da sidebar inteira agora é `var(--accent)` (não mais `#1E1B4B` fixo).
+  Texto/ícones usam novo token `--sidebar-text` (branco, declarado por paleta em
+  `globals.css` — infraestrutura pronta pra paleta futura clara sobrescrever com texto
+  escuro, sem cálculo de luminância em JS). Item ativo usa `var(--accent-hover)` (tom
+  mais escuro do próprio accent) como destaque, não mais borda azul separada.
+  `--brand-primary`/`--brand-sidebar-bg` mantidos no sistema como fallback documentado
+  pra telas sem tenant, só pararam de vazar pra dentro do app autenticado.
+  Confirmado via DevTools: `getComputedStyle(aside).backgroundColor` = `rgb(180, 83, 9)`
+  (exatamente o accent da paleta terracota) em Início/Agenda/Financeiro/Atendimento.
