@@ -333,8 +333,24 @@ usuário, ou instruções pra ele montar):
 1. Node Cron, a cada 15 min.
 2. Node HTTP Request: `POST {URL_DO_APP}/api/automations/reminders`, header
    `x-api-key: {AUTOMATION_API_KEY do .env.local}`.
-3. **Só funciona com o app deployado** (n8n na VPS não alcança `localhost` da máquina de
-   dev) — apontar pra URL de produção quando publicar.
+3. ~~Só funciona com o app deployado~~ — **já deployado**, ver seção abaixo. Usar
+   `https://nexhub-crm.vercel.app/api/automations/reminders` como URL do node HTTP Request.
+
+## Deploy — GitHub + Vercel
+
+- Repo: `https://github.com/caue-r-dev/nexhub-crm` (privado, conta `caue-r-dev`, via `gh repo
+  create --source=. --push`).
+- Vercel: projeto `nexhub-crm` no time `nexvixdev-3540s-projects` (sessão CLI já existia
+  local, reaproveitada — mesmo padrão dos outros produtos Nexvix). GitHub conectado direto no
+  `vercel link`, então todo push pra `master` gera deploy automático.
+- Produção: **https://nexhub-crm.vercel.app**
+- Env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `AUTOMATION_API_KEY`) configuradas via `vercel env add` nos 3
+  ambientes (production/preview/development) — mesmos valores do `.env.local`.
+- Testado em produção: `/login` responde 200, `/api/automations/reminders` responde 401 sem
+  `x-api-key` (auth funcionando).
+- `.env.local` ganhou `VERCEL_OIDC_TOKEN` automaticamente (`vercel link`) — token de sessão,
+  não é segredo de longa duração, não precisa tratar como as outras chaves.
 
 ### Notas técnicas
 
