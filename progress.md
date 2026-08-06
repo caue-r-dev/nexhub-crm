@@ -416,3 +416,68 @@ Pendente: A6 (Pix estático).
   "Aguardando pagamento" → "Marcar como pago" → status "Pago", botão some.
 
 Com isso, A1-A6 do kickoff_agenda_profissionais_pacotes.md estão completos e validados.
+
+## Identidade visual NexHub + reestruturação frontend (task_plan_nexhub_frontend.md)
+
+- Favicon/ícones: `app/favicon.ico`, `app/icon.png`, `app/apple-icon.png` (convenção
+  automática do Next.js App Router) a partir de `nexhub-brand-package/favicons`.
+- Cor de marca `#4338CA` (`--brand-primary`) e sidebar `#1E1B4B` (`--brand-sidebar-bg`)
+  adicionadas em `globals.css` como fixas, **fora** do sistema `[data-palette]` — são o
+  "chrome" da marca (sidebar, balão de mensagem enviada), não sobrescrevem o `--accent`
+  de cada tenant (petroleo/bege/neutro) usado no conteúdo (botões, badges de profissional
+  etc.), decisão confirmada com o usuário.
+- Navbar horizontal (`AppNav.tsx`) substituída por `Sidebar.tsx`: fixa à esquerda,
+  colapsa/expande com persistência em `localStorage`, logo `nexhub-icon.png`/
+  `nexhub-wordmark.png` (copiados pra `public/brand/`).
+  - **Bug pego e corrigido antes de reportar**: logo via `next/image` retornava 400 do
+    otimizador (`/_next/image` → "isn't a valid image"), mesmo com PNG válido. Troquei
+    pra `<img>` simples — logo estático pequeno não precisa de otimização, evita a
+    dependência do pipeline de otimização do Next para esse caso.
+- Início: de placeholder vazio pra dashboard-resumo (4 cards: agendamentos hoje, a
+  receber na semana, pendências, novos clientes na semana + lista dos próximos
+  agendamentos do dia).
+- Clientes: ícones nos campos de contato da ficha (telefone/documento/nascimento/
+  convênio) e espaçamento mais generoso na lista e nos cards.
+- Financeiro: BarChart existente ganhou a cor de marca na barra "A receber"; novo
+  `RevenueAreaChart` (Recharts `AreaChart`, gradiente `--brand-primary` esmaecendo)
+  mostrando evolução de receita mês a mês, lado a lado com o BarChart.
+- Agenda: `STATUS_BG` (único hex hardcoded do projeto) trocado por `color-mix()` a
+  partir das CSS vars de status — sem mudar a lógica de cores por status. Comentário
+  no `AppointmentBlock.tsx` sinalizando redesenho pendente do card (aguardando
+  referência do Cauê).
+- Atendimento: balão de mensagem enviada trocado de `bg-accent` pra `bg-brand` (cor de
+  marca fixa) — baixo risco, só o balão, resto do redesenho aguarda referência.
+- Validado manualmente em browser: sidebar colapsa/expande e persiste após reload,
+  navegação em todas as 5 páginas sem quebrar layout, dashboard puxando dados reais,
+  gráficos com cor de marca, ícones de contato, balão indigo.
+
+Itens propositalmente não tocados (aguardando referência do Cauê): redesenho do card de
+agendamento na Agenda, redesenho completo do Atendimento.
+
+## Ajustes visuais pós-implementação (task_ajustes_visuais_nexhub.md)
+
+- **Bug corrigido**: item ativo da sidebar usava `var(--brand-primary)` (índigo fixo do
+  NexHub) em vez de `var(--accent)` (cor da paleta do tenant, já usada corretamente nos
+  botões e blocos da Agenda). `Sidebar.tsx` agora lê `var(--accent)` pro indicador/fundo
+  do item ativo — mesma fonte de cor que a Agenda já usava. `--brand-primary` continua
+  definida no sistema (não removida), só parou de vazar pro item ativo da sidebar. Fundo
+  da sidebar em si (`--brand-sidebar-bg`, índigo escuro) e o balão de mensagem enviada no
+  Atendimento continuam usando a cor de marca fixa — eram decisões explícitas da task
+  anterior, não o bug reportado aqui.
+- **Densidade de layout**: container principal (`(dashboard)/layout.tsx`) de `max-w-5xl`
+  pra `max-w-7xl`, deixando mais espaço horizontal disponível pro conteúdo de cada tela.
+  - Início: cards de métrica maiores (padding, ícone e número com mais destaque).
+  - Financeiro: mesmo tratamento nos 3 cards de resumo.
+  - Agenda: colunas de profissional (visão Dia) e de dia (visão Semana) trocaram largura
+    fixa por `flex-1` com `min-width` — poucos profissionais cadastrados fazem as colunas
+    esticarem pra preencher a largura toda; muitos profissionais continuam gerando scroll
+    horizontal normalmente (min-width preservado). Opção (a) do plano, sem tocar lógica de
+    agendamento.
+  - Clientes/Atendimento: só ajustes pontuais (busca um pouco mais larga); Atendimento já
+    usava flexbox fluido, não precisou de mudança estrutural.
+- Validado manualmente em browser com o tenant terracota (o mesmo do bug report): sidebar
+  agora reflete a cor certa em todas as 5 páginas, colunas da Agenda preenchem a largura,
+  cards do Início/Financeiro maiores. **Não validei com um segundo tenant de paleta
+  diferente por falta de credenciais de login** — mas o mecanismo é o mesmo `var(--accent)`
+  já comprovado funcionando nos botões/blocos da Agenda, então deve se comportar igual pra
+  qualquer paleta.

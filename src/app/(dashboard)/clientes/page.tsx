@@ -42,7 +42,7 @@ export default async function ClientesPage({
         </Link>
       </div>
 
-      <form className="relative max-w-sm">
+      <form className="relative max-w-md">
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
         <input
           type="text"
@@ -59,9 +59,9 @@ export default async function ClientesPage({
             <Link
               key={client.id}
               href={`/clientes/${client.id}`}
-              className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg"
+              className="flex items-center gap-4 px-5 py-4 hover:bg-bg"
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
                 {initials(client.name)}
               </div>
               <div className="min-w-0 flex-1">

@@ -3,6 +3,7 @@ import { CircleCheck, Clock, TriangleAlert, Plus, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { TransactionStatusSelect } from '@/components/financeiro/TransactionStatusSelect'
 import { RevenueChart } from '@/components/financeiro/RevenueChart'
+import { RevenueAreaChart } from '@/components/financeiro/RevenueAreaChart'
 import { BR_TZ } from '@/lib/date-range'
 
 function formatBRL(value: number) {
@@ -73,37 +74,40 @@ export default async function FinanceiroPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-status-confirmed/10">
-            <CircleCheck className="h-5 w-5 text-status-confirmed" />
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-status-confirmed/10">
+            <CircleCheck className="h-7 w-7 text-status-confirmed" />
           </div>
           <div>
             <p className="text-sm text-text-secondary">Recebido</p>
-            <p className="text-xl font-semibold text-text">{formatBRL(recebido)}</p>
+            <p className="text-3xl font-semibold text-text">{formatBRL(recebido)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-soft">
-            <Clock className="h-5 w-5 text-accent" />
+        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent-soft">
+            <Clock className="h-7 w-7 text-accent" />
           </div>
           <div>
             <p className="text-sm text-text-secondary">A receber</p>
-            <p className="text-xl font-semibold text-text">{formatBRL(aReceber)}</p>
+            <p className="text-3xl font-semibold text-text">{formatBRL(aReceber)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-status-cancelled/10">
-            <TriangleAlert className="h-5 w-5 text-status-cancelled" />
+        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-status-cancelled/10">
+            <TriangleAlert className="h-7 w-7 text-status-cancelled" />
           </div>
           <div>
             <p className="text-sm text-text-secondary">Pendências</p>
-            <p className="text-xl font-semibold text-text">{formatBRL(pendencias)}</p>
+            <p className="text-3xl font-semibold text-text">{formatBRL(pendencias)}</p>
           </div>
         </div>
       </div>
 
-      <RevenueChart data={monthlyData} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <RevenueChart data={monthlyData} />
+        <RevenueAreaChart data={monthlyData} />
+      </div>
 
       <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
         {rows.length ? (
@@ -112,7 +116,7 @@ export default async function FinanceiroPage() {
             const isLate = !!t.due_date && t.due_date < todayStr && t.status !== 'received'
 
             return (
-              <div key={t.id} className="flex items-center gap-4 px-4 py-3.5">
+              <div key={t.id} className="flex items-center gap-4 px-5 py-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
                   {clientName ? initials(clientName) : '—'}
                 </div>

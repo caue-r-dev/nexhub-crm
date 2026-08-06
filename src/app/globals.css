@@ -41,6 +41,15 @@
   --status-cancelled: #dc2626;
 }
 
+/* Cor de marca NexHub — fixa, não é sobrescrita pela paleta do tenant.
+   Usada só no "chrome" da marca (sidebar, logo), nunca no conteúdo
+   tenant-scoped (que continua usando --accent). */
+:root {
+  --brand-primary: #4338ca;
+  --brand-primary-soft: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+  --brand-sidebar-bg: #1e1b4b;
+}
+
 /* Derivados do accent de cada paleta — nunca hardcoded por paleta,
    sempre relativo ao --accent atual (troca de paleta continua sendo
    um único ponto de leitura). */
@@ -63,6 +72,9 @@
   --color-status-pending: var(--status-pending);
   --color-status-confirmed: var(--status-confirmed);
   --color-status-cancelled: var(--status-cancelled);
+  --color-brand: var(--brand-primary);
+  --color-brand-soft: var(--brand-primary-soft);
+  --color-brand-sidebar: var(--brand-sidebar-bg);
 }
 
 body {

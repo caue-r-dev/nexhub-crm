@@ -183,11 +183,11 @@ function DayGrid({
 
   return (
     <div className="overflow-x-auto">
-      <div className="flex min-w-max">
+      <div className="flex w-full">
         <TimeGutter />
-        <div className="flex">
+        <div className="flex flex-1">
           {visible.map((p) => (
-            <div key={p.id} className="flex w-36 flex-col border-l border-border sm:w-44">
+            <div key={p.id} className="flex min-w-[144px] flex-1 flex-col border-l border-border sm:min-w-[176px]">
               <div className="sticky top-0 flex h-11 items-center gap-1.5 border-b border-border bg-surface px-2">
                 <span
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
@@ -209,7 +209,7 @@ function DayGrid({
           ))}
 
           {unassigned.length > 0 && (
-            <div className="flex w-36 flex-col border-l border-border sm:w-44">
+            <div className="flex min-w-[144px] flex-1 flex-col border-l border-border sm:min-w-[176px]">
               <div className="sticky top-0 flex h-11 items-center gap-1.5 border-b border-border bg-surface px-2">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-text-secondary text-[10px] font-semibold text-white">
                   ?
@@ -265,11 +265,11 @@ function WeekGrid({
       </div>
 
       <div className="overflow-x-auto">
-        <div className="flex min-w-max">
+        <div className="flex w-full">
           <TimeGutter />
-          <div className="flex">
+          <div className="flex flex-1">
             {days.map((day) => (
-              <div key={day.toISOString()} className="flex w-32 flex-col border-l border-border sm:w-40">
+              <div key={day.toISOString()} className="flex min-w-[128px] flex-1 flex-col border-l border-border sm:min-w-[160px]">
                 <div className="flex h-11 flex-col items-center justify-center border-b border-border">
                   <span className="text-[10px] text-text-secondary">{WEEKDAY_LABEL[weekdayIndexBR(day)]}</span>
                   <span className="text-xs font-semibold text-text">{dayOfMonthBR(day)}</span>

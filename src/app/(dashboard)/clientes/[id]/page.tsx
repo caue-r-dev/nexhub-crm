@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Cake, FileText, Phone, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { BR_TZ } from '@/lib/date-range'
 import { getCurrentTenantNicheSlug } from '@/lib/tenant'
@@ -60,22 +61,34 @@ export default async function FichaClientePage({
 
       {nicheSlug === 'dentista' && <ClientTabs clientId={id} active="ficha" />}
 
-      <div className="grid max-w-md grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-4">
-        <div>
-          <p className="text-xs text-text-secondary">Telefone</p>
-          <p className="text-text">{client.phone ?? '—'}</p>
+      <div className="grid max-w-md grid-cols-2 gap-5 rounded-xl border border-border bg-surface p-5">
+        <div className="flex items-start gap-2.5">
+          <Phone className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" />
+          <div>
+            <p className="text-xs text-text-secondary">Telefone</p>
+            <p className="text-text">{client.phone ?? '—'}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-text-secondary">Documento</p>
-          <p className="text-text">{client.document ?? '—'}</p>
+        <div className="flex items-start gap-2.5">
+          <FileText className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" />
+          <div>
+            <p className="text-xs text-text-secondary">Documento</p>
+            <p className="text-text">{client.document ?? '—'}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-text-secondary">Nascimento</p>
-          <p className="text-text">{client.birth_date ?? '—'}</p>
+        <div className="flex items-start gap-2.5">
+          <Cake className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" />
+          <div>
+            <p className="text-xs text-text-secondary">Nascimento</p>
+            <p className="text-text">{client.birth_date ?? '—'}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-text-secondary">Convênio</p>
-          <p className="text-text">{client.convenio ?? 'Particular'}</p>
+        <div className="flex items-start gap-2.5">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" />
+          <div>
+            <p className="text-xs text-text-secondary">Convênio</p>
+            <p className="text-text">{client.convenio ?? 'Particular'}</p>
+          </div>
         </div>
       </div>
 

@@ -8,11 +8,11 @@ import { StatusSelect } from './StatusSelect'
 import type { AppointmentStatus } from '@/lib/supabase/types'
 
 const STATUS_BG: Record<string, string> = {
-  pending: '#EFF6FF',
-  confirmed: '#F0FDF4',
-  cancelled: '#FEF2F2',
-  done: '#F4F4F5',
-  no_show: '#F4F4F5',
+  pending: 'color-mix(in srgb, var(--status-pending) 10%, var(--surface))',
+  confirmed: 'color-mix(in srgb, var(--status-confirmed) 10%, var(--surface))',
+  cancelled: 'color-mix(in srgb, var(--status-cancelled) 10%, var(--surface))',
+  done: 'color-mix(in srgb, var(--text-secondary) 10%, var(--surface))',
+  no_show: 'color-mix(in srgb, var(--text-secondary) 10%, var(--surface))',
 }
 
 const STATUS_BORDER: Record<string, string> = {
@@ -32,6 +32,8 @@ export type BlockAppointment = {
   timeLabel: string
 }
 
+// Card do bloco de agendamento — redesenho visual pendente (aguardando
+// referência do Cauê). Não mudar layout/estrutura fora disso sem necessidade.
 export function AppointmentBlock({ appt, tz }: { appt: BlockAppointment; tz: string }) {
   const [open, setOpen] = useState(false)
 

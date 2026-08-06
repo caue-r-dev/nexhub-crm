@@ -153,7 +153,7 @@ export function ChatApp({ initial }: { initial: ChatwootConversation[] }) {
                       <div
                         className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
                           outgoing
-                            ? 'rounded-br-sm bg-accent text-white'
+                            ? 'rounded-br-sm bg-brand text-white'
                             : 'rounded-bl-sm border border-border bg-surface text-text'
                         }`}
                       >
