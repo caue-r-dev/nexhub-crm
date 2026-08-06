@@ -8,7 +8,7 @@ export async function listConversationsAction() {
   if (!tenant) return { error: 'Sessão inválida.' }
 
   const config = getChatwootConfig(tenant)
-  if (!config) return { error: 'Atendimento via WhatsApp não configurado pra esse tenant.' }
+  if (!config) return { error: 'Conecte agora seu WhatsApp' }
 
   try {
     const conversations = await listConversations(config)
@@ -23,7 +23,7 @@ export async function listMessagesAction(conversationId: number) {
   if (!tenant) return { error: 'Sessão inválida.' }
 
   const config = getChatwootConfig(tenant)
-  if (!config) return { error: 'Atendimento via WhatsApp não configurado pra esse tenant.' }
+  if (!config) return { error: 'Conecte agora seu WhatsApp' }
 
   try {
     const messages = await listMessages(config, conversationId)
@@ -40,7 +40,7 @@ export async function sendMessageAction(conversationId: number, content: string)
   if (!tenant) return { error: 'Sessão inválida.' }
 
   const config = getChatwootConfig(tenant)
-  if (!config) return { error: 'Atendimento via WhatsApp não configurado pra esse tenant.' }
+  if (!config) return { error: 'Conecte agora seu WhatsApp' }
 
   try {
     const message = await sendMessage(config, conversationId, content.trim())
