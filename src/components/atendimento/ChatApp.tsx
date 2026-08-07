@@ -5,8 +5,8 @@ import { MessageCircle, Send, User } from 'lucide-react'
 import { listConversationsAction, listMessagesAction, sendMessageAction } from '@/app/actions/chat'
 import type { ChatwootConversation, ChatwootMessage } from '@/lib/chatwoot'
 
-const CONVERSATIONS_POLL_MS = 15000
-const MESSAGES_POLL_MS = 4000
+const CONVERSATIONS_POLL_MS = 8000
+const MESSAGES_POLL_MS = 3000
 
 function timeShort(unixSeconds: number) {
   return new Date(unixSeconds * 1000).toLocaleTimeString('pt-BR', {
@@ -27,13 +27,28 @@ export function ChatApp({ initial }: { initial: ChatwootConversation[] }) {
   const selected = conversations.find((c) => c.id === selectedId) ?? null
 
   useEffect(() => {
-    const interval = setInterval(async () => {
+    async function loadConversations() {
       const result = await listConversationsAction()
       if (result && 'conversations' in result) {
         setConversations(result.conversations ?? [])
       }
-    }, CONVERSATIONS_POLL_MS)
-    return () => clearInterval(interval)
+    }
+
+    const interval = setInterval(loadConversations, CONVERSATIONS_POLL_MS)
+
+    // Aba em segundo plano (ex: usuário foi mandar mensagem de teste no
+    // WhatsApp) faz o browser jogar o setInterval pra bem mais devagar
+    // (throttling padrão de aba inativa) — sem isso, dava impressão de que
+    // a mensagem só chegava depois de recarregar a página manualmente.
+    function onVisible() {
+      if (document.visibilityState === 'visible') loadConversations()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
 
   useEffect(() => {
@@ -50,9 +65,16 @@ export function ChatApp({ initial }: { initial: ChatwootConversation[] }) {
 
     load()
     const interval = setInterval(load, MESSAGES_POLL_MS)
+
+    function onVisible() {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       cancelled = true
       clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [selectedId])
 
