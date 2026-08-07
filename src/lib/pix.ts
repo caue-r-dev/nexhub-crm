@@ -11,7 +11,7 @@ export async function generatePixQr({
   receiverName: string
   amount: number
   txid: string
-}) {
+}): Promise<{ error: string } | { brCode: string; qrImage: string }> {
   const pix = createStaticPix({
     pixKey,
     merchantName: receiverName.slice(0, 25),
