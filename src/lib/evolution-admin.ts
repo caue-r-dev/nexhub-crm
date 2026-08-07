@@ -124,3 +124,20 @@ export async function getConnectionState(instanceName: string): Promise<Connecti
   const data = await res.json()
   return data.instance?.state ?? 'close'
 }
+
+// Apaga a instância inteira (sessão Baileys + credenciais) — usado tanto
+// pelo botão "Desconectar" quanto pra limpar uma instância travada em
+// "connecting" sem nunca ter pareado de verdade.
+export async function deleteInstance(instanceName: string): Promise<void> {
+  const { BASE_URL, ADMIN_API_KEY } = requireEnv()
+
+  const res = await fetch(`${BASE_URL}/instance/delete/${instanceName}`, {
+    method: 'DELETE',
+    headers: { apikey: ADMIN_API_KEY },
+    cache: 'no-store',
+  })
+
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Evolution API ${res.status}: ${await res.text()}`)
+  }
+}

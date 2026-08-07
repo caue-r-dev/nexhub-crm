@@ -4,7 +4,7 @@ import { getCurrentAdmin } from '@/lib/admin'
 import { getCurrentTenant } from '@/lib/tenant'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createPlatformAccount, createPlatformUser, linkAccountUser, findInboxByName } from '@/lib/chatwoot-platform'
-import { createInstanceWithChatwoot, getInstanceQrCode, getConnectionState } from '@/lib/evolution-admin'
+import { createInstanceWithChatwoot, getInstanceQrCode, getConnectionState, deleteInstance } from '@/lib/evolution-admin'
 
 // Onboarding automático de WhatsApp por tenant — usa credenciais de
 // plataforma (Chatwoot Platform API + Evolution API global), mas quem chama
@@ -135,4 +135,53 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Erro desconhecido.' }, { status: 500 })
   }
+}
+
+// Desconecta o WhatsApp: apaga a instância na Evolution (sessão Baileys) e
+// zera os campos do tenant, deixando pronto pra conectar de novo do zero
+// (POST recria conta/inbox Chatwoot + instância). Precisa zerar
+// chatwoot_account_id também — o guard do POST usa esse campo pra saber se
+// já tem WhatsApp configurado, e manter ele setado sem instância Evolution
+// deixaria o tenant preso (POST recusa, e não tem instância pra conectar).
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: tenantId } = await params
+  if (!(await authorize(tenantId))) {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
+  const db = createAdminClient()
+
+  const { data: tenant } = await db
+    .from('tenants')
+    .select('evolution_instance_name')
+    .eq('id', tenantId)
+    .single()
+
+  if (!tenant?.evolution_instance_name) {
+    return NextResponse.json({ error: 'Nenhuma instância conectada.' }, { status: 404 })
+  }
+
+  try {
+    await deleteInstance(tenant.evolution_instance_name)
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Erro desconhecido.' }, { status: 500 })
+  }
+
+  const { error: updateError } = await db
+    .from('tenants')
+    .update({
+      evolution_instance_name: null,
+      evolution_base_url: null,
+      evolution_api_key: null,
+      chatwoot_account_id: null,
+      chatwoot_api_token: null,
+      chatwoot_base_url: null,
+      chatwoot_inbox_id: null,
+    })
+    .eq('id', tenantId)
+
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
 }
