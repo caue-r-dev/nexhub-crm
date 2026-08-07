@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Search, Plus, Users, Phone } from 'lucide-react'
+import { Search, Plus, Users, Phone, Upload, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 
 function initials(name: string) {
@@ -31,15 +31,31 @@ export default async function ClientesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-text">Clientes</h1>
-        <Link
-          href="/clientes/novo"
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white"
-        >
-          <Plus className="h-4 w-4" />
-          Novo cliente
-        </Link>
+        <div className="flex items-center gap-2">
+          <a
+            href="/api/clientes/export"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar</span>
+          </a>
+          <Link
+            href="/clientes/importar"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
+          >
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Importar</span>
+          </Link>
+          <Link
+            href="/clientes/novo"
+            className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-white sm:text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Novo cliente</span>
+          </Link>
+        </div>
       </div>
 
       <form className="relative max-w-md">
