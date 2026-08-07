@@ -1,9 +1,10 @@
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
 
 type Tenant = Database['public']['Tables']['tenants']['Row']
 
-export async function getCurrentTenant(): Promise<Tenant | null> {
+export const getCurrentTenant = cache(async function getCurrentTenant(): Promise<Tenant | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,7 +25,7 @@ export async function getCurrentTenant(): Promise<Tenant | null> {
     .single()
 
   return tenant
-}
+})
 
 // Módulos específicos de nicho (ex: Odontograma) só carregam pra quem tem o
 // slug correspondente — núcleo comum nunca muda, só o que aparece a mais.

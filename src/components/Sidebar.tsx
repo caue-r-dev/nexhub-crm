@@ -88,23 +88,53 @@ export function Sidebar({
         })}
       </nav>
 
-      {!collapsed && subscription.daysLeft !== null && (
+      {!collapsed && (
         <div className="mx-2 mb-2 rounded-lg px-3 py-2 text-xs" style={textMuted}>
-          {subscription.status === 'trial' ? (
-            <span>Teste expira em {Math.max(subscription.daysLeft, 0)}d</span>
-          ) : (
-            <span>Vence em {Math.max(subscription.daysLeft, 0)}d</span>
+          {subscription.status === 'trial' && (
+            <span>
+              {subscription.daysLeft !== null
+                ? `Teste expira em ${Math.max(subscription.daysLeft, 0)}d`
+                : 'Período de teste'}
+            </span>
           )}
-          {subscription.status !== 'trial' && (
-            <button
-              type="button"
-              onClick={() => setShowRenewModal(true)}
-              className="mt-1 block font-semibold underline"
-              style={textFull}
-            >
-              Renovar
-            </button>
+
+          {subscription.status === 'active' && (
+            <>
+              <span>
+                {subscription.daysLeft !== null
+                  ? `Vence em ${Math.max(subscription.daysLeft, 0)}d`
+                  : 'Assinatura ativa'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowRenewModal(true)}
+                className="mt-1 block font-semibold underline"
+                style={textFull}
+              >
+                Renovar
+              </button>
+            </>
           )}
+
+          {subscription.status === 'overdue' && (
+            <>
+              <span>
+                {subscription.daysLeft !== null && subscription.daysLeft < 0
+                  ? `Vencido há ${Math.abs(subscription.daysLeft)}d`
+                  : 'Assinatura vencida'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowRenewModal(true)}
+                className="mt-1 block font-semibold underline"
+                style={textFull}
+              >
+                Renovar
+              </button>
+            </>
+          )}
+
+          {subscription.status === 'cancelled' && <span>Assinatura cancelada</span>}
         </div>
       )}
 
