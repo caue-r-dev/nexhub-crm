@@ -107,3 +107,68 @@ export async function markPaidAction(id: string) {
   revalidatePath('/admin')
   revalidatePath(`/admin/tenants/${id}`)
 }
+
+export async function generateTrialTenantAction(
+  email: string
+): Promise<{ error: string } | { tempPassword: string; email: string }> {
+  const supabase = await requireAdmin()
+
+  const { data: niche } = await supabase
+    .from('niches')
+    .select('id')
+    .eq('active', true)
+    .order('sort_order')
+    .limit(1)
+    .single()
+
+  if (!niche) return { error: 'Nenhum nicho ativo cadastrado.' }
+
+  const tempPassword = crypto.randomBytes(9).toString('base64url')
+
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    email,
+    password: tempPassword,
+    email_confirm: true,
+  })
+
+  if (authError || !authData.user) {
+    return { error: authError?.message ?? 'Não foi possível criar a conta.' }
+  }
+
+  const trialEndsAt = new Date()
+  trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + 7)
+
+  const { data: tenant, error: tenantError } = await supabase
+    .from('tenants')
+    .insert({
+      name: 'Novo tenant',
+      niche_id: niche.id,
+      theme_palette: 'petroleo',
+      subscription_status: 'trial',
+      trial_ends_at: trialEndsAt.toISOString().slice(0, 10),
+      onboarding_completed: false,
+    })
+    .select()
+    .single()
+
+  if (tenantError || !tenant) {
+    await supabase.auth.admin.deleteUser(authData.user.id)
+    return { error: tenantError?.message ?? 'Não foi possível criar o tenant.' }
+  }
+
+  const { error: userError } = await supabase.from('users').insert({
+    tenant_id: tenant.id,
+    auth_id: authData.user.id,
+    email,
+    role: 'owner',
+  })
+
+  if (userError) {
+    await supabase.auth.admin.deleteUser(authData.user.id)
+    return { error: userError.message }
+  }
+
+  revalidatePath('/admin')
+
+  return { tempPassword, email }
+}

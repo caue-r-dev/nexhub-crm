@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { GenerateTrialTenantForm } from '@/components/admin/GenerateTrialTenantForm'
 
 const STATUS_LABEL: Record<string, string> = {
   trial: 'Trial',
@@ -41,7 +42,10 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold text-text">Tenants</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-text">Tenants</h1>
+        <GenerateTrialTenantForm />
+      </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-border bg-surface p-4">
