@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Calendar, Home, LogOut, MessageCircle, PanelLeftClose, PanelLeftOpen, Users, Wallet } from 'lucide-react'
 import { signOutAction } from '@/app/actions/auth'
+import { SubscriptionRenewModal } from '@/components/SubscriptionRenewModal'
+import type { SubscriptionStatus } from '@/lib/supabase/types'
 
 const LINKS = [
   { href: '/', label: 'Início', icon: Home },
@@ -22,9 +24,14 @@ const STORAGE_KEY = 'nexhub_sidebar_collapsed'
 const textMuted = { color: 'color-mix(in srgb, var(--sidebar-text) 70%, transparent)' }
 const textFull = { color: 'var(--sidebar-text)' }
 
-export function Sidebar() {
+export function Sidebar({
+  subscription,
+}: {
+  subscription: { status: SubscriptionStatus; daysLeft: number | null }
+}) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [showRenewModal, setShowRenewModal] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -81,6 +88,26 @@ export function Sidebar() {
         })}
       </nav>
 
+      {!collapsed && subscription.daysLeft !== null && (
+        <div className="mx-2 mb-2 rounded-lg px-3 py-2 text-xs" style={textMuted}>
+          {subscription.status === 'trial' ? (
+            <span>Teste expira em {Math.max(subscription.daysLeft, 0)}d</span>
+          ) : (
+            <span>Vence em {Math.max(subscription.daysLeft, 0)}d</span>
+          )}
+          {subscription.status !== 'trial' && (
+            <button
+              type="button"
+              onClick={() => setShowRenewModal(true)}
+              className="mt-1 block font-semibold underline"
+              style={textFull}
+            >
+              Renovar
+            </button>
+          )}
+        </div>
+      )}
+
       <div
         className="flex flex-col gap-1 p-2"
         style={{ borderTop: '1px solid color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}
@@ -118,6 +145,8 @@ export function Sidebar() {
           color: var(--sidebar-text);
         }
       `}</style>
+
+      {showRenewModal && <SubscriptionRenewModal onClose={() => setShowRenewModal(false)} />}
     </aside>
   )
 }
