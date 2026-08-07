@@ -34,6 +34,7 @@ export default async function AdminTenantPage({
 
       <TenantAdminForm
         tenantId={tenant.id}
+        tenantName={tenant.name}
         initial={{
           trialEndsAt: tenant.trial_ends_at?.slice(0, 10) ?? '',
           monthlyPrice: tenant.monthly_price?.toString() ?? '',

@@ -173,3 +173,24 @@ export async function generateTrialTenantAction(
 
   return { tempPassword, email }
 }
+
+// Apaga o tenant e tudo que depende dele (clients, appointments, etc — tudo
+// via "on delete cascade" nas FKs). O que o cascade NÃO cobre são as contas
+// em auth.users dos usuários desse tenant (users.tenant_id cascateia pra
+// dentro, não pra auth.users) — por isso apaga essas contas manualmente
+// depois de derrubar o tenant.
+export async function deleteTenantAction(id: string): Promise<{ error: string } | undefined> {
+  const supabase = await requireAdmin()
+
+  const { data: users } = await supabase.from('users').select('auth_id').eq('tenant_id', id)
+
+  const { error } = await supabase.from('tenants').delete().eq('id', id)
+  if (error) return { error: error.message }
+
+  for (const user of users ?? []) {
+    await supabase.auth.admin.deleteUser(user.auth_id)
+  }
+
+  revalidatePath('/admin')
+  redirect('/admin')
+}
