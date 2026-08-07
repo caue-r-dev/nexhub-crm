@@ -16,8 +16,12 @@ Este spec cobre três fases sequenciais, implementadas nessa ordem.
 **Escopo:** `/admin/login`, `/admin` (dashboard/lista de tenants),
 `/admin/tenants/[id]`.
 
-- Logo: `public/brand/nexhub-icon-petroleo.png` + wordmark "NexHub", mesmo
-  padrão já usado no login de tenant (`src/components/login/LoginForm.tsx`).
+- Logo: **branca** (`public/brand/nexhub-icon.png` + `nexhub-wordmark.png`,
+  mesmos arquivos já usados na sidebar do cliente — não é a versão petróleo).
+  Precisa de um fundo escuro/colorido por trás pra ficar legível (ex: faixa
+  no header/sidebar do admin na cor `VERDE`), já que o ícone é traço branco
+  sem preenchimento sólido. A versão petróleo (`nexhub-icon-petroleo.png`)
+  fica exclusiva da tela de login (tenant e admin), que tem fundo claro.
 - Paleta: verde-petróleo `#0F6E56` como cor de destaque (mesma constante
   `VERDE` usada no login), substituindo o `bg-accent`/`text-accent` genérico
   atual nessas três telas.
