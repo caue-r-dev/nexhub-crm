@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { RefreshCw } from 'lucide-react'
 import {
   updateTenantAdminAction,
   setSubscriptionStatusAction,
@@ -56,9 +57,10 @@ export function TenantAdminForm({
         <button
           disabled={isPending}
           onClick={() => runAction(() => markPaidAction(tenantId))}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+          className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
         >
-          Marcar como pago
+          <RefreshCw className="h-4 w-4" />
+          Renovar assinatura
         </button>
         <button
           disabled={isPending}
