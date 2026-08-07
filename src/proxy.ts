@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_ROUTES = ['/login', '/cadastro']
+const PUBLIC_ROUTES = ['/login', '/cadastro', '/reset-password']
 
 export async function proxy(request: NextRequest) {
   // Painel admin tem auth própria (admin_users, checado no layout), separada
@@ -42,7 +42,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && isPublicRoute) {
+  // /reset-password é público mas o link de recovery do Supabase autentica o
+  // usuário (sessão temporária só pra trocar a senha) — não pode cair na
+  // regra abaixo ou o redirect tira o usuário da tela antes dele trocar.
+  if (user && isPublicRoute && pathname !== '/reset-password') {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
@@ -51,6 +54,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)',
   ],
 }
