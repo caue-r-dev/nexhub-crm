@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Image from 'next/image'
 import { adminLoginAction } from '@/app/actions/admin-login'
 
 export function AdminLoginForm() {
@@ -22,7 +23,14 @@ export function AdminLoginForm() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6">
-      <h1 className="mb-6 text-2xl font-semibold text-text">Painel Admin — NexHub</h1>
+      <div className="mb-8 flex items-center gap-2">
+        <Image src="/brand/nexhub-icon-petroleo.png" alt="" width={30} height={30} />
+        <span className="text-2xl font-extrabold" style={{ color: '#0F6E56' }}>
+          NexHub
+        </span>
+      </div>
+
+      <h1 className="mb-6 text-lg font-semibold text-text">Painel Admin</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
