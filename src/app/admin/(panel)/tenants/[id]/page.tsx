@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { TenantAdminForm } from '@/components/admin/TenantAdminForm'
+import { TenantUsersPanel } from '@/components/admin/TenantUsersPanel'
 
 export default async function AdminTenantPage({
   params,
@@ -12,6 +13,8 @@ export default async function AdminTenantPage({
 
   const { data: tenant } = await admin.from('tenants').select('*, niches(label)').eq('id', id).single()
   if (!tenant) notFound()
+
+  const { data: users } = await admin.from('users').select('id, email').eq('tenant_id', id)
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,6 +29,8 @@ export default async function AdminTenantPage({
           {tenant.chatwoot_account_id ? 'Conectado' : 'Não conectado — o próprio cliente conecta na aba Atendimento'}
         </span>
       </div>
+
+      <TenantUsersPanel users={users ?? []} />
 
       <TenantAdminForm
         tenantId={tenant.id}

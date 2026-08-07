@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import crypto from 'crypto'
 import { getCurrentAdmin } from '@/lib/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { SubscriptionStatus } from '@/lib/supabase/types'
@@ -47,6 +48,33 @@ export async function setSubscriptionStatusAction(id: string, status: Subscripti
 
   revalidatePath('/admin')
   revalidatePath(`/admin/tenants/${id}`)
+}
+
+// Gera senha temporária e já troca no auth.users via admin API — cliente loga
+// com ela e o ideal é trocar assim que entrar. Não fica salva em lugar
+// nenhum: só passa pela tela uma vez, quem repassa pro cliente é o admin.
+export async function generateTempPasswordAction(
+  userId: string
+): Promise<{ error: string } | { tempPassword: string; email: string }> {
+  const supabase = await requireAdmin()
+
+  const { data: user, error: fetchError } = await supabase
+    .from('users')
+    .select('auth_id, email')
+    .eq('id', userId)
+    .single()
+
+  if (fetchError || !user) return { error: fetchError?.message ?? 'Usuário não encontrado.' }
+
+  const tempPassword = crypto.randomBytes(9).toString('base64url')
+
+  const { error } = await supabase.auth.admin.updateUserById(user.auth_id, {
+    password: tempPassword,
+  })
+
+  if (error) return { error: error.message }
+
+  return { tempPassword, email: user.email }
 }
 
 export async function markPaidAction(id: string) {
