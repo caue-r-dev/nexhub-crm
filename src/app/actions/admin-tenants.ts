@@ -164,6 +164,7 @@ export async function generateTrialTenantAction(
   })
 
   if (userError) {
+    await supabase.from('tenants').delete().eq('id', tenant.id)
     await supabase.auth.admin.deleteUser(authData.user.id)
     return { error: userError.message }
   }
