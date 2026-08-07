@@ -87,6 +87,7 @@ export interface Database {
           pix_receiver_name: string | null
           reminder_message_24h: string | null
           reminder_message_2h: string | null
+          onboarding_completed: boolean
         }
         Insert: {
           id?: string
@@ -111,6 +112,7 @@ export interface Database {
           pix_receiver_name?: string | null
           reminder_message_24h?: string | null
           reminder_message_2h?: string | null
+          onboarding_completed?: boolean
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [
