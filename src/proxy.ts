@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login', '/cadastro', '/reset-password']
+const ONBOARDING_ROUTE = '/onboarding'
 
 export async function proxy(request: NextRequest) {
   // Painel admin tem auth própria (admin_users, checado no layout), separada
@@ -47,6 +48,36 @@ export async function proxy(request: NextRequest) {
   // regra abaixo ou o redirect tira o usuário da tela antes dele trocar.
   if (user && isPublicRoute && pathname !== '/reset-password') {
     return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  if (user && pathname !== ONBOARDING_ROUTE && !isPublicRoute) {
+    const { data: userRow } = await supabase
+      .from('users')
+      .select('tenants(onboarding_completed)')
+      .eq('auth_id', user.id)
+      .single()
+
+    const tenant = (Array.isArray(userRow?.tenants) ? userRow.tenants[0] : userRow?.tenants) as
+      | { onboarding_completed: boolean }
+      | undefined
+    if (tenant && !tenant.onboarding_completed) {
+      return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url))
+    }
+  }
+
+  if (user && pathname === ONBOARDING_ROUTE) {
+    const { data: userRow } = await supabase
+      .from('users')
+      .select('tenants(onboarding_completed)')
+      .eq('auth_id', user.id)
+      .single()
+
+    const tenant = (Array.isArray(userRow?.tenants) ? userRow.tenants[0] : userRow?.tenants) as
+      | { onboarding_completed: boolean }
+      | undefined
+    if (tenant?.onboarding_completed) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
   }
 
   return response
