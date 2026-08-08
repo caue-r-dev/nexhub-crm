@@ -88,6 +88,7 @@ export interface Database {
           reminder_message_24h: string | null
           reminder_message_2h: string | null
           onboarding_completed: boolean
+          default_deposit_amount: number | null
         }
         Insert: {
           id?: string
@@ -113,6 +114,7 @@ export interface Database {
           reminder_message_24h?: string | null
           reminder_message_2h?: string | null
           onboarding_completed?: boolean
+          default_deposit_amount?: number | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [

@@ -14,7 +14,11 @@ export default async function PixConfigPage() {
         </p>
       </div>
       {tenant && (
-        <PixSettingsForm initialKey={tenant.pix_key ?? ''} initialName={tenant.pix_receiver_name ?? tenant.name} />
+        <PixSettingsForm
+          initialKey={tenant.pix_key ?? ''}
+          initialName={tenant.pix_receiver_name ?? tenant.name}
+          initialDefaultDepositAmount={tenant.default_deposit_amount?.toString() ?? ''}
+        />
       )}
     </div>
   )

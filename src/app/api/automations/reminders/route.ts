@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const { data: appointments, error } = await admin
       .from('appointments')
       .select(
-        'id, datetime, tenant_id, client_id, clients(name, phone), tenants(name, evolution_base_url, evolution_api_key, evolution_instance_name, reminder_message_24h, reminder_message_2h)'
+        'id, datetime, tenant_id, client_id, status, clients(name, phone), tenants(name, evolution_base_url, evolution_api_key, evolution_instance_name, reminder_message_24h, reminder_message_2h)'
       )
       .eq('type', 'consulta')
       .in('status', ['pending', 'confirmed'])
@@ -97,6 +97,38 @@ export async function POST(request: Request) {
           sent: false,
           error: 'Sem telefone ou WhatsApp não configurado pro tenant.',
         })
+        continue
+      }
+
+      // Chegou na janela de 2h e o paciente nunca confirmou (nem pelo botão
+      // do WhatsApp, nem manualmente na agenda) — cancela automático em vez
+      // de mandar o lembrete de 2h, que só faz sentido pra quem confirmou.
+      if (w.label === '2h' && appt.status === 'pending') {
+        if (dryRun) {
+          results.push({ window: w.label, appointmentId: appt.id, client: client.name, sent: false, error: 'dry-run (auto-cancel)' })
+          continue
+        }
+
+        try {
+          await sendWhatsAppText(
+            {
+              baseUrl: tenant.evolution_base_url,
+              apiKey: tenant.evolution_api_key,
+              instanceName: tenant.evolution_instance_name,
+            },
+            client.phone,
+            `Sua consulta na ${tenant.name} foi cancelada por falta de confirmação.`
+          )
+        } catch {
+          // Aviso é best-effort — cancelamento vale de qualquer jeito.
+        }
+
+        await admin
+          .from('appointments')
+          .update({ status: 'cancelled', reminder_2h_sent_at: new Date().toISOString() })
+          .eq('id', appt.id)
+
+        results.push({ window: w.label, appointmentId: appt.id, client: client.name, sent: true, error: 'auto-cancelado (sem confirmação)' })
         continue
       }
 

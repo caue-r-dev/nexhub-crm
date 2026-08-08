@@ -3,9 +3,18 @@
 import { useState, useTransition } from 'react'
 import { updatePixSettingsAction } from '@/app/actions/pix-settings'
 
-export function PixSettingsForm({ initialKey, initialName }: { initialKey: string; initialName: string }) {
+export function PixSettingsForm({
+  initialKey,
+  initialName,
+  initialDefaultDepositAmount,
+}: {
+  initialKey: string
+  initialName: string
+  initialDefaultDepositAmount: string
+}) {
   const [pixKey, setPixKey] = useState(initialKey)
   const [pixReceiverName, setPixReceiverName] = useState(initialName)
+  const [defaultDepositAmount, setDefaultDepositAmount] = useState(initialDefaultDepositAmount)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -14,7 +23,7 @@ export function PixSettingsForm({ initialKey, initialName }: { initialKey: strin
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await updatePixSettingsAction({ pixKey, pixReceiverName })
+      const result = await updatePixSettingsAction({ pixKey, pixReceiverName, defaultDepositAmount })
       if (result && 'error' in result) {
         setError(result.error ?? null)
       } else {
@@ -49,6 +58,25 @@ export function PixSettingsForm({ initialKey, initialName }: { initialKey: strin
             setSaved(false)
           }}
         />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">Valor padrão do sinal (R$)</span>
+        <input
+          type="number"
+          step="0.01"
+          placeholder="Ex: 50.00"
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+          value={defaultDepositAmount}
+          onChange={(e) => {
+            setDefaultDepositAmount(e.target.value)
+            setSaved(false)
+          }}
+        />
+        <span className="text-xs text-text-secondary">
+          Usado quando o paciente confirma a consulta pelo WhatsApp — manda o PIX desse valor
+          automático. Vazio = não manda PIX na confirmação automática.
+        </span>
       </label>
 
       {error && <p className="text-sm text-status-cancelled">{error}</p>}

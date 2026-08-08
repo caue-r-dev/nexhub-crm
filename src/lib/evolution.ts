@@ -37,3 +37,38 @@ export async function sendWhatsAppText(
     throw new Error(`Evolution API ${res.status}: ${await res.text()}`)
   }
 }
+
+// QR code do Pix é sempre um data URL (`data:image/png;base64,...`, gerado
+// por `generatePixQr`) — a Evolution espera só o base64 puro no campo
+// `media`, sem o prefixo.
+export async function sendWhatsAppImage(
+  config: EvolutionConfig,
+  phone: string,
+  imageDataUrl: string,
+  caption?: string
+): Promise<void> {
+  const number = normalizePhone(phone)
+  if (!number) throw new Error('Telefone inválido.')
+
+  const base64 = imageDataUrl.replace(/^data:image\/\w+;base64,/, '')
+
+  const res = await fetch(`${config.baseUrl}/message/sendMedia/${config.instanceName}`, {
+    method: 'POST',
+    headers: {
+      apikey: config.apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      number,
+      mediatype: 'image',
+      mimetype: 'image/png',
+      media: base64,
+      fileName: 'pix-qrcode.png',
+      caption,
+    }),
+  })
+
+  if (!res.ok) {
+    throw new Error(`Evolution API ${res.status}: ${await res.text()}`)
+  }
+}
