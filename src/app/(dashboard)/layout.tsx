@@ -14,9 +14,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const daysLeft = daysUntil(relevantDate ?? null)
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar subscription={{ status: tenant?.subscription_status ?? 'trial', daysLeft }} />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8 lg:px-10">{children}</main>
+      <main className="mx-auto w-full max-w-7xl min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</main>
     </div>
   )
 }

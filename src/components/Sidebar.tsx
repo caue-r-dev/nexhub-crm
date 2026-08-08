@@ -3,7 +3,18 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calendar, Home, LogOut, MessageCircle, PanelLeftClose, PanelLeftOpen, Users, Wallet } from 'lucide-react'
+import {
+  Calendar,
+  Home,
+  LogOut,
+  Menu,
+  MessageCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Users,
+  Wallet,
+  X,
+} from 'lucide-react'
 import { signOutAction } from '@/app/actions/auth'
 import { SubscriptionRenewModal } from '@/components/SubscriptionRenewModal'
 import type { SubscriptionStatus } from '@/lib/supabase/types'
@@ -31,12 +42,19 @@ export function Sidebar({
 }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [showRenewModal, setShowRenewModal] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored === '1') setCollapsed(true)
   }, [])
+
+  // Troca de página fecha a gaveta mobile sozinha — sem isso, o menu ficava
+  // aberto por cima da tela nova até o usuário fechar manualmente.
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   function toggle() {
     setCollapsed((prev) => {
@@ -47,49 +65,76 @@ export function Sidebar({
   }
 
   return (
-    <aside
-      className={`sticky top-0 flex h-screen shrink-0 flex-col bg-accent transition-[width] duration-200 ${
-        collapsed ? 'w-16' : 'w-60'
-      }`}
-    >
-      <div className="flex h-16 items-center px-3">
-        <Link href="/" className="flex min-w-0 items-center gap-2">
-          {collapsed ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src="/brand/nexhub-icon.png" alt="NexHub" className="h-8 w-8 shrink-0" />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src="/brand/nexhub-wordmark.png" alt="NexHub" className="h-8 w-auto" />
-          )}
-        </Link>
+    <>
+      {/* Barra fixa só em mobile — a sidebar de verdade fica fora da tela até
+          abrir. Sem isso não tinha jeito nenhum de navegar no celular. */}
+      <div className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-accent px-3 md:hidden">
+        <button type="button" onClick={() => setMobileOpen(true)} aria-label="Abrir menu" style={textFull}>
+          <Menu className="h-6 w-6" />
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/nexhub-wordmark.png" alt="NexHub" className="h-6 w-auto" />
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-2">
-        {LINKS.map((link) => {
-          const active = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)
-          const Icon = link.icon
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              title={collapsed ? link.label : undefined}
-              className={`sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                collapsed ? 'justify-center' : ''
-              }`}
-              style={{
-                ...(active ? textFull : textMuted),
-                backgroundColor: active ? 'var(--accent-hover)' : undefined,
-              }}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span className="truncate">{link.label}</span>}
-            </Link>
-          )
-        })}
-      </nav>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
-      {!collapsed && (
-        <div className="mx-2 mb-2 rounded-lg px-3 py-2 text-xs" style={textMuted}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col bg-accent transition-transform duration-200 md:sticky md:top-0 md:translate-x-0 md:transition-[width] ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${collapsed ? 'md:w-16' : 'md:w-60'}`}
+      >
+        <div className="flex h-16 items-center justify-between px-3">
+          <Link href="/" className="flex min-w-0 items-center gap-2">
+            {collapsed ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src="/brand/nexhub-icon.png" alt="NexHub" className="hidden h-8 w-8 shrink-0 md:block" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src="/brand/nexhub-wordmark.png" alt="NexHub" className="h-8 w-auto md:h-8" />
+            )}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Fechar menu"
+            className="md:hidden"
+            style={textFull}
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-1 px-2">
+          {LINKS.map((link) => {
+            const active = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)
+            const Icon = link.icon
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                title={collapsed ? link.label : undefined}
+                className={`sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  collapsed ? 'md:justify-center' : ''
+                }`}
+                style={{
+                  ...(active ? textFull : textMuted),
+                  backgroundColor: active ? 'var(--accent-hover)' : undefined,
+                }}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className={`truncate ${collapsed ? 'md:hidden' : ''}`}>{link.label}</span>
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className={`mx-2 mb-2 rounded-lg px-3 py-2 text-xs ${collapsed ? 'md:hidden' : ''}`} style={textMuted}>
           {subscription.status === 'trial' && (
             <span>
               {subscription.daysLeft !== null
@@ -136,47 +181,47 @@ export function Sidebar({
 
           {subscription.status === 'cancelled' && <span>Assinatura cancelada</span>}
         </div>
-      )}
 
-      <div
-        className="flex flex-col gap-1 p-2"
-        style={{ borderTop: '1px solid color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}
-      >
-        <button
-          type="button"
-          onClick={toggle}
-          className={`sidebar-link flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-            collapsed ? 'justify-center' : ''
-          }`}
-          style={textMuted}
+        <div
+          className="flex flex-col gap-1 p-2"
+          style={{ borderTop: '1px solid color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}
         >
-          {collapsed ? <PanelLeftOpen className="h-5 w-5 shrink-0" /> : <PanelLeftClose className="h-5 w-5 shrink-0" />}
-          {!collapsed && <span>Recolher</span>}
-        </button>
-
-        <form action={signOutAction}>
           <button
-            type="submit"
-            title={collapsed ? 'Sair' : undefined}
-            className={`sidebar-link flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              collapsed ? 'justify-center' : ''
+            type="button"
+            onClick={toggle}
+            className={`sidebar-link hidden w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors md:flex ${
+              collapsed ? 'md:justify-center' : ''
             }`}
             style={textMuted}
           >
-            <LogOut className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>Sair</span>}
+            {collapsed ? <PanelLeftOpen className="h-5 w-5 shrink-0" /> : <PanelLeftClose className="h-5 w-5 shrink-0" />}
+            {!collapsed && <span>Recolher</span>}
           </button>
-        </form>
-      </div>
 
-      <style jsx>{`
-        .sidebar-link:hover {
-          background-color: color-mix(in srgb, var(--sidebar-text) 8%, transparent);
-          color: var(--sidebar-text);
-        }
-      `}</style>
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              title={collapsed ? 'Sair' : undefined}
+              className={`sidebar-link flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                collapsed ? 'md:justify-center' : ''
+              }`}
+              style={textMuted}
+            >
+              <LogOut className="h-5 w-5 shrink-0" />
+              <span className={collapsed ? 'md:hidden' : ''}>Sair</span>
+            </button>
+          </form>
+        </div>
 
-      {showRenewModal && <SubscriptionRenewModal onClose={() => setShowRenewModal(false)} />}
-    </aside>
+        <style jsx>{`
+          .sidebar-link:hover {
+            background-color: color-mix(in srgb, var(--sidebar-text) 8%, transparent);
+            color: var(--sidebar-text);
+          }
+        `}</style>
+
+        {showRenewModal && <SubscriptionRenewModal onClose={() => setShowRenewModal(false)} />}
+      </aside>
+    </>
   )
 }

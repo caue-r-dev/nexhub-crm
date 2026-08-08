@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { MessageCircle, Send, User } from 'lucide-react'
+import { ArrowLeft, MessageCircle, Send, User } from 'lucide-react'
 import { listConversationsAction, listMessagesAction, sendMessageAction } from '@/app/actions/chat'
 import type { ChatwootConversation, ChatwootMessage } from '@/lib/chatwoot'
 
@@ -101,7 +101,11 @@ export function ChatApp({ initial }: { initial: ChatwootConversation[] }) {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-xl border border-border bg-surface">
-      <div className="flex w-72 shrink-0 flex-col divide-y divide-border overflow-y-auto border-r border-border">
+      <div
+        className={`w-full shrink-0 flex-col divide-y divide-border overflow-y-auto border-r border-border md:flex md:w-72 ${
+          selectedId ? 'hidden' : 'flex'
+        }`}
+      >
         {conversations.length ? (
           conversations.map((c) => {
             const sender = c.meta.sender
@@ -146,10 +150,18 @@ export function ChatApp({ initial }: { initial: ChatwootConversation[] }) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col">
+      <div className={`flex-1 flex-col ${selectedId ? 'flex' : 'hidden md:flex'}`}>
         {selected ? (
           <>
             <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                aria-label="Voltar pra lista de conversas"
+                className="shrink-0 text-text-secondary md:hidden"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
                 <User className="h-4 w-4" />
               </div>
