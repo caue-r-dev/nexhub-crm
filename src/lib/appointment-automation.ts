@@ -135,9 +135,13 @@ export async function cancelAppointment(appointmentId: string): Promise<{ error:
   return { ok: true }
 }
 
-// Acha o agendamento mais recente do cliente ainda aguardando confirmação
-// (status pending, data no futuro) — é nele que a resposta de texto livre
-// do WhatsApp ("sim"/"não") deve ser aplicada.
+// Acha o agendamento mais recente ainda aguardando confirmação (status
+// pending, data no futuro) do telefone que respondeu — é nele que a
+// resposta de texto livre do WhatsApp ("sim"/"não") deve ser aplicada.
+// Mais de um cliente pode compartilhar o mesmo telefone (ex: família
+// agendando por um número só) — não dá pra assumir o primeiro que bate é o
+// certo, tem que achar entre TODOS esses clientes qual tem o agendamento
+// pendente de verdade.
 export async function findPendingAppointmentByPhone(tenantId: string, phone: string) {
   const admin = createAdminClient()
   const digits = phone.replace(/\D/g, '')
@@ -148,14 +152,17 @@ export async function findPendingAppointmentByPhone(tenantId: string, phone: str
     .eq('tenant_id', tenantId)
     .not('phone', 'is', null)
 
-  const client = (clients ?? []).find((c) => c.phone?.replace(/\D/g, '').endsWith(digits.slice(-8)))
-  if (!client) return null
+  const matchingClientIds = (clients ?? [])
+    .filter((c) => c.phone?.replace(/\D/g, '').endsWith(digits.slice(-8)))
+    .map((c) => c.id)
+
+  if (matchingClientIds.length === 0) return null
 
   const { data: appt } = await admin
     .from('appointments')
     .select('id')
     .eq('tenant_id', tenantId)
-    .eq('client_id', client.id)
+    .in('client_id', matchingClientIds)
     .eq('status', 'pending')
     .gte('datetime', new Date().toISOString())
     .order('datetime', { ascending: true })
