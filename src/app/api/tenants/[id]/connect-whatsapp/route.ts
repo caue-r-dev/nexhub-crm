@@ -3,7 +3,13 @@ import { randomBytes } from 'crypto'
 import { getCurrentAdmin } from '@/lib/admin'
 import { getCurrentTenant } from '@/lib/tenant'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createPlatformAccount, createPlatformUser, linkAccountUser, findInboxByName } from '@/lib/chatwoot-platform'
+import {
+  createPlatformAccount,
+  createPlatformUser,
+  linkAccountUser,
+  findInboxByName,
+  createConversationWebhook,
+} from '@/lib/chatwoot-platform'
 import { createInstanceWithChatwoot, getInstanceQrCode, getConnectionState, deleteInstance } from '@/lib/evolution-admin'
 
 // Onboarding automático de WhatsApp por tenant — usa credenciais de
@@ -23,7 +29,7 @@ async function authorize(tenantId: string): Promise<boolean> {
   return tenant?.id === tenantId
 }
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: tenantId } = await params
   if (!(await authorize(tenantId))) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
@@ -72,6 +78,17 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     // ainda não tiver propagado (fica null, corrigível depois).
     await new Promise((r) => setTimeout(r, 2000))
     const inboxId = await findInboxByName(account.id, user.access_token, tenant.name)
+
+    // Webhook pra saber quando o paciente responde "sim"/"não" confirmando
+    // ou cancelando a consulta pelo próprio WhatsApp (ver
+    // src/app/api/webhooks/chatwoot/route.ts). Best-effort — se falhar, o
+    // resto do fluxo de conexão do WhatsApp não deve travar por causa disso.
+    try {
+      await createConversationWebhook(account.id, user.access_token, `${new URL(req.url).origin}/api/webhooks/chatwoot`)
+    } catch {
+      // segue sem webhook — confirmação automática por texto fica indisponível
+      // pra esse tenant até reconectar, mas o WhatsApp em si funciona normal.
+    }
 
     const { error: updateError } = await db
       .from('tenants')

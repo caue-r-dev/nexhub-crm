@@ -56,6 +56,18 @@ export async function linkAccountUser(accountId: number, userId: number, role: '
 // Application API (escopada por Account, usa o token do usuário recém-criado)
 // — só pra buscar o inbox que o Evolution API criou via autoCreate, já que a
 // resposta de /instance/create não devolve o inbox_id do Chatwoot.
+// Webhook de conversa (message_created) — é assim que o app fica sabendo
+// quando o paciente responde "sim"/"não" no WhatsApp pra confirmar/cancelar
+// a consulta sozinho, sem precisar de botão (não suportado de forma
+// confiável em número não-oficial/Baileys).
+export async function createConversationWebhook(accountId: number, userToken: string, url: string) {
+  return fetch(`${BASE_URL}/api/v1/accounts/${accountId}/webhooks`, {
+    method: 'POST',
+    headers: { api_access_token: userToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ webhook: { url, subscriptions: ['message_created'] } }),
+  })
+}
+
 export async function findInboxByName(
   accountId: number,
   userToken: string,
