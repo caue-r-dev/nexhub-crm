@@ -52,7 +52,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     .from('professionals')
     .select('name')
     .eq('id', body.professionalId)
+    .eq('tenant_id', tenant.id)
     .single()
+
+  if (!professional) {
+    return NextResponse.json({ error: 'Profissional inválido.' }, { status: 400 })
+  }
 
   const requestedStart = new Date(body.datetime)
   const requestedEnd = new Date(requestedStart.getTime() + tenant.slot_duration_minutes * 60_000)
@@ -122,7 +127,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   // Reusa a automação já existente: marca confirmed, manda mensagem de
   // confirmação + Pix do sinal (se a clínica tiver default_deposit_amount
   // configurado) — nenhuma lógica de envio é duplicada aqui.
-  await confirmAppointment(appointment.id)
+  const confirmResult = await confirmAppointment(appointment.id)
+
+  if ('error' in confirmResult) {
+    return NextResponse.json(
+      { error: 'Agendamento criado, mas não conseguimos confirmar automaticamente. A clínica vai entrar em contato.' },
+      { status: 500 }
+    )
+  }
 
   if (tenant.notification_phone && tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
     try {
@@ -136,7 +148,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
         {
           clientName: body.patientName.trim(),
           procedureName: procedureType.name,
-          professionalName: professional?.name ?? '',
+          professionalName: professional.name,
           datetime: requestedStart.toISOString(),
         }
       )
