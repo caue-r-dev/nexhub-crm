@@ -125,7 +125,7 @@ export async function cancelAppointment(appointmentId: string): Promise<{ error:
           instanceName: tenant.evolution_instance_name,
         },
         client.phone,
-        `Sua consulta na ${tenant.name} foi cancelada. Se quiser remarcar, fale com a gente.`
+        `Tudo bem, obrigado por avisar! Sua consulta na ${tenant.name} foi cancelada. Quer remarcar pra outro dia?`
       )
     } catch {
       // Status já foi atualizado — falha só no aviso não deve quebrar a automação.

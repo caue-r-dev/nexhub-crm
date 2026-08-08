@@ -17,8 +17,14 @@ function formatDateTime(iso: string) {
 }
 
 const DEFAULT_TEMPLATE_24H =
-  'Olá {{nome}}! Passando pra confirmar sua consulta amanhã ({{data}} às {{hora}}) na {{clinica}}. Podemos confirmar sua presença?'
-const DEFAULT_TEMPLATE_2H = 'Olá {{nome}}! Só lembrando que sua consulta é hoje às {{hora}} na {{clinica}}. Te esperamos!'
+  'Olá {{nome}}! Passando pra confirmar sua consulta amanhã ({{data}} às {{hora}}) na {{clinica}}. Podemos confirmar sua presença? Responda *sim* ou *não*.'
+// Paciente que já confirmou no lembrete de 24h só recebe um lembrete
+// simples de 2h — quem ainda tá pendente recebe a mesma pergunta de novo
+// (ver DEFAULT_TEMPLATE_2H_PENDING), já que pode ter ignorado a primeira.
+const DEFAULT_TEMPLATE_2H_CONFIRMED =
+  'Olá {{nome}}! Só lembrando que sua consulta é hoje às {{hora}} na {{clinica}}. Te esperamos!'
+const DEFAULT_TEMPLATE_2H_PENDING =
+  'Olá {{nome}}! Sua consulta é hoje às {{hora}} na {{clinica}} e ainda não confirmamos sua presença. Podemos confirmar? Responda *sim* ou *não*.'
 
 function applyTemplate(template: string, vars: Record<string, string>) {
   return template.replace(/{{\s*(\w+)\s*}}/g, (match, key) => vars[key] ?? match)
@@ -26,6 +32,7 @@ function applyTemplate(template: string, vars: Record<string, string>) {
 
 function buildMessage(
   window: '24h' | '2h',
+  status: string,
   clientName: string,
   tenantName: string,
   iso: string,
@@ -33,7 +40,9 @@ function buildMessage(
 ) {
   const { date, time } = formatDateTime(iso)
   const firstName = clientName.split(' ')[0]
-  const template = customTemplate?.trim() || (window === '24h' ? DEFAULT_TEMPLATE_24H : DEFAULT_TEMPLATE_2H)
+  const defaultTemplate =
+    window === '24h' ? DEFAULT_TEMPLATE_24H : status === 'confirmed' ? DEFAULT_TEMPLATE_2H_CONFIRMED : DEFAULT_TEMPLATE_2H_PENDING
+  const template = customTemplate?.trim() || defaultTemplate
   return applyTemplate(template, { nome: firstName, data: date, hora: time, clinica: tenantName })
 }
 
@@ -100,40 +109,8 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Chegou na janela de 2h e o paciente nunca confirmou (nem pelo botão
-      // do WhatsApp, nem manualmente na agenda) — cancela automático em vez
-      // de mandar o lembrete de 2h, que só faz sentido pra quem confirmou.
-      if (w.label === '2h' && appt.status === 'pending') {
-        if (dryRun) {
-          results.push({ window: w.label, appointmentId: appt.id, client: client.name, sent: false, error: 'dry-run (auto-cancel)' })
-          continue
-        }
-
-        try {
-          await sendWhatsAppText(
-            {
-              baseUrl: tenant.evolution_base_url,
-              apiKey: tenant.evolution_api_key,
-              instanceName: tenant.evolution_instance_name,
-            },
-            client.phone,
-            `Sua consulta na ${tenant.name} foi cancelada por falta de confirmação.`
-          )
-        } catch {
-          // Aviso é best-effort — cancelamento vale de qualquer jeito.
-        }
-
-        await admin
-          .from('appointments')
-          .update({ status: 'cancelled', reminder_2h_sent_at: new Date().toISOString() })
-          .eq('id', appt.id)
-
-        results.push({ window: w.label, appointmentId: appt.id, client: client.name, sent: true, error: 'auto-cancelado (sem confirmação)' })
-        continue
-      }
-
       const customTemplate = w.label === '24h' ? tenant.reminder_message_24h : tenant.reminder_message_2h
-      const message = buildMessage(w.label, client.name, tenant.name, appt.datetime, customTemplate)
+      const message = buildMessage(w.label, appt.status, client.name, tenant.name, appt.datetime, customTemplate)
 
       if (dryRun) {
         results.push({ window: w.label, appointmentId: appt.id, client: client.name, sent: false, error: 'dry-run' })
