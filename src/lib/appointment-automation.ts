@@ -84,12 +84,15 @@ export async function confirmAppointment(
   if ('error' in pix) return { ok: true, pixSent: false, reason: pix.error }
 
   try {
+    // Duas mensagens separadas — a segunda só com o copia-e-cola, sem texto
+    // junto, pra dar pra selecionar/copiar no WhatsApp sem pegar lixo.
     await sendWhatsAppImage(
       evolutionConfig,
       client.phone,
       pix.qrImage,
-      `Pix do sinal (R$ ${depositAmount.toFixed(2)}). Copia e cola:\n${pix.brCode}`
+      `Pix do sinal para confirmar na agenda. Valor: R$ ${depositAmount.toFixed(2)}`
     )
+    await sendWhatsAppText(evolutionConfig, client.phone, pix.brCode)
   } catch (e) {
     return { ok: true, pixSent: false, reason: e instanceof Error ? e.message : 'Erro ao enviar Pix.' }
   }
