@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   }
 
   const phone = normalizePhone(body.patientPhone)
-  if (!phone) {
+  if (!phone || !/^55\d{10,11}$/.test(phone)) {
     return NextResponse.json({ error: 'Telefone inválido.' }, { status: 400 })
   }
 
@@ -85,8 +85,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   // Acha cliente existente pelos últimos 8 dígitos do telefone (mesmo
   // critério usado em findPendingAppointmentByPhone) ou cria um novo.
-  const { data: existingClients } = await admin.from('clients').select('id, phone').eq('tenant_id', tenant.id)
-  const match = (existingClients ?? []).find((c) => c.phone?.replace(/\D/g, '').endsWith(phone.slice(-8)))
+  const last8 = phone.slice(-8)
+  const { data: existingClients } = await admin
+    .from('clients')
+    .select('id, phone')
+    .eq('tenant_id', tenant.id)
+    .like('phone', `%${last8}`)
+  const match = (existingClients ?? []).find((c) => c.phone?.replace(/\D/g, '').endsWith(last8))
 
   let clientId = match?.id
   if (!clientId) {
@@ -130,8 +135,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   const confirmResult = await confirmAppointment(appointment.id)
 
   if ('error' in confirmResult) {
+    await admin.from('appointments').delete().eq('id', appointment.id)
     return NextResponse.json(
-      { error: 'Agendamento criado, mas não conseguimos confirmar automaticamente. A clínica vai entrar em contato.' },
+      { error: 'Não conseguimos confirmar seu agendamento. Tente novamente ou entre em contato com a clínica.' },
       { status: 500 }
     )
   }

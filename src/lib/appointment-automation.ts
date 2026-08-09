@@ -100,7 +100,10 @@ export async function confirmAppointment(
   return { ok: true, pixSent: true }
 }
 
-export async function cancelAppointment(appointmentId: string): Promise<{ error: string } | { ok: true }> {
+export async function cancelAppointment(
+  appointmentId: string,
+  message = 'Tudo bem, obrigado por avisar! Sua consulta na {tenant} foi cancelada. Quer remarcar pra outro dia?'
+): Promise<{ error: string } | { ok: true }> {
   const admin = createAdminClient()
 
   const { data: appt, error: fetchError } = await admin
@@ -128,7 +131,7 @@ export async function cancelAppointment(appointmentId: string): Promise<{ error:
           instanceName: tenant.evolution_instance_name,
         },
         client.phone,
-        `Tudo bem, obrigado por avisar! Sua consulta na ${tenant.name} foi cancelada. Quer remarcar pra outro dia?`
+        message.replace('{tenant}', tenant.name)
       )
     } catch {
       // Status já foi atualizado — falha só no aviso não deve quebrar a automação.

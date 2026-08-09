@@ -31,7 +31,10 @@ export async function POST(request: Request) {
   const results: { appointmentId: string; ok: boolean; error?: string }[] = []
 
   for (const appt of expired ?? []) {
-    const result = await cancelAppointment(appt.id)
+    const result = await cancelAppointment(
+      appt.id,
+      'Seu horário foi liberado porque não recebemos a confirmação do sinal a tempo. Se ainda quiser marcar, é só agendar novamente pelo link.'
+    )
     results.push({ appointmentId: appt.id, ok: !('error' in result), error: 'error' in result ? result.error : undefined })
   }
 

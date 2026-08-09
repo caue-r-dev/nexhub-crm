@@ -25,6 +25,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 })
   }
 
+  const { data: professional } = await admin
+    .from('professionals')
+    .select('id')
+    .eq('id', professionalId)
+    .eq('tenant_id', tenant.id)
+    .single()
+
+  if (!professional) {
+    return NextResponse.json({ error: 'Profissional inválido.' }, { status: 404 })
+  }
+
   const now = new Date()
   const rangeFrom = now
   const rangeTo = new Date(now.getTime() + BOOKING_WINDOW_DAYS * 24 * 3600_000)
