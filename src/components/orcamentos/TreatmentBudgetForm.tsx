@@ -2,8 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { createBudgetAction } from '@/app/actions/treatment-budgets'
+import { createServiceAction } from '@/app/actions/services'
 import { UPPER_TEETH, LOWER_TEETH } from '@/lib/odontogram'
 import type { BudgetItem } from '@/lib/supabase/types'
+
+type Service = { id: string; name: string; default_value: number }
+type Professional = { id: string; name: string }
 
 const ALL_TEETH = [...UPPER_TEETH, ...LOWER_TEETH]
 const FACES = ['M', 'D', 'V', 'L', 'O'] as const
@@ -23,13 +27,26 @@ function emptyItem(): BudgetItem {
   return { description: '', quantity: 1, unit_price: 0, tooth_number: '', faces: [] }
 }
 
-export function TreatmentBudgetForm({ clientId }: { clientId: string }) {
+export function TreatmentBudgetForm({
+  clientId,
+  services,
+  professionals,
+}: {
+  clientId: string
+  services: Service[]
+  professionals: Professional[]
+}) {
   const [items, setItems] = useState<BudgetItem[]>([emptyItem()])
   const [downPayment, setDownPayment] = useState(0)
   const [installments, setInstallments] = useState(1)
   const [discount, setDiscount] = useState(0)
+  const [professionalId, setProfessionalId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [creatingServiceAt, setCreatingServiceAt] = useState<number | null>(null)
+  const [newServiceName, setNewServiceName] = useState('')
+  const [newServiceValue, setNewServiceValue] = useState('')
+  const [catalog, setCatalog] = useState(services)
 
   const subtotal = items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0)
   const total = Math.max(0, subtotal - discount)
@@ -59,6 +76,30 @@ export function TreatmentBudgetForm({ clientId }: { clientId: string }) {
     setItems((prev) => prev.filter((_, i) => i !== index))
   }
 
+  function applyService(index: number, serviceId: string) {
+    if (serviceId === '__new__') {
+      setCreatingServiceAt(index)
+      return
+    }
+    const service = catalog.find((s) => s.id === serviceId)
+    if (!service) return
+    updateItem(index, { service_id: service.id, description: service.name, unit_price: service.default_value })
+  }
+
+  function confirmNewService(index: number) {
+    if (!newServiceName.trim()) return
+    startTransition(async () => {
+      const result = await createServiceAction(newServiceName, Number(newServiceValue) || 0)
+      if (result && 'data' in result && result.data) {
+        setCatalog((prev) => [...prev, result.data])
+        updateItem(index, { service_id: result.data.id, description: result.data.name, unit_price: result.data.default_value })
+      }
+      setCreatingServiceAt(null)
+      setNewServiceName('')
+      setNewServiceValue('')
+    })
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -69,6 +110,7 @@ export function TreatmentBudgetForm({ clientId }: { clientId: string }) {
         downPayment,
         installments,
         discount,
+        professionalId,
       })
       if (result && 'error' in result) {
         setError(result.error ?? null)
@@ -85,10 +127,39 @@ export function TreatmentBudgetForm({ clientId }: { clientId: string }) {
     <form onSubmit={handleSubmit} className="flex max-w-2xl flex-col gap-4 rounded-xl border border-border bg-surface p-4">
       <h2 className="font-semibold text-text">Novo orçamento</h2>
 
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">Profissional responsável</span>
+        <select
+          className="max-w-xs rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-accent"
+          value={professionalId}
+          onChange={(e) => setProfessionalId(e.target.value)}
+        >
+          <option value="">Selecione</option>
+          {professionals.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <div className="flex flex-col gap-3">
         {items.map((item, i) => (
           <div key={i} className="flex flex-col gap-2 rounded-lg border border-border p-3">
             <div className="flex gap-2">
+              <select
+                className="w-48 rounded-lg border border-border bg-bg px-2 py-2 text-sm text-text outline-none focus:border-accent"
+                value={item.service_id ?? ''}
+                onChange={(e) => applyService(i, e.target.value)}
+              >
+                <option value="">Selecione um serviço</option>
+                {catalog.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+                <option value="__new__">+ Cadastrar novo serviço</option>
+              </select>
               <input
                 placeholder="Descrição"
                 className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-accent"
@@ -128,6 +199,37 @@ export function TreatmentBudgetForm({ clientId }: { clientId: string }) {
                 </button>
               )}
             </div>
+
+            {creatingServiceAt === i && (
+              <div className="flex items-end gap-2 rounded-lg border border-dashed border-border p-2">
+                <label className="flex flex-1 flex-col gap-1">
+                  <span className="text-xs text-text-secondary">Nome do novo serviço</span>
+                  <input
+                    className="rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-text outline-none focus:border-accent"
+                    value={newServiceName}
+                    onChange={(e) => setNewServiceName(e.target.value)}
+                  />
+                </label>
+                <label className="flex w-24 flex-col gap-1">
+                  <span className="text-xs text-text-secondary">Valor</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-text outline-none focus:border-accent"
+                    value={newServiceValue}
+                    onChange={(e) => setNewServiceValue(e.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => confirmNewService(i)}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white"
+                >
+                  Salvar
+                </button>
+              </div>
+            )}
 
             {item.tooth_number && (
               <div className="flex flex-wrap gap-3">

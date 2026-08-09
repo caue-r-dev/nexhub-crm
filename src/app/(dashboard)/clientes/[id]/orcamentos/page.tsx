@@ -27,12 +27,24 @@ export default async function OrcamentosPage({
     .eq('client_id', id)
     .order('created_at', { ascending: false })
 
+  const { data: services } = await supabase
+    .from('services')
+    .select('id, name, default_value')
+    .eq('active', true)
+    .order('name')
+
+  const { data: professionals } = await supabase
+    .from('professionals')
+    .select('id, name')
+    .eq('active', true)
+    .order('name')
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold text-text">{client.name}</h1>
       <ClientTabs clientId={id} active="orcamentos" />
 
-      <TreatmentBudgetForm clientId={id} />
+      <TreatmentBudgetForm clientId={id} services={services ?? []} professionals={professionals ?? []} />
 
       <div className="flex flex-col gap-3">
         {budgets?.length ? (
