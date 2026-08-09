@@ -452,6 +452,12 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['treatment_budgets']['Insert']>
         Relationships: [
           {
+            foreignKeyName: 'treatment_budgets_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'treatment_budgets_client_id_fkey'
             columns: ['client_id']
             referencedRelation: 'clients'
