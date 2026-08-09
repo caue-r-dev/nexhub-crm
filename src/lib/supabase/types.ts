@@ -18,6 +18,7 @@ export type OdontogramStatus =
   | 'extracao_indicada'
 export type TreatmentStatus = 'planejado' | 'em_andamento' | 'concluido' | 'cancelado'
 export type PaymentStatus = 'nao_solicitado' | 'aguardando' | 'confirmado'
+export type BookingSource = 'internal' | 'public_booking'
 
 export type BudgetItem = {
   description: string
@@ -89,6 +90,11 @@ export interface Database {
           reminder_message_2h: string | null
           onboarding_completed: boolean
           default_deposit_amount: number | null
+          slug: string | null
+          notification_phone: string | null
+          slot_duration_minutes: number
+          buffer_minutes: number
+          booking_hold_minutes: number
         }
         Insert: {
           id?: string
@@ -115,6 +121,11 @@ export interface Database {
           reminder_message_2h?: string | null
           onboarding_completed?: boolean
           default_deposit_amount?: number | null
+          slug?: string | null
+          notification_phone?: string | null
+          slot_duration_minutes?: number
+          buffer_minutes?: number
+          booking_hold_minutes?: number
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [
@@ -248,6 +259,8 @@ export interface Database {
           package_id: string | null
           payment_status: PaymentStatus
           deposit_amount: number | null
+          source: BookingSource
+          booking_expires_at: string | null
         }
         Insert: {
           id?: string
@@ -267,6 +280,8 @@ export interface Database {
           package_id?: string | null
           payment_status?: PaymentStatus
           deposit_amount?: number | null
+          source?: BookingSource
+          booking_expires_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['appointments']['Insert']>
         Relationships: [
@@ -560,6 +575,60 @@ export interface Database {
             foreignKeyName: 'packages_client_id_fkey'
             columns: ['client_id']
             referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      professional_hours: {
+        Row: {
+          id: string
+          tenant_id: string
+          professional_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          professional_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['professional_hours']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'professional_hours_professional_id_fkey'
+            columns: ['professional_id']
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      procedure_types: {
+        Row: {
+          id: string
+          tenant_id: string
+          name: string
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          name: string
+          active?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['procedure_types']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'procedure_types_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
             referencedColumns: ['id']
           },
         ]
