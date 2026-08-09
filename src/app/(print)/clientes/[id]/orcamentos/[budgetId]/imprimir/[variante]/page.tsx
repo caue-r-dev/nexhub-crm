@@ -26,7 +26,7 @@ export default async function ImprimirOrcamentoPage({
 
   const { data: budget } = await supabase
     .from('treatment_budgets')
-    .select('created_at, total, items, professional_id')
+    .select('created_at, total, items, discount, professional_id')
     .eq('id', budgetId)
     .eq('client_id', id)
     .single()
@@ -59,7 +59,7 @@ export default async function ImprimirOrcamentoPage({
         tenant={{ name: tenant.name, phone: tenant.phone, email: tenant.email, address: tenant.address }}
         professional={professional}
         client={client}
-        budget={{ created_at: budget.created_at, total: budget.total, items: budget.items as BudgetItem[] }}
+        budget={{ created_at: budget.created_at, total: budget.total, items: budget.items as BudgetItem[], discount: budget.discount }}
         odontogramRecords={odontogramRecords}
       />
     </>

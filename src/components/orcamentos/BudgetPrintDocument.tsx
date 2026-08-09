@@ -17,7 +17,7 @@ export function BudgetPrintDocument({
   tenant: { name: string; phone: string | null; email: string | null; address: string | null }
   professional: { name: string; registration_number: string | null } | null
   client: { name: string }
-  budget: { created_at: string; total: number; items: BudgetItem[] }
+  budget: { created_at: string; total: number; items: BudgetItem[]; discount: number }
   odontogramRecords: { tooth_number: string; status: OdontogramStatus }[]
 }) {
   const dateLabel = new Date(budget.created_at).toLocaleDateString('pt-BR')
@@ -60,6 +60,10 @@ export function BudgetPrintDocument({
           <h3 className="mb-2 text-sm font-semibold text-text-secondary">Odontograma</h3>
           <OdontogramStatic records={odontogramRecords} />
         </div>
+      )}
+
+      {budget.discount > 0 && (
+        <p className="text-right text-sm text-text-secondary">Desconto: -{formatBRL(budget.discount)}</p>
       )}
 
       <p className="text-right text-lg font-semibold">Total: {formatBRL(budget.total)}</p>
