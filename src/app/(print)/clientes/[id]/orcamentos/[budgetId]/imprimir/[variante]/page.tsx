@@ -28,6 +28,7 @@ export default async function ImprimirOrcamentoPage({
     .from('treatment_budgets')
     .select('created_at, total, items, professional_id')
     .eq('id', budgetId)
+    .eq('client_id', id)
     .single()
   if (!budget) notFound()
 
