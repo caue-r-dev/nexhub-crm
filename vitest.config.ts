@@ -12,5 +12,6 @@ export default defineConfig({
     env: {
       TZ: 'America/Sao_Paulo',
     },
+    exclude: ['**/node_modules/**', '**/.worktrees/**', '**/.next/**'],
   },
 })
