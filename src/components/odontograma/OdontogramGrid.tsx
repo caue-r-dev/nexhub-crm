@@ -72,6 +72,12 @@ function Tooth({
     })
   }
 
+  const numberBadge = (
+    <span className="flex h-4 w-4 items-center justify-center rounded-full border border-border text-[9px] text-text-secondary">
+      {toothNumber}
+    </span>
+  )
+
   const content = (
     <button
       onClick={onToggle}
@@ -79,9 +85,9 @@ function Tooth({
       title={STATUS_LABEL[current]}
       className="flex flex-col items-center gap-0.5 disabled:opacity-40"
     >
-      {upper && <span className="text-[11px] text-text-secondary">{toothNumber}</span>}
+      {upper && numberBadge}
       <ToothIcon kind={toothKind(toothNumber)} upper={upper} color={STATUS_COLOR[current]} />
-      {!upper && <span className="text-[11px] text-text-secondary">{toothNumber}</span>}
+      {!upper && numberBadge}
     </button>
   )
 
