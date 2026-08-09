@@ -25,7 +25,7 @@
 - Modify: `src/lib/supabase/types.ts`
 
 **Interfaces:**
-- Produces: tabela `services`, `tenants.phone`/`email`/`address`, `professionals.registration_number`. Tipo `BudgetItem` ganha `service_id?: string`.
+- Produces: tabela `services`, `tenants.phone`/`email`/`address`, `professionals.registration_number`, `treatment_budgets.professional_id`. Tipo `BudgetItem` ganha `service_id?: string`.
 
 - [ ] **Step 1: Escrever a migration SQL**
 
@@ -55,6 +55,8 @@ alter table tenants add column email text;
 alter table tenants add column address text;
 
 alter table professionals add column registration_number text;
+
+alter table treatment_budgets add column professional_id uuid references professionals(id) on delete set null;
 ```
 
 - [ ] **Step 2: Aplicar manualmente no Supabase Dashboard > SQL Editor.** Confirmar sem erro.
@@ -118,6 +120,31 @@ Insert (mesmo bloco):
           created_at?: string
           registration_number?: string | null
         }
+```
+
+No bloco `treatment_budgets`, Row (depois de `followup_day7_sent_at: string | null` — campo adicionado pela feature anterior de orçamento parado):
+
+```ts
+          followup_day7_sent_at: string | null
+          professional_id: string | null
+```
+
+Insert (mesmo bloco):
+
+```ts
+          followup_day7_sent_at?: string | null
+          professional_id?: string | null
+```
+
+No `Relationships` do bloco `treatment_budgets` (mesmo array que já tem `treatment_budgets_client_id_fkey` e `treatment_budgets_tenant_id_fkey`), adicionar mais uma entrada:
+
+```ts
+          {
+            foreignKeyName: 'treatment_budgets_professional_id_fkey'
+            columns: ['professional_id']
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
 ```
 
 Por fim, adicionar a tabela `services` — inserir antes da linha `Views: Record<string, never>` (depois do bloco `packages`):
@@ -365,20 +392,41 @@ git commit -m "feat: catalogo de servicos pra orcamento"
 **Files:**
 - Modify: `src/components/orcamentos/TreatmentBudgetForm.tsx`
 - Modify: `src/app/(dashboard)/clientes/[id]/orcamentos/page.tsx`
+- Modify: `src/app/actions/treatment-budgets.ts`
 
 **Interfaces:**
-- Consumes: tabela `services` (Task 2).
-- Produces: `BudgetItem.service_id` preenchido quando o item vem do catálogo — consumido só como referência (Task 6 do PDF não depende disso, é opcional).
+- Consumes: tabela `services` (Task 2), `treatment_budgets.professional_id` (Task 1).
+- Produces: `BudgetItem.service_id` preenchido quando o item vem do catálogo — consumido só como referência. `treatment_budgets.professional_id` preenchido — consumido pela Task 6 (assinatura do PDF).
 
-- [ ] **Step 1: Buscar os serviços na página e passar pro formulário**
+- [ ] **Step 1: Aceitar `professionalId` na action de criar orçamento**
 
-Em `src/app/(dashboard)/clientes/[id]/orcamentos/page.tsx`, adicionar a busca de serviços ativos e passar como prop pro `TreatmentBudgetForm`. Trocar:
+Em `src/app/actions/treatment-budgets.ts`, atualizar o tipo e a função:
+
+```ts
+export type BudgetInput = {
+  items: BudgetItem[]
+  downPayment: number
+  installments: number
+  discount: number
+  professionalId?: string
+}
+```
+
+No `.insert({...})` dentro de `createBudgetAction`, adicionar:
+
+```ts
+    professional_id: input.professionalId || null,
+```
+
+- [ ] **Step 2: Buscar profissionais e serviços na página e passar pro formulário**
+
+Em `src/app/(dashboard)/clientes/[id]/orcamentos/page.tsx`, adicionar as buscas e passar como prop pro `TreatmentBudgetForm`. Trocar:
 
 ```tsx
       <TreatmentBudgetForm clientId={id} />
 ```
 
-Por (adicionando a query antes do `return` e o import):
+Por (adicionando as queries antes do `return` e o import):
 
 ```ts
 import { TreatmentBudgetForm } from '@/components/orcamentos/TreatmentBudgetForm'
@@ -390,26 +438,69 @@ import { TreatmentBudgetForm } from '@/components/orcamentos/TreatmentBudgetForm
     .select('id, name, default_value')
     .eq('active', true)
     .order('name')
+
+  const { data: professionals } = await supabase
+    .from('professionals')
+    .select('id, name')
+    .eq('active', true)
+    .order('name')
 ```
 
 ```tsx
-      <TreatmentBudgetForm clientId={id} services={services ?? []} />
+      <TreatmentBudgetForm clientId={id} services={services ?? []} professionals={professionals ?? []} />
 ```
 
-(O import de `TreatmentBudgetForm` já existe no arquivo — só adicionar a query de `services` e passar a prop nova.)
+(O import de `TreatmentBudgetForm` já existe no arquivo — só adicionar as duas queries e as props novas.)
 
-- [ ] **Step 2: Adicionar seletor de catálogo no formulário**
+- [ ] **Step 3: Adicionar seletor de profissional e de catálogo no formulário**
 
-Em `src/components/orcamentos/TreatmentBudgetForm.tsx`, adicionar o tipo de serviço e a prop:
+Em `src/components/orcamentos/TreatmentBudgetForm.tsx`, adicionar os tipos e a prop:
 
 ```ts
 type Service = { id: string; name: string; default_value: number }
+type Professional = { id: string; name: string }
 ```
 
 Trocar a assinatura do componente:
 
 ```tsx
-export function TreatmentBudgetForm({ clientId, services }: { clientId: string; services: Service[] }) {
+export function TreatmentBudgetForm({
+  clientId,
+  services,
+  professionals,
+}: {
+  clientId: string
+  services: Service[]
+  professionals: Professional[]
+}) {
+```
+
+Adicionar estado do profissional selecionado (junto dos outros `useState`):
+
+```ts
+  const [professionalId, setProfessionalId] = useState('')
+```
+
+Incluir `professionalId` no objeto passado pra `createBudgetAction` dentro de `handleSubmit` (adicionar ao objeto `{ items: valid, downPayment, installments, discount, professionalId }`).
+
+Adicionar o `<select>` de profissional no JSX, logo abaixo do `<h2>Novo orçamento</h2>`:
+
+```tsx
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">Profissional responsável</span>
+        <select
+          className="max-w-xs rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-accent"
+          value={professionalId}
+          onChange={(e) => setProfessionalId(e.target.value)}
+        >
+          <option value="">Selecione</option>
+          {professionals.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
 ```
 
 Adicionar estado pro modo "novo serviço inline" (nome/valor de um serviço sendo cadastrado na hora) logo depois dos outros `useState`:
@@ -546,16 +637,16 @@ Trocar o campo de descrição (o primeiro `<input placeholder="Descrição" ...>
 
 `emptyItem()` não precisa mudar — `service_id` fica `undefined` até o usuário escolher.
 
-- [ ] **Step 3: Verificar tipos e lint**
+- [ ] **Step 4: Verificar tipos e lint**
 
 Run: `npx tsc --noEmit && npm run lint`
 Expected: sem erros.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/orcamentos/TreatmentBudgetForm.tsx "src/app/(dashboard)/clientes/[id]/orcamentos/page.tsx"
-git commit -m "feat: seletor de catalogo de servicos no formulario de orcamento"
+git add src/components/orcamentos/TreatmentBudgetForm.tsx "src/app/(dashboard)/clientes/[id]/orcamentos/page.tsx" src/app/actions/treatment-budgets.ts
+git commit -m "feat: seletor de profissional e catalogo de servicos no formulario de orcamento"
 ```
 
 ---
@@ -1042,22 +1133,20 @@ export default async function ImprimirOrcamentoPage({
 
   const { data: budget } = await supabase
     .from('treatment_budgets')
-    .select('created_at, total, items')
+    .select('created_at, total, items, professional_id')
     .eq('id', budgetId)
     .single()
   if (!budget) notFound()
 
   let professional: { name: string; registration_number: string | null } | null = null
-  const firstItemWithProfessional = null // orçamento não tem professional_id direto — busca do primeiro profissional ativo do tenant como assinatura padrão
-  const { data: prof } = await supabase
-    .from('professionals')
-    .select('name, registration_number')
-    .eq('tenant_id', tenant.id)
-    .eq('active', true)
-    .order('name')
-    .limit(1)
-    .maybeSingle()
-  professional = prof ?? firstItemWithProfessional
+  if (budget.professional_id) {
+    const { data: prof } = await supabase
+      .from('professionals')
+      .select('name, registration_number')
+      .eq('id', budget.professional_id)
+      .maybeSingle()
+    professional = prof ?? null
+  }
 
   let odontogramRecords: { tooth_number: string; status: import('@/lib/supabase/types').OdontogramStatus }[] = []
   if (variant === 'completo') {
@@ -1124,8 +1213,6 @@ git commit -m "feat: paginas de impressao do orcamento (3 variantes)"
 
 **Cobertura da spec:** catálogo de serviços com criação inline (Task 2 + 3), 3 variantes de PDF via impressão HTML (Task 6), odontograma na variante completa (Task 5 + 6), dados de clínica/profissional no documento (Task 4). Todos os itens do escopo aprovado estão cobertos.
 
-**Placeholders:** nenhum TBD/TODO restante. Na Task 6 Step 4, a variável `firstItemWithProfessional` é sempre `null` e serve só como fallback estrutural explícito (o orçamento não guarda `professional_id`, então a assinatura usa o primeiro profissional ativo do tenant) — não é um placeholder de implementação pendente, é a lógica final.
+**Placeholders:** nenhum TBD/TODO restante.
 
-**Consistência de tipos:** `BudgetItem.service_id` (Task 1) usado em Task 3 (`applyService`). `Service` type (nome local em cada arquivo, mesmo shape `{id, name, default_value, active?}`) consistente entre Task 2 e Task 3. `OdontogramStatic` (Task 5) consumido com a mesma prop `records: {tooth_number, status}[]` em Task 6, igual ao `OdontogramGrid` já existente.
-
-**Nota de escopo:** orçamento não tem vínculo direto com profissional (`treatment_budgets` não tem `professional_id`) — pra v1, a assinatura do documento usa o primeiro profissional ativo do tenant. Se a clínica tiver mais de um profissional, isso pode assinar com o profissional errado; registrar como limitação conhecida pro usuário, não é um bug da implementação, é uma lacuna do modelo de dados existente fora do escopo desta plan.
+**Consistência de tipos:** `BudgetItem.service_id` (Task 1) usado em Task 3 (`applyService`). `Service`/`Professional` types (nome local em cada arquivo, mesmo shape) consistentes entre Task 2/3 e Task 3/6. `treatment_budgets.professional_id` (Task 1) preenchido em Task 3 (formulário) e lido em Task 6 (assinatura do PDF) — orçamento agora tem vínculo direto e correto com o profissional que o criou, sem depender de heurística de "primeiro profissional ativo". `OdontogramStatic` (Task 5) consumido com a mesma prop `records: {tooth_number, status}[]` em Task 6, igual ao `OdontogramGrid` já existente.
