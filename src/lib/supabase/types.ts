@@ -26,6 +26,7 @@ export type BudgetItem = {
   unit_price: number
   tooth_number?: string
   faces?: string[]
+  service_id?: string
 }
 
 export type BusinessHoursDay = { start: string; end: string; active: boolean }
@@ -98,6 +99,9 @@ export interface Database {
           buffer_minutes: number
           booking_hold_minutes: number
           whatsapp_qr_requested_at: string | null
+          phone: string | null
+          email: string | null
+          address: string | null
         }
         Insert: {
           id?: string
@@ -132,6 +136,9 @@ export interface Database {
           buffer_minutes?: number
           booking_hold_minutes?: number
           whatsapp_qr_requested_at?: string | null
+          phone?: string | null
+          email?: string | null
+          address?: string | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [
@@ -435,6 +442,7 @@ export interface Database {
           declined_at: string | null
           followup_day3_sent_at: string | null
           followup_day7_sent_at: string | null
+          professional_id: string | null
         }
         Insert: {
           id?: string
@@ -450,6 +458,7 @@ export interface Database {
           declined_at?: string | null
           followup_day3_sent_at?: string | null
           followup_day7_sent_at?: string | null
+          professional_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['treatment_budgets']['Insert']>
         Relationships: [
@@ -463,6 +472,12 @@ export interface Database {
             foreignKeyName: 'treatment_budgets_client_id_fkey'
             columns: ['client_id']
             referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'treatment_budgets_professional_id_fkey'
+            columns: ['professional_id']
+            referencedRelation: 'professionals'
             referencedColumns: ['id']
           },
         ]
@@ -545,6 +560,7 @@ export interface Database {
           color: string
           active: boolean
           created_at: string
+          registration_number: string | null
         }
         Insert: {
           id?: string
@@ -553,6 +569,7 @@ export interface Database {
           color: string
           active?: boolean
           created_at?: string
+          registration_number?: string | null
         }
         Update: Partial<Database['public']['Tables']['professionals']['Insert']>
         Relationships: [
@@ -645,6 +662,33 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: 'procedure_types_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      services: {
+        Row: {
+          id: string
+          tenant_id: string
+          name: string
+          default_value: number
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          name: string
+          default_value?: number
+          active?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['services']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'services_tenant_id_fkey'
             columns: ['tenant_id']
             referencedRelation: 'tenants'
             referencedColumns: ['id']
