@@ -187,6 +187,17 @@ function DayGrid({
   const visible = professionals.filter((p) => !hiddenIds.includes(p.id))
   const unassigned = rows.filter((r) => !r.professional_id)
 
+  if (professionals.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-16 text-sm text-text-secondary">
+        <p>Cadastre um profissional pra ver a agenda.</p>
+        <Link href="/agenda/profissionais/novo" className="font-medium text-accent">
+          + Adicionar profissional
+        </Link>
+      </div>
+    )
+  }
+
   if (visible.length === 0 && unassigned.length === 0 && professionals.length > 0) {
     return (
       <div className="flex items-center justify-center py-16 text-sm text-text-secondary">
