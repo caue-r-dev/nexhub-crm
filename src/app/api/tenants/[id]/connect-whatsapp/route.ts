@@ -12,6 +12,11 @@ import {
 } from '@/lib/chatwoot-platform'
 import { createInstanceWithChatwoot, getInstanceQrCode, getConnectionState, deleteInstance } from '@/lib/evolution-admin'
 
+// WhatsApp desloga sozinho de vez em quando (usuário some/troca de aparelho,
+// sessão expira, ou o servidor derruba a conexão) — nesse caso o tenant já
+// tem chatwoot_account_id + evolution_instance_name configurados, só precisa
+// de um QR novo pra re-parear, não recriar conta/inbox do zero.
+
 // Onboarding automático de WhatsApp por tenant — usa credenciais de
 // plataforma (Chatwoot Platform API + Evolution API global), mas quem chama
 // é o próprio tenant (dono do id) ou um admin. Nunca devolve token/segredo
@@ -36,10 +41,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
   const db = createAdminClient()
 
-  const { data: tenant } = await db.from('tenants').select('id, name, chatwoot_account_id').eq('id', tenantId).single()
+  const { data: tenant } = await db
+    .from('tenants')
+    .select('id, name, chatwoot_account_id, evolution_instance_name')
+    .eq('id', tenantId)
+    .single()
   if (!tenant) return NextResponse.json({ error: 'Tenant não encontrado.' }, { status: 404 })
+
   if (tenant.chatwoot_account_id) {
-    return NextResponse.json({ error: 'Esse tenant já tem WhatsApp configurado.' }, { status: 409 })
+    if (!tenant.evolution_instance_name) {
+      return NextResponse.json({ error: 'Esse tenant já tem WhatsApp configurado.' }, { status: 409 })
+    }
+
+    // Já tem conta Chatwoot + instância Evolution — só desconectado. Reusa
+    // a instância existente pra pegar um QR novo, sem recriar nada no Chatwoot.
+    try {
+      const state = await getConnectionState(tenant.evolution_instance_name)
+      if (state === 'open') {
+        return NextResponse.json({ error: 'Esse tenant já tem WhatsApp conectado.' }, { status: 409 })
+      }
+      const qr = await getInstanceQrCode(tenant.evolution_instance_name)
+      return NextResponse.json({ qrCode: qr.base64 })
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : 'Erro desconhecido.' }, { status: 500 })
+    }
   }
 
   const chatwootBaseUrl = process.env.CHATWOOT_BASE_URL!
