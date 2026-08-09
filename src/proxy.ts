@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login', '/cadastro', '/reset-password']
+// Acessível com ou sem sessão — paciente sem conta usa pra marcar consulta
+// sozinho, mas funcionário logado também pode abrir pra conferir o próprio
+// link. Diferente de PUBLIC_ROUTES: não redireciona quem já está logado.
+const OPEN_ROUTES = ['/agendar']
 const ONBOARDING_ROUTE = '/onboarding'
 
 export async function proxy(request: NextRequest) {
@@ -38,9 +42,14 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
+  const isOpenRoute = OPEN_ROUTES.some((route) => pathname.startsWith(route))
 
-  if (!user && !isPublicRoute) {
+  if (!user && !isPublicRoute && !isOpenRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (isOpenRoute) {
+    return response
   }
 
   // /reset-password é público mas o link de recovery do Supabase autentica o
