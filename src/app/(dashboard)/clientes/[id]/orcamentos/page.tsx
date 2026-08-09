@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ClientTabs } from '@/components/clientes/ClientTabs'
 import { TreatmentBudgetForm } from '@/components/orcamentos/TreatmentBudgetForm'
 import { ApproveBudgetButton } from '@/components/orcamentos/ApproveBudgetButton'
+import { DeclineBudgetButton } from '@/components/orcamentos/DeclineBudgetButton'
 import type { BudgetItem } from '@/lib/supabase/types'
 
 function formatBRL(value: number) {
@@ -43,8 +44,13 @@ export default async function OrcamentosPage({
                 </span>
                 {b.approved_at ? (
                   <span className="text-sm font-medium text-status-confirmed">Aprovado</span>
+                ) : b.declined_at ? (
+                  <span className="text-sm font-medium text-status-cancelled">Recusado</span>
                 ) : (
-                  <ApproveBudgetButton id={b.id} clientId={id} />
+                  <div className="flex gap-2">
+                    <ApproveBudgetButton id={b.id} clientId={id} />
+                    <DeclineBudgetButton id={b.id} clientId={id} />
+                  </div>
                 )}
               </div>
               <ul className="mb-2 flex flex-col gap-1 text-sm text-text">

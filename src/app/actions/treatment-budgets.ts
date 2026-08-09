@@ -48,3 +48,15 @@ export async function approveBudgetAction(id: string, clientId: string) {
 
   revalidatePath(`/clientes/${clientId}/orcamentos`)
 }
+
+export async function declineBudgetAction(id: string, clientId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('treatment_budgets')
+    .update({ declined_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/clientes/${clientId}/orcamentos`)
+}
