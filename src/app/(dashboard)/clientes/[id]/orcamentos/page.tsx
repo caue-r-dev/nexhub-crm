@@ -92,6 +92,17 @@ export default async function OrcamentosPage({
                 )}
               </div>
               <p className="text-right font-semibold text-text">Total: {formatBRL(b.total)}</p>
+              <div className="mt-2 flex gap-3 text-xs">
+                <a href={`/clientes/${id}/orcamentos/${b.id}/imprimir/total`} target="_blank" rel="noopener" className="text-accent">
+                  Imprimir (só valor)
+                </a>
+                <a href={`/clientes/${id}/orcamentos/${b.id}/imprimir/padrao`} target="_blank" rel="noopener" className="text-accent">
+                  Imprimir (padrão)
+                </a>
+                <a href={`/clientes/${id}/orcamentos/${b.id}/imprimir/completo`} target="_blank" rel="noopener" className="text-accent">
+                  Imprimir (completo)
+                </a>
+              </div>
             </div>
           ))
         ) : (
