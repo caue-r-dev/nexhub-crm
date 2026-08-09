@@ -88,6 +88,8 @@ export interface Database {
           pix_receiver_name: string | null
           reminder_message_24h: string | null
           reminder_message_2h: string | null
+          budget_followup_message_day3: string | null
+          budget_followup_message_day7: string | null
           onboarding_completed: boolean
           default_deposit_amount: number | null
           slug: string | null
@@ -119,6 +121,8 @@ export interface Database {
           pix_receiver_name?: string | null
           reminder_message_24h?: string | null
           reminder_message_2h?: string | null
+          budget_followup_message_day3?: string | null
+          budget_followup_message_day7?: string | null
           onboarding_completed?: boolean
           default_deposit_amount?: number | null
           slug?: string | null
@@ -426,6 +430,9 @@ export interface Database {
           down_payment: number
           installments: number
           discount: number
+          declined_at: string | null
+          followup_day3_sent_at: string | null
+          followup_day7_sent_at: string | null
         }
         Insert: {
           id?: string
@@ -438,6 +445,9 @@ export interface Database {
           down_payment?: number
           installments?: number
           discount?: number
+          declined_at?: string | null
+          followup_day3_sent_at?: string | null
+          followup_day7_sent_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['treatment_budgets']['Insert']>
         Relationships: [
