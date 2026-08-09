@@ -73,7 +73,7 @@ function Tooth({
   }
 
   const numberBadge = (
-    <span className="flex h-4 w-4 items-center justify-center rounded-full border border-border text-[9px] text-text-secondary">
+    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[10px] text-text-secondary">
       {toothNumber}
     </span>
   )
