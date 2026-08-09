@@ -68,6 +68,32 @@ export async function createConversationWebhook(accountId: number, userToken: st
   })
 }
 
+// A Evolution API cria uma conversa sintética no Chatwoot pra mostrar
+// progresso da importação de histórico ("💬 Importing messages..."), com um
+// contato fake de telefone "+123456" — sem isso o cliente veria uma
+// conversa aberta de origem desconhecida na caixa de entrada. Best-effort:
+// chamado depois que a conexão fica "open", pode não pegar se a conversa
+// ainda não foi criada nesse momento (import é assíncrono do lado da
+// Evolution) — não é crítico, só cosmético.
+export async function deleteImportStatusConversation(accountId: number, userToken: string) {
+  const res = await fetch(`${BASE_URL}/api/v1/accounts/${accountId}/conversations`, {
+    headers: { api_access_token: userToken },
+    cache: 'no-store',
+  })
+  if (!res.ok) return
+
+  const data = await res.json()
+  type Conversation = { id: number; meta?: { sender?: { phone_number?: string } } }
+  const conversations = (data.data?.payload ?? []) as Conversation[]
+  const importConvo = conversations.find((c) => c.meta?.sender?.phone_number === '+123456')
+  if (!importConvo) return
+
+  await fetch(`${BASE_URL}/api/v1/accounts/${accountId}/conversations/${importConvo.id}`, {
+    method: 'DELETE',
+    headers: { api_access_token: userToken },
+  }).catch(() => {})
+}
+
 export async function findInboxByName(
   accountId: number,
   userToken: string,

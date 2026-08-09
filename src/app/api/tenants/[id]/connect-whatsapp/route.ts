@@ -9,6 +9,7 @@ import {
   linkAccountUser,
   findInboxByName,
   createConversationWebhook,
+  deleteImportStatusConversation,
 } from '@/lib/chatwoot-platform'
 import { createInstanceWithChatwoot, getInstanceQrCode, getConnectionState, deleteInstance } from '@/lib/evolution-admin'
 
@@ -147,7 +148,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const { data: tenant } = await db
     .from('tenants')
-    .select('evolution_instance_name')
+    .select('evolution_instance_name, chatwoot_account_id, chatwoot_api_token')
     .eq('id', tenantId)
     .single()
 
@@ -164,6 +165,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     // explícito do usuário (ver query param abaixo).
     const state = await getConnectionState(tenant.evolution_instance_name)
     if (state === 'open') {
+      if (tenant.chatwoot_account_id && tenant.chatwoot_api_token) {
+        await deleteImportStatusConversation(tenant.chatwoot_account_id, tenant.chatwoot_api_token).catch(() => {})
+      }
       return NextResponse.json({ status: state })
     }
 
