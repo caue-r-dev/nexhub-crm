@@ -67,10 +67,10 @@ export async function POST(request: Request) {
     const age = daysSince(budget.created_at)
 
     let window: '3d' | '7d' | null = null
-    if (age >= 3 && !budget.followup_day3_sent_at) {
-      window = '3d'
-    } else if (age >= 7 && !budget.followup_day7_sent_at) {
+    if (age >= 7 && !budget.followup_day7_sent_at) {
       window = '7d'
+    } else if (age >= 3 && age < 7 && !budget.followup_day3_sent_at) {
+      window = '3d'
     }
 
     if (!window) continue
@@ -112,7 +112,17 @@ export async function POST(request: Request) {
       )
       const sentAtPatch =
         window === '3d' ? { followup_day3_sent_at: new Date().toISOString() } : { followup_day7_sent_at: new Date().toISOString() }
-      await admin.from('treatment_budgets').update(sentAtPatch).eq('id', budget.id)
+      const { error: updateError } = await admin.from('treatment_budgets').update(sentAtPatch).eq('id', budget.id)
+      if (updateError) {
+        results.push({
+          budgetId: budget.id,
+          window,
+          client: client.name,
+          sent: false,
+          error: `Mensagem enviada mas falha ao marcar como enviada: ${updateError.message}`,
+        })
+        continue
+      }
       results.push({ budgetId: budget.id, window, client: client.name, sent: true })
     } catch (e) {
       results.push({
