@@ -97,6 +97,7 @@ export interface Database {
           slot_duration_minutes: number
           buffer_minutes: number
           booking_hold_minutes: number
+          whatsapp_qr_requested_at: string | null
         }
         Insert: {
           id?: string
@@ -130,6 +131,7 @@ export interface Database {
           slot_duration_minutes?: number
           buffer_minutes?: number
           booking_hold_minutes?: number
+          whatsapp_qr_requested_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [

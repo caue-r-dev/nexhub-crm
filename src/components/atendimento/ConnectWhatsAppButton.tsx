@@ -16,6 +16,7 @@ export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
   const [status, setStatus] = useState<'starting' | 'connecting' | 'open' | 'error'>('starting')
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function stopPolling() {
@@ -66,10 +67,15 @@ export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
 
   async function refreshQr() {
     setRefreshing(true)
+    setRefreshError(null)
     const res = await fetch(`/api/tenants/${tenantId}/connect-whatsapp?refreshQr=1`)
     const data = await res.json()
     setRefreshing(false)
-    if (res.ok && data.qrCode) setQrCode(data.qrCode)
+    if (res.ok && data.qrCode) {
+      setQrCode(data.qrCode)
+    } else if (data.error) {
+      setRefreshError(data.error)
+    }
   }
 
   function close() {
@@ -131,6 +137,7 @@ export function ConnectWhatsAppButton({ tenantId }: { tenantId: string }) {
                     Cancelar
                   </button>
                 </div>
+                {refreshError && <p className="text-sm text-status-cancelled">{refreshError}</p>}
               </>
             )}
 

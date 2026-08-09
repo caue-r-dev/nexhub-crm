@@ -27,6 +27,20 @@ function instanceNameFor(tenantId: string) {
   return `nexhub-${tenantId.slice(0, 8)}`
 }
 
+// Chamar /instance/connect de novo enquanto a tentativa anterior ainda não
+// assentou faz o Baileys abrir um segundo socket pra mesma sessão — os dois
+// brigam entre si e o WhatsApp derruba a conexão de vez (loop de "conflict:
+// replaced" só resolvido reiniciando o container inteiro na Evolution, ver
+// [[feedback_evolution_ghost_socket_restart]]). Trava aqui pra nosso próprio
+// app nunca ser a causa disso de novo.
+const QR_COOLDOWN_MS = 15_000
+
+function qrCooldownRemaining(lastRequestedAt: string | null): number {
+  if (!lastRequestedAt) return 0
+  const elapsed = Date.now() - new Date(lastRequestedAt).getTime()
+  return elapsed < QR_COOLDOWN_MS ? Math.ceil((QR_COOLDOWN_MS - elapsed) / 1000) : 0
+}
+
 async function authorize(tenantId: string): Promise<boolean> {
   const admin = await getCurrentAdmin()
   if (admin) return true
@@ -44,7 +58,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: tenant } = await db
     .from('tenants')
-    .select('id, name, chatwoot_account_id, evolution_instance_name')
+    .select('id, name, chatwoot_account_id, evolution_instance_name, whatsapp_qr_requested_at')
     .eq('id', tenantId)
     .single()
   if (!tenant) return NextResponse.json({ error: 'Tenant não encontrado.' }, { status: 404 })
@@ -54,6 +68,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Esse tenant já tem WhatsApp configurado.' }, { status: 409 })
     }
 
+    const cooldown = qrCooldownRemaining(tenant.whatsapp_qr_requested_at)
+    if (cooldown > 0) {
+      return NextResponse.json({ error: `Aguarde ${cooldown}s antes de tentar de novo.` }, { status: 429 })
+    }
+
     // Já tem conta Chatwoot + instância Evolution — só desconectado. Reusa
     // a instância existente pra pegar um QR novo, sem recriar nada no Chatwoot.
     try {
@@ -61,6 +80,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       if (state === 'open') {
         return NextResponse.json({ error: 'Esse tenant já tem WhatsApp conectado.' }, { status: 409 })
       }
+      await db.from('tenants').update({ whatsapp_qr_requested_at: new Date().toISOString() }).eq('id', tenantId)
       const qr = await getInstanceQrCode(tenant.evolution_instance_name)
       return NextResponse.json({ qrCode: qr.base64 })
     } catch (err) {
@@ -148,7 +168,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const { data: tenant } = await db
     .from('tenants')
-    .select('evolution_instance_name, chatwoot_account_id, chatwoot_api_token')
+    .select('evolution_instance_name, chatwoot_account_id, chatwoot_api_token, whatsapp_qr_requested_at')
     .eq('id', tenantId)
     .single()
 
@@ -173,6 +193,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const url = new URL(req.url)
     if (url.searchParams.get('refreshQr') === '1') {
+      const cooldown = qrCooldownRemaining(tenant.whatsapp_qr_requested_at)
+      if (cooldown > 0) {
+        return NextResponse.json({ status: state, error: `Aguarde ${cooldown}s antes de gerar outro QR.` }, { status: 429 })
+      }
+      await db.from('tenants').update({ whatsapp_qr_requested_at: new Date().toISOString() }).eq('id', tenantId)
       const qr = await getInstanceQrCode(tenant.evolution_instance_name)
       return NextResponse.json({ status: state, qrCode: qr.base64 })
     }
