@@ -25,7 +25,12 @@ export default async function EditarProfissionalPage({
         <h1 className="text-2xl font-semibold text-text">Editar profissional</h1>
         <ProfessionalForm
           professionalId={professional.id}
-          initial={{ name: professional.name, color: professional.color, active: professional.active }}
+          initial={{
+            name: professional.name,
+            color: professional.color,
+            active: professional.active,
+            registrationNumber: professional.registration_number ?? undefined,
+          }}
         />
       </div>
       <div className="flex flex-col gap-3">

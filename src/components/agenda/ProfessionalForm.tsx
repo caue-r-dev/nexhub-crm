@@ -9,11 +9,12 @@ export function ProfessionalForm({
   initial,
 }: {
   professionalId?: string
-  initial?: { name: string; color: string; active: boolean }
+  initial?: { name: string; color: string; active: boolean; registrationNumber?: string }
 }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [color, setColor] = useState(initial?.color ?? PROFESSIONAL_COLORS[0])
   const [active, setActive] = useState(initial?.active ?? true)
+  const [registrationNumber, setRegistrationNumber] = useState(initial?.registrationNumber ?? '')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -22,8 +23,8 @@ export function ProfessionalForm({
     setError(null)
     startTransition(async () => {
       const result = professionalId
-        ? await updateProfessionalAction(professionalId, { name, color, active })
-        : await createProfessionalAction({ name, color })
+        ? await updateProfessionalAction(professionalId, { name, color, active, registrationNumber })
+        : await createProfessionalAction({ name, color, registrationNumber })
       if (result && 'error' in result) {
         setError(result.error ?? null)
       }
@@ -56,6 +57,16 @@ export function ProfessionalForm({
           ))}
         </div>
       </div>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">Registro profissional (CRO/CRM)</span>
+        <input
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+          value={registrationNumber}
+          onChange={(e) => setRegistrationNumber(e.target.value)}
+          placeholder="Ex: CRO 12345"
+        />
+      </label>
 
       {professionalId && (
         <label className="flex items-center gap-2 text-sm text-text">
