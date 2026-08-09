@@ -4,7 +4,39 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTenant } from '@/lib/tenant'
+import { sendWhatsAppText } from '@/lib/evolution'
 import type { AppointmentStatus, AppointmentType } from '@/lib/supabase/types'
+
+const BR_TZ = 'America/Sao_Paulo'
+
+// Aviso simples de WhatsApp quando a consulta é criada manualmente (dentro
+// do CRM) — sem mexer em status nem mandar Pix, isso continua só
+// acontecendo no fluxo de confirmação (link público / resposta "sim" no
+// lembrete). Best-effort: falha no envio não pode derrubar a criação do
+// agendamento.
+async function notifyManualBooking(clientId: string, datetime: string, tenant: NonNullable<Awaited<ReturnType<typeof getCurrentTenant>>>) {
+  if (!tenant.evolution_base_url || !tenant.evolution_api_key || !tenant.evolution_instance_name) return
+
+  const supabase = await createClient()
+  const { data: client } = await supabase.from('clients').select('name, phone').eq('id', clientId).single()
+  if (!client?.phone) return
+
+  const date = new Date(datetime)
+  const dateLabel = date.toLocaleDateString('pt-BR', { timeZone: BR_TZ })
+  const timeLabel = date.toLocaleTimeString('pt-BR', { timeZone: BR_TZ, hour: '2-digit', minute: '2-digit' })
+  const firstName = client.name.split(' ')[0]
+  const message = `Olá ${firstName}! Sua consulta na ${tenant.name} foi agendada para ${dateLabel} às ${timeLabel}.`
+
+  try {
+    await sendWhatsAppText(
+      { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },
+      client.phone,
+      message
+    )
+  } catch {
+    // Agendamento já foi criado — falha só no aviso não deve quebrar o fluxo.
+  }
+}
 
 export type AppointmentInput = {
   type: AppointmentType
@@ -50,6 +82,10 @@ export async function createAppointmentAction(input: AppointmentInput) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  if (input.type === 'consulta' && input.clientId) {
+    await notifyManualBooking(input.clientId, input.datetime, tenant)
   }
 
   revalidatePath('/agenda')
