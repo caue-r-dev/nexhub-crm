@@ -90,7 +90,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     .from('clients')
     .select('id, phone')
     .eq('tenant_id', tenant.id)
-    .like('phone', `%${last8}`)
+    .like('phone', `%${last8.slice(-4)}`)
   const match = (existingClients ?? []).find((c) => c.phone?.replace(/\D/g, '').endsWith(last8))
 
   let clientId = match?.id
