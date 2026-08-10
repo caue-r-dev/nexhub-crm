@@ -672,6 +672,39 @@ export interface Database {
           },
         ]
       }
+      professional_procedure_durations: {
+        Row: {
+          id: string
+          tenant_id: string
+          professional_id: string
+          procedure_type_id: string
+          duration_min: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          professional_id: string
+          procedure_type_id: string
+          duration_min: number
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['professional_procedure_durations']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'professional_procedure_durations_professional_id_fkey'
+            columns: ['professional_id']
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'professional_procedure_durations_procedure_type_id_fkey'
+            columns: ['procedure_type_id']
+            referencedRelation: 'procedure_types'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       services: {
         Row: {
           id: string

@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentTenant } from '@/lib/tenant'
 import { ProfessionalForm } from '@/components/agenda/ProfessionalForm'
 import { ProfessionalHoursForm } from '@/components/agenda/ProfessionalHoursForm'
+import { ProcedureDurationsForm } from '@/components/agenda/ProcedureDurationsForm'
 
 export default async function EditarProfissionalPage({
   params,
@@ -18,6 +20,14 @@ export default async function EditarProfissionalPage({
     .from('professional_hours')
     .select('weekday, start_time, end_time')
     .eq('professional_id', id)
+
+  const tenant = await getCurrentTenant()
+  const [{ data: procedureTypes }, { data: durationOverrides }] = await Promise.all([
+    tenant
+      ? supabase.from('procedure_types').select('id, name, default_duration_min').eq('tenant_id', tenant.id).eq('active', true).order('name')
+      : Promise.resolve({ data: [] }),
+    supabase.from('professional_procedure_durations').select('procedure_type_id, duration_min').eq('professional_id', id),
+  ])
 
   return (
     <div className="flex flex-col gap-8">
@@ -39,6 +49,20 @@ export default async function EditarProfissionalPage({
           <p className="text-text-secondary">Usado pra calcular horários livres no link público de agendamento.</p>
         </div>
         <ProfessionalHoursForm professionalId={professional.id} existing={hours ?? []} />
+      </div>
+      <div className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-text">Duração por procedimento</h2>
+          <p className="text-text-secondary">
+            Sobrescreve a duração padrão do procedimento só pra este profissional. Deixe em branco pra
+            usar o padrão.
+          </p>
+        </div>
+        <ProcedureDurationsForm
+          professionalId={professional.id}
+          procedureTypes={procedureTypes ?? []}
+          overrides={durationOverrides ?? []}
+        />
       </div>
     </div>
   )

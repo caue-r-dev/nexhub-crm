@@ -37,6 +37,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     if (procedureType?.default_duration_min) {
       slotDurationMinutes = procedureType.default_duration_min
     }
+
+    // Duração específica do profissional pra esse procedimento tem
+    // prioridade sobre o padrão do procedimento — cada dentista leva um
+    // tempo diferente no mesmo procedimento.
+    const { data: override } = await admin
+      .from('professional_procedure_durations')
+      .select('duration_min')
+      .eq('professional_id', professionalId)
+      .eq('procedure_type_id', procedureTypeId)
+      .maybeSingle()
+    if (override?.duration_min) {
+      slotDurationMinutes = override.duration_min
+    }
   }
 
   const { data: professional } = await admin

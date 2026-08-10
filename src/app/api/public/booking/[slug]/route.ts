@@ -48,7 +48,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: 'Procedimento inválido.' }, { status: 400 })
   }
 
-  const durationMin = procedureType.default_duration_min || tenant.slot_duration_minutes
+  const { data: durationOverride } = await admin
+    .from('professional_procedure_durations')
+    .select('duration_min')
+    .eq('professional_id', body.professionalId)
+    .eq('procedure_type_id', body.procedureTypeId)
+    .maybeSingle()
+
+  const durationMin = durationOverride?.duration_min || procedureType.default_duration_min || tenant.slot_duration_minutes
 
   const { data: professional } = await admin
     .from('professionals')
