@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTenant } from '@/lib/tenant'
 import { sendWhatsAppText } from '@/lib/evolution'
+import { sendSatisfactionSurveyIfConfigured } from '@/lib/satisfaction-survey'
 import type { AppointmentStatus, AppointmentType } from '@/lib/supabase/types'
 
 const BR_TZ = 'America/Sao_Paulo'
@@ -96,7 +97,7 @@ export async function updateAppointmentStatusAction(id: string, status: Appointm
 
   const { data: current } = await supabase
     .from('appointments')
-    .select('status, package_id')
+    .select('status, package_id, type')
     .eq('id', id)
     .single()
 
@@ -119,6 +120,10 @@ export async function updateAppointmentStatusAction(id: string, status: Appointm
         .update({ used_sessions: pkg.used_sessions + 1 })
         .eq('id', current.package_id)
     }
+  }
+
+  if (current && current.status !== 'done' && status === 'done' && current.type === 'consulta') {
+    await sendSatisfactionSurveyIfConfigured(id)
   }
 
   revalidatePath('/agenda')

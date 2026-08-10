@@ -103,6 +103,7 @@ export interface Database {
           email: string | null
           address: string | null
           welcome_message: string | null
+          google_review_link: string | null
         }
         Insert: {
           id?: string
@@ -128,6 +129,7 @@ export interface Database {
           reminder_message_24h?: string | null
           reminder_message_2h?: string | null
           welcome_message?: string | null
+          google_review_link?: string | null
           budget_followup_message_day3?: string | null
           budget_followup_message_day7?: string | null
           onboarding_completed?: boolean
@@ -738,6 +740,49 @@ export interface Database {
             foreignKeyName: 'inventory_items_tenant_id_fkey'
             columns: ['tenant_id']
             referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      satisfaction_surveys: {
+        Row: {
+          id: string
+          tenant_id: string
+          client_id: string
+          appointment_id: string | null
+          rating: number | null
+          feedback: string | null
+          created_at: string
+          responded_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          client_id: string
+          appointment_id?: string | null
+          rating?: number | null
+          feedback?: string | null
+          created_at?: string
+          responded_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['satisfaction_surveys']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'satisfaction_surveys_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'satisfaction_surveys_client_id_fkey'
+            columns: ['client_id']
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'satisfaction_surveys_appointment_id_fkey'
+            columns: ['appointment_id']
+            referencedRelation: 'appointments'
             referencedColumns: ['id']
           },
         ]

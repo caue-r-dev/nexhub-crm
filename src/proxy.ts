@@ -6,7 +6,7 @@ const PUBLIC_ROUTES = ['/login', '/cadastro', '/reset-password']
 // Acessível com ou sem sessão — paciente sem conta usa pra marcar consulta
 // sozinho, mas funcionário logado também pode abrir pra conferir o próprio
 // link. Diferente de PUBLIC_ROUTES: não redireciona quem já está logado.
-const OPEN_ROUTES = ['/agendar']
+const OPEN_ROUTES = ['/agendar', '/pesquisa']
 const ONBOARDING_ROUTE = '/onboarding'
 const TROCAR_SENHA_ROUTE = '/trocar-senha'
 
