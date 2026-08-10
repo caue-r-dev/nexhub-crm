@@ -652,6 +652,7 @@ export interface Database {
           name: string
           active: boolean
           created_at: string
+          default_duration_min: number | null
         }
         Insert: {
           id?: string
@@ -659,6 +660,7 @@ export interface Database {
           name: string
           active?: boolean
           created_at?: string
+          default_duration_min?: number | null
         }
         Update: Partial<Database['public']['Tables']['procedure_types']['Insert']>
         Relationships: [

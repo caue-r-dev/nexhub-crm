@@ -8,6 +8,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   const { slug } = await params
   const { searchParams } = new URL(request.url)
   const professionalId = searchParams.get('professionalId')
+  const procedureTypeId = searchParams.get('procedureTypeId')
 
   if (!professionalId) {
     return NextResponse.json({ error: 'professionalId é obrigatório.' }, { status: 400 })
@@ -23,6 +24,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   if (!tenant) {
     return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 })
+  }
+
+  let slotDurationMinutes = tenant.slot_duration_minutes
+  if (procedureTypeId) {
+    const { data: procedureType } = await admin
+      .from('procedure_types')
+      .select('default_duration_min')
+      .eq('id', procedureTypeId)
+      .eq('tenant_id', tenant.id)
+      .single()
+    if (procedureType?.default_duration_min) {
+      slotDurationMinutes = procedureType.default_duration_min
+    }
   }
 
   const { data: professional } = await admin
@@ -65,7 +79,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       endTime: h.end_time.slice(0, 5),
     })),
     busy,
-    slotDurationMinutes: tenant.slot_duration_minutes,
+    slotDurationMinutes,
     bufferMinutes: tenant.buffer_minutes,
     rangeFrom,
     rangeTo,

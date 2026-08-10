@@ -26,21 +26,23 @@ export function BookingFlow({
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    // Always clear slots and selectedSlot when professional changes
-    // eslint-disable-next-line
+    // Duração do slot depende do procedimento escolhido — refaz a busca de
+    // horários quando profissional OU procedimento mudam.
     setSlots([])
     setSelectedSlot(null)
 
-    if (!professionalId) {
+    if (!professionalId || !procedureTypeId) {
       return
     }
 
     setLoadingSlots(true)
-    fetch(`/api/public/booking/${slug}/availability?professionalId=${professionalId}`)
+    fetch(
+      `/api/public/booking/${slug}/availability?professionalId=${professionalId}&procedureTypeId=${procedureTypeId}`
+    )
       .then((res) => res.json())
       .then((data) => setSlots(data.slots ?? []))
       .finally(() => setLoadingSlots(false))
-  }, [professionalId, slug])
+  }, [professionalId, procedureTypeId, slug])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -122,7 +124,7 @@ export function BookingFlow({
         </select>
       </label>
 
-      {professionalId && (
+      {professionalId && procedureTypeId && (
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium text-text">Horário</span>
           {loadingSlots && <p className="text-sm text-text-secondary">Carregando horários...</p>}

@@ -39,7 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   const { data: procedureType } = await admin
     .from('procedure_types')
-    .select('name')
+    .select('name, default_duration_min')
     .eq('id', body.procedureTypeId)
     .eq('tenant_id', tenant.id)
     .single()
@@ -47,6 +47,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   if (!procedureType) {
     return NextResponse.json({ error: 'Procedimento inválido.' }, { status: 400 })
   }
+
+  const durationMin = procedureType.default_duration_min || tenant.slot_duration_minutes
 
   const { data: professional } = await admin
     .from('professionals')
@@ -60,7 +62,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   }
 
   const requestedStart = new Date(body.datetime)
-  const requestedEnd = new Date(requestedStart.getTime() + tenant.slot_duration_minutes * 60_000)
+  const requestedEnd = new Date(requestedStart.getTime() + durationMin * 60_000)
   const bufferMs = tenant.buffer_minutes * 60_000
 
   // Revalida que o slot ainda está livre (protege contra dois pacientes
@@ -117,7 +119,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       professional_id: body.professionalId,
       title: procedureType.name,
       datetime: requestedStart.toISOString(),
-      duration_min: tenant.slot_duration_minutes,
+      duration_min: durationMin,
       status: 'pending',
       source: 'public_booking',
       booking_expires_at: bookingExpiresAt,
