@@ -158,6 +158,7 @@ export interface Database {
           email: string
           role: string
           created_at: string
+          must_change_password: boolean
         }
         Insert: {
           id?: string
@@ -166,6 +167,7 @@ export interface Database {
           email: string
           role?: string
           created_at?: string
+          must_change_password?: boolean
         }
         Update: Partial<Database['public']['Tables']['users']['Insert']>
         Relationships: [

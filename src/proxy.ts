@@ -8,6 +8,7 @@ const PUBLIC_ROUTES = ['/login', '/cadastro', '/reset-password']
 // link. Diferente de PUBLIC_ROUTES: não redireciona quem já está logado.
 const OPEN_ROUTES = ['/agendar']
 const ONBOARDING_ROUTE = '/onboarding'
+const TROCAR_SENHA_ROUTE = '/trocar-senha'
 
 export async function proxy(request: NextRequest) {
   // Painel admin tem auth própria (admin_users, checado no layout), separada
@@ -59,32 +60,30 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  if (user && pathname !== ONBOARDING_ROUTE && !isPublicRoute) {
+  if (user && !isPublicRoute) {
     const { data: userRow } = await supabase
       .from('users')
-      .select('tenants(onboarding_completed)')
+      .select('must_change_password, tenants(onboarding_completed)')
       .eq('auth_id', user.id)
       .single()
 
     const tenant = (Array.isArray(userRow?.tenants) ? userRow.tenants[0] : userRow?.tenants) as
       | { onboarding_completed: boolean }
       | undefined
-    if (tenant && !tenant.onboarding_completed) {
+
+    // Senha temporária gerada pelo admin — bloqueia tudo até o cliente trocar,
+    // antes até da checagem de onboarding.
+    if (userRow?.must_change_password && pathname !== TROCAR_SENHA_ROUTE) {
+      return NextResponse.redirect(new URL(TROCAR_SENHA_ROUTE, request.url))
+    }
+    if (!userRow?.must_change_password && pathname === TROCAR_SENHA_ROUTE) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    if (pathname !== ONBOARDING_ROUTE && tenant && !tenant.onboarding_completed) {
       return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url))
     }
-  }
-
-  if (user && pathname === ONBOARDING_ROUTE) {
-    const { data: userRow } = await supabase
-      .from('users')
-      .select('tenants(onboarding_completed)')
-      .eq('auth_id', user.id)
-      .single()
-
-    const tenant = (Array.isArray(userRow?.tenants) ? userRow.tenants[0] : userRow?.tenants) as
-      | { onboarding_completed: boolean }
-      | undefined
-    if (tenant?.onboarding_completed) {
+    if (pathname === ONBOARDING_ROUTE && tenant?.onboarding_completed) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

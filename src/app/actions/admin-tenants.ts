@@ -74,6 +74,8 @@ export async function generateTempPasswordAction(
 
   if (error) return { error: error.message }
 
+  await supabase.from('users').update({ must_change_password: true }).eq('id', userId)
+
   return { tempPassword, email: user.email }
 }
 
@@ -161,6 +163,7 @@ export async function generateTrialTenantAction(
     auth_id: authData.user.id,
     email,
     role: 'owner',
+    must_change_password: true,
   })
 
   if (userError) {
