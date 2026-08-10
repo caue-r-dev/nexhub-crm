@@ -9,6 +9,38 @@
 // precisar ramificar de verdade.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTemplate } from '@/lib/message-templates'
+import type { BusinessHours } from '@/lib/supabase/types'
+
+const WEEKDAY_LABELS: Record<keyof BusinessHours, string> = {
+  monday: 'seg',
+  tuesday: 'ter',
+  wednesday: 'qua',
+  thursday: 'qui',
+  friday: 'sex',
+  saturday: 'sáb',
+  sunday: 'dom',
+}
+
+// Junta dias com o mesmo horário num intervalo (ex: seg-sex 08:00-18:00)
+// em vez de listar dia por dia — mais legível numa mensagem de WhatsApp.
+function formatBusinessHours(hours: BusinessHours | null): string {
+  if (!hours) return ''
+  const days = (Object.keys(WEEKDAY_LABELS) as (keyof BusinessHours)[]).filter((d) => hours[d]?.active)
+  if (days.length === 0) return ''
+
+  const groups: { label: string; start: string; end: string }[] = []
+  for (const day of days) {
+    const { start, end } = hours[day]
+    const last = groups[groups.length - 1]
+    if (last && last.start === start && last.end === end) {
+      last.label = last.label.includes('-') ? last.label.replace(/-\w+$/, `-${WEEKDAY_LABELS[day]}`) : `${last.label}-${WEEKDAY_LABELS[day]}`
+    } else {
+      groups.push({ label: WEEKDAY_LABELS[day], start, end })
+    }
+  }
+
+  return groups.map((g) => `${g.label} ${g.start}-${g.end}`).join(', ')
+}
 
 const STAGES = [
   'primeiro_contato',
@@ -24,7 +56,7 @@ type TenantInfo = {
   id: string
   name: string
   address: string | null
-  business_hours: unknown
+  business_hours: BusinessHours | null
   slug: string | null
 }
 
@@ -79,18 +111,32 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
     .limit(1)
     .maybeSingle()
 
+  const { data: firstService } = await admin
+    .from('services')
+    .select('default_value')
+    .eq('tenant_id', tenant.id)
+    .eq('active', true)
+    .order('default_value', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const valorConsulta = firstService?.default_value != null ? `R$ ${firstService.default_value.toFixed(2)}` : ''
+  const horarioAtendimento = formatBusinessHours(tenant.business_hours)
+
   const context = {
     nome_clinica: tenant.name,
     endereco: tenant.address ?? '',
     nome_profissional: firstProfessional?.name ?? '',
     link_agendamento: linkAgendamento,
+    valor_consulta: valorConsulta,
+    horario_atendimento: horarioAtendimento,
   }
 
   const DEFAULTS: Record<Stage, string> = {
     primeiro_contato: `Olá! Bem-vindo(a) à ${tenant.name}. Como podemos te ajudar hoje?`,
     pergunta_queixa: 'Pra te atender melhor, me conta rapidinho o que você está sentindo ou o que gostaria de resolver?',
     explicacao_processo: 'Nosso processo é simples: avaliação inicial, diagnóstico e plano de tratamento. Posso te passar os horários disponíveis?',
-    valor_e_horarios: `Atendemos em ${tenant.address ?? 'nosso endereço'}.`,
+    valor_e_horarios: `${valorConsulta ? `O valor da avaliação é ${valorConsulta}. ` : ''}Atendemos${horarioAtendimento ? ` ${horarioAtendimento}` : ''}${tenant.address ? `, na ${tenant.address}` : ''}.`,
     confirmacao_horario: 'Perfeito! Vou te mandar o link pra você escolher o melhor horário.',
     envio_link_agendamento: linkAgendamento
       ? `Aqui está o link pra você agendar direto no horário que preferir: ${linkAgendamento}`
