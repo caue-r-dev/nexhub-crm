@@ -11,6 +11,7 @@ import {
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
+  Package,
   Users,
   Wallet,
   X,
@@ -24,6 +25,7 @@ const LINKS = [
   { href: '/agenda', label: 'Agenda', icon: Calendar },
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/financeiro', label: 'Financeiro', icon: Wallet },
+  { href: '/estoque', label: 'Estoque', icon: Package },
   { href: '/atendimento', label: 'Atendimento', icon: MessageCircle },
 ]
 

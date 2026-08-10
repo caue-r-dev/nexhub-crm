@@ -709,6 +709,39 @@ export interface Database {
           },
         ]
       }
+      inventory_items: {
+        Row: {
+          id: string
+          tenant_id: string
+          name: string
+          quantity: number
+          unit: string
+          min_quantity: number | null
+          expires_at: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          name: string
+          quantity?: number
+          unit?: string
+          min_quantity?: number | null
+          expires_at?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['inventory_items']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'inventory_items_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       clinical_documents: {
         Row: {
           id: string
