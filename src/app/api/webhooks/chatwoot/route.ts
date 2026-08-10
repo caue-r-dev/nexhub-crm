@@ -9,6 +9,8 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { confirmAppointment, cancelAppointment, findPendingAppointmentByPhone } from '@/lib/appointment-automation'
+import { getBotReply } from '@/lib/bot-engine'
+import { sendWhatsAppText } from '@/lib/evolution'
 
 function normalize(text: string): string {
   return text
@@ -36,24 +38,50 @@ export async function POST(request: Request) {
   if (!accountId || !phone || !content) return NextResponse.json({ ok: true })
 
   const admin = createAdminClient()
-  const { data: tenant } = await admin.from('tenants').select('id').eq('chatwoot_account_id', accountId).single()
+  const { data: tenant } = await admin
+    .from('tenants')
+    .select('id, name, address, business_hours, slug, evolution_base_url, evolution_api_key, evolution_instance_name')
+    .eq('chatwoot_account_id', accountId)
+    .single()
   if (!tenant) return NextResponse.json({ ok: true })
 
   const appointmentId = await findPendingAppointmentByPhone(tenant.id, phone)
-  if (!appointmentId) return NextResponse.json({ ok: true })
 
-  const words = normalize(content).split(/\s+/)
-  const isConfirm = words.some((w) => CONFIRM_WORDS.includes(w))
-  const isCancel = words.some((w) => CANCEL_WORDS.includes(w))
+  if (appointmentId) {
+    const words = normalize(content).split(/\s+/)
+    const isConfirm = words.some((w) => CONFIRM_WORDS.includes(w))
+    const isCancel = words.some((w) => CANCEL_WORDS.includes(w))
 
-  if (isConfirm && !isCancel) {
-    await confirmAppointment(appointmentId)
-  } else if (isCancel && !isConfirm) {
-    await cancelAppointment(appointmentId)
+    if (isConfirm && !isCancel) {
+      await confirmAppointment(appointmentId)
+      return NextResponse.json({ ok: true })
+    } else if (isCancel && !isConfirm) {
+      await cancelAppointment(appointmentId)
+      return NextResponse.json({ ok: true })
+    }
+    // Resposta ambígua com consulta pendente — ignora, deixa pendente. Não
+    // manda mensagem de "não entendi" pra evitar loop de bot chato numa
+    // conversa que também é usada por humano (dentista pode estar no chat).
+    return NextResponse.json({ ok: true })
   }
-  // Resposta ambígua ou sem palavra-chave — ignora, deixa pendente. Não
-  // manda mensagem de "não entendi" pra evitar loop de bot chato numa
-  // conversa que também é usada por humano (dentista pode estar no chat).
+
+  // Sem consulta pendente pra confirmar/cancelar — passa pro bot de
+  // primeiro contato (só roda se ANTHROPIC_API_KEY estiver configurada).
+  if (tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
+    try {
+      const reply = await getBotReply(tenant, phone, content)
+      if (reply) {
+        await sendWhatsAppText(
+          { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },
+          phone,
+          reply
+        )
+      }
+    } catch {
+      // Falha do bot não deve derrubar o webhook — mensagem original do
+      // paciente já chegou no Chatwoot normalmente, humano pode assumir.
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

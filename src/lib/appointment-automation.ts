@@ -6,6 +6,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendWhatsAppText, sendWhatsAppImage } from '@/lib/evolution'
 import { generatePixQr } from '@/lib/pix'
+import { resolveTemplate } from '@/lib/message-templates'
 
 type TenantEvolutionFields = {
   name: string
@@ -22,7 +23,7 @@ export async function confirmAppointment(
   const { data: appt, error: fetchError } = await admin
     .from('appointments')
     .select(
-      'id, deposit_amount, client_id, clients(name, phone), tenants(name, evolution_base_url, evolution_api_key, evolution_instance_name, pix_key, pix_receiver_name, default_deposit_amount)'
+      'id, tenant_id, deposit_amount, client_id, clients(name, phone), tenants(name, evolution_base_url, evolution_api_key, evolution_instance_name, pix_key, pix_receiver_name, default_deposit_amount)'
     )
     .eq('id', appointmentId)
     .single()
@@ -65,7 +66,13 @@ export async function confirmAppointment(
   }
 
   try {
-    await sendWhatsAppText(evolutionConfig, client.phone, `Consulta confirmada! Te esperamos na ${tenant.name}.`)
+    const message = await resolveTemplate(
+      appt.tenant_id,
+      'agendamento_confirmado',
+      { nome_clinica: tenant.name, nome_paciente: client.name },
+      `Consulta confirmada! Te esperamos na ${tenant.name}.`
+    )
+    await sendWhatsAppText(evolutionConfig, client.phone, message)
   } catch (e) {
     return { ok: true, pixSent: false, reason: e instanceof Error ? e.message : 'Erro ao enviar confirmação.' }
   }

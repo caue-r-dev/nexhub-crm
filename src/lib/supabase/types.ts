@@ -286,6 +286,8 @@ export interface Database {
           deposit_amount: number | null
           source: BookingSource
           booking_expires_at: string | null
+          followup_atraso_sent_at: string | null
+          followup_falta_sent_at: string | null
         }
         Insert: {
           id?: string
@@ -307,6 +309,8 @@ export interface Database {
           deposit_amount?: number | null
           source?: BookingSource
           booking_expires_at?: string | null
+          followup_atraso_sent_at?: string | null
+          followup_falta_sent_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['appointments']['Insert']>
         Relationships: [
@@ -861,6 +865,60 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: 'services_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          id: string
+          tenant_id: string
+          template_key: string
+          content: string
+          active: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          template_key: string
+          content: string
+          active?: boolean
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['message_templates']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'message_templates_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      conversation_state: {
+        Row: {
+          id: string
+          tenant_id: string
+          contact_phone: string
+          current_stage: string
+          captured_data: Record<string, unknown>
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          contact_phone: string
+          current_stage?: string
+          captured_data?: Record<string, unknown>
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['conversation_state']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_state_tenant_id_fkey'
             columns: ['tenant_id']
             referencedRelation: 'tenants'
             referencedColumns: ['id']

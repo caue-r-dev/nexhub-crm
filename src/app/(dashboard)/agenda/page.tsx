@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Clock as ClockIcon, QrCode, Link2, ListChecks, ClipboardList, Building2, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock as ClockIcon, QrCode, Link2, ListChecks, ClipboardList, Building2, Star, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import {
   addDays,
@@ -178,6 +178,13 @@ export default async function AgendaPage({
           >
             <Star className="h-4 w-4" />
             <span className="hidden sm:inline">Satisfação</span>
+          </Link>
+          <Link
+            href="/configuracoes/mensagens"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">Mensagens</span>
           </Link>
           <NewAppointmentButton />
         </div>

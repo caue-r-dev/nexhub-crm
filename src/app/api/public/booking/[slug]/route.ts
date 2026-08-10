@@ -4,6 +4,12 @@ import { normalizePhone } from '@/lib/evolution'
 import { confirmAppointment } from '@/lib/appointment-automation'
 import { notifyTenantOfBooking } from '@/lib/booking-notifications'
 import { sendWelcomeMessageIfConfigured } from '@/lib/welcome-message'
+import { resolveTemplate } from '@/lib/message-templates'
+import { sendWhatsAppText } from '@/lib/evolution'
+
+// Procedimentos com duração igual ou maior a este limiar recebem uma
+// orientação extra (chegar mais cedo, reservar bem o horário).
+const PROCEDIMENTO_LONGO_MIN = 90
 
 type BookingBody = {
   professionalId: string
@@ -153,6 +159,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       { error: 'Não conseguimos confirmar seu agendamento. Tente novamente ou entre em contato com a clínica.' },
       { status: 500 }
     )
+  }
+
+  if (durationMin >= PROCEDIMENTO_LONGO_MIN && tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
+    try {
+      const message = await resolveTemplate(
+        tenant.id,
+        'orientacao_procedimento_longo',
+        { nome_clinica: tenant.name, procedimento: procedureType.name },
+        'Só um aviso: seu procedimento tem duração maior, recomendamos chegar com 10 minutos de antecedência e reservar bem o horário na agenda.'
+      )
+      await sendWhatsAppText(
+        { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },
+        phone,
+        message
+      )
+    } catch {
+      // Aviso extra, não deve quebrar a confirmação do agendamento.
+    }
   }
 
   if (tenant.notification_phone && tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
