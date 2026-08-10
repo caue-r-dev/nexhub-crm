@@ -7,6 +7,7 @@ import { getCurrentTenant, getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { ClientTabs } from '@/components/clientes/ClientTabs'
 import { ClientPhotoUpload } from '@/components/clientes/ClientPhotoUpload'
 import { ClientDocuments } from '@/components/clientes/ClientDocuments'
+import { ClinicalDocumentGenerator } from '@/components/clientes/ClinicalDocumentGenerator'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
@@ -56,6 +57,12 @@ export default async function FichaClientePage({
     .select('*')
     .eq('client_id', id)
     .order('purchased_at', { ascending: false })
+
+  const { data: professionals } = await supabase
+    .from('professionals')
+    .select('id, name')
+    .eq('active', true)
+    .order('name')
 
   return (
     <div className="flex flex-col gap-6">
@@ -164,6 +171,11 @@ export default async function FichaClientePage({
       </div>
 
       {tenant && <ClientDocuments clientId={id} tenantId={tenant.id} />}
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-text">Atestado / Receita</h2>
+        <ClinicalDocumentGenerator clientId={id} professionals={professionals ?? []} />
+      </div>
     </div>
   )
 }

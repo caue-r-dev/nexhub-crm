@@ -709,6 +709,41 @@ export interface Database {
           },
         ]
       }
+      clinical_documents: {
+        Row: {
+          id: string
+          tenant_id: string
+          client_id: string
+          professional_id: string | null
+          type: 'atestado' | 'receita'
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          client_id: string
+          professional_id?: string | null
+          type: 'atestado' | 'receita'
+          content: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['clinical_documents']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'clinical_documents_client_id_fkey'
+            columns: ['client_id']
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'clinical_documents_professional_id_fkey'
+            columns: ['professional_id']
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       services: {
         Row: {
           id: string
