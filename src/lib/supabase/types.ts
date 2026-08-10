@@ -209,6 +209,7 @@ export interface Database {
           niche_data: Record<string, unknown>
           created_at: string
           convenio: string | null
+          photo_path: string | null
         }
         Insert: {
           id?: string
@@ -221,6 +222,7 @@ export interface Database {
           niche_data?: Record<string, unknown>
           created_at?: string
           convenio?: string | null
+          photo_path?: string | null
         }
         Update: Partial<Database['public']['Tables']['clients']['Insert']>
         Relationships: [

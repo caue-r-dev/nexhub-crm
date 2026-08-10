@@ -64,6 +64,14 @@ export async function createClientAction(input: ClientInput) {
   redirect(`/clientes/${result.client.id}`)
 }
 
+export async function updateClientPhotoAction(clientId: string, photoPath: string | null) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('clients').update({ photo_path: photoPath }).eq('id', clientId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/clientes/${clientId}`)
+}
+
 export async function updateClientAction(id: string, input: ClientInput) {
   if (!input.name.trim()) {
     return { error: 'Nome é obrigatório.' }

@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation'
 import { Cake, FileText, Phone, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { BR_TZ } from '@/lib/date-range'
-import { getCurrentTenantNicheSlug } from '@/lib/tenant'
+import { getCurrentTenant, getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { ClientTabs } from '@/components/clientes/ClientTabs'
+import { ClientPhotoUpload } from '@/components/clientes/ClientPhotoUpload'
+import { ClientDocuments } from '@/components/clientes/ClientDocuments'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
@@ -30,9 +32,17 @@ export default async function FichaClientePage({
   const { id } = await params
   const supabase = await createClient()
   const nicheSlug = await getCurrentTenantNicheSlug()
+  const tenant = await getCurrentTenant()
 
   const { data: client } = await supabase.from('clients').select('*').eq('id', id).single()
   if (!client) notFound()
+
+  const initials = client.name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0]?.toUpperCase())
+    .join('')
 
   const { data: appointments } = await supabase
     .from('appointments')
@@ -60,6 +70,10 @@ export default async function FichaClientePage({
       </div>
 
       {nicheSlug === 'dentista' && <ClientTabs clientId={id} active="ficha" />}
+
+      {tenant && (
+        <ClientPhotoUpload clientId={id} tenantId={tenant.id} initialPhotoPath={client.photo_path} initials={initials} />
+      )}
 
       <div className="grid max-w-md grid-cols-2 gap-5 rounded-xl border border-border bg-surface p-5">
         <div className="flex items-start gap-2.5">
@@ -148,6 +162,8 @@ export default async function FichaClientePage({
           )}
         </div>
       </div>
+
+      {tenant && <ClientDocuments clientId={id} tenantId={tenant.id} />}
     </div>
   )
 }
