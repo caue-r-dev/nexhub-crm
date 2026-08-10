@@ -69,6 +69,15 @@ export default async function ImprimirDocumentoClinicoPage({
 
         <h2 className="text-center text-xl font-semibold uppercase tracking-wide">{TITLE[doc.type]}</h2>
 
+        <p className="text-sm text-text-secondary">
+          Paciente: <strong className="text-text">{client.name}</strong>
+          {client.document && (
+            <>
+              {' '}— CPF: <strong className="text-text">{client.document}</strong>
+            </>
+          )}
+        </p>
+
         {doc.type === 'atestado' ? (
           <div className="flex flex-col gap-4">
             <p className="leading-relaxed">
