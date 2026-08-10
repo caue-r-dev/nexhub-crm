@@ -9,12 +9,13 @@ export function ProfessionalForm({
   initial,
 }: {
   professionalId?: string
-  initial?: { name: string; color: string; active: boolean; registrationNumber?: string }
+  initial?: { name: string; color: string; active: boolean; registrationNumber?: string; role?: string }
 }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [color, setColor] = useState(initial?.color ?? PROFESSIONAL_COLORS[0])
   const [active, setActive] = useState(initial?.active ?? true)
   const [registrationNumber, setRegistrationNumber] = useState(initial?.registrationNumber ?? '')
+  const [role, setRole] = useState(initial?.role ?? '')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -23,8 +24,8 @@ export function ProfessionalForm({
     setError(null)
     startTransition(async () => {
       const result = professionalId
-        ? await updateProfessionalAction(professionalId, { name, color, active, registrationNumber })
-        : await createProfessionalAction({ name, color, registrationNumber })
+        ? await updateProfessionalAction(professionalId, { name, color, active, registrationNumber, role })
+        : await createProfessionalAction({ name, color, registrationNumber, role })
       if (result && 'error' in result) {
         setError(result.error ?? null)
       }
@@ -64,8 +65,19 @@ export function ProfessionalForm({
           className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
           value={registrationNumber}
           onChange={(e) => setRegistrationNumber(e.target.value)}
-          placeholder="Ex: CRO 12345"
+          placeholder="Ex: CRO/MG 69908"
         />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">Especialidade</span>
+        <input
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          placeholder="Ex: Cirurgiã-Dentista"
+        />
+        <span className="text-xs text-text-secondary">Aparece no cabeçalho de atestados e receitas.</span>
       </label>
 
       {professionalId && (

@@ -569,6 +569,7 @@ export interface Database {
           active: boolean
           created_at: string
           registration_number: string | null
+          role: string | null
         }
         Insert: {
           id?: string
@@ -578,6 +579,7 @@ export interface Database {
           active?: boolean
           created_at?: string
           registration_number?: string | null
+          role?: string | null
         }
         Update: Partial<Database['public']['Tables']['professionals']['Insert']>
         Relationships: [
@@ -796,6 +798,12 @@ export interface Database {
           type: 'atestado' | 'receita'
           content: string
           created_at: string
+          cid: string | null
+          exam_date: string | null
+          start_time: string | null
+          end_time: string | null
+          convalescence: boolean | null
+          convalescence_period: string | null
         }
         Insert: {
           id?: string
@@ -805,6 +813,12 @@ export interface Database {
           type: 'atestado' | 'receita'
           content: string
           created_at?: string
+          cid?: string | null
+          exam_date?: string | null
+          start_time?: string | null
+          end_time?: string | null
+          convalescence?: boolean | null
+          convalescence_period?: string | null
         }
         Update: Partial<Database['public']['Tables']['clinical_documents']['Insert']>
         Relationships: [

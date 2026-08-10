@@ -40,6 +40,7 @@ export default async function EditarProfissionalPage({
             color: professional.color,
             active: professional.active,
             registrationNumber: professional.registration_number ?? undefined,
+            role: professional.role ?? undefined,
           }}
         />
       </div>

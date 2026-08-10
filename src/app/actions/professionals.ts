@@ -5,7 +5,13 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTenant } from '@/lib/tenant'
 
-export type ProfessionalInput = { name: string; color: string; active?: boolean; registrationNumber?: string }
+export type ProfessionalInput = {
+  name: string
+  color: string
+  active?: boolean
+  registrationNumber?: string
+  role?: string
+}
 
 export async function createProfessionalAction(input: ProfessionalInput) {
   if (!input.name.trim()) return { error: 'Nome é obrigatório.' }
@@ -19,6 +25,7 @@ export async function createProfessionalAction(input: ProfessionalInput) {
     name: input.name.trim(),
     color: input.color,
     registration_number: input.registrationNumber?.trim() || null,
+    role: input.role?.trim() || null,
   })
 
   if (error) return { error: error.message }
@@ -38,6 +45,7 @@ export async function updateProfessionalAction(id: string, input: ProfessionalIn
       color: input.color,
       active: input.active ?? true,
       registration_number: input.registrationNumber?.trim() || null,
+      role: input.role?.trim() || null,
     })
     .eq('id', id)
 
