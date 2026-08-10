@@ -38,6 +38,31 @@ export async function sendWhatsAppText(
   }
 }
 
+// Busca a URL da foto de perfil do WhatsApp do contato (Baileys expõe isso
+// via /chat/fetchProfilePictureUrl). Retorna null se o contato não tiver
+// foto pública ou não existir no WhatsApp — nunca lança erro, quem chama
+// decide se quer fallback.
+export async function fetchWhatsAppProfilePictureUrl(config: EvolutionConfig, phone: string): Promise<string | null> {
+  const number = normalizePhone(phone)
+  if (!number) return null
+
+  try {
+    const res = await fetch(`${config.baseUrl}/chat/fetchProfilePictureUrl/${config.instanceName}`, {
+      method: 'POST',
+      headers: {
+        apikey: config.apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ number }),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { profilePictureUrl?: string }
+    return data.profilePictureUrl ?? null
+  } catch {
+    return null
+  }
+}
+
 // QR code do Pix é sempre um data URL (`data:image/png;base64,...`, gerado
 // por `generatePixQr`) — a Evolution espera só o base64 puro no campo
 // `media`, sem o prefixo.

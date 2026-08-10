@@ -1,11 +1,42 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { normalizePhone } from '@/lib/evolution'
+import { normalizePhone, fetchWhatsAppProfilePictureUrl } from '@/lib/evolution'
 import { confirmAppointment } from '@/lib/appointment-automation'
 import { notifyTenantOfBooking } from '@/lib/booking-notifications'
 import { sendWelcomeMessageIfConfigured } from '@/lib/welcome-message'
 import { resolveTemplate } from '@/lib/message-templates'
 import { sendWhatsAppText } from '@/lib/evolution'
+import type { AnamneseQuestionnaire } from '@/lib/anamnese-questions'
+
+// Baixa a foto de perfil do WhatsApp do contato e sobe no bucket privado
+// client-files, no mesmo padrão usado pelo upload manual — best-effort, uma
+// foto a mais ou a menos não pode travar o cadastro do paciente.
+async function saveWhatsAppProfilePhoto(
+  admin: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+  clientId: string,
+  evolutionConfig: { baseUrl: string; apiKey: string; instanceName: string },
+  phone: string
+) {
+  try {
+    const pictureUrl = await fetchWhatsAppProfilePictureUrl(evolutionConfig, phone)
+    if (!pictureUrl) return
+
+    const imgRes = await fetch(pictureUrl)
+    if (!imgRes.ok) return
+    const bytes = await imgRes.arrayBuffer()
+
+    const path = `${tenantId}/${clientId}/foto-whatsapp-${Date.now()}.jpg`
+    const { error: uploadError } = await admin.storage
+      .from('client-files')
+      .upload(path, bytes, { contentType: 'image/jpeg' })
+    if (uploadError) return
+
+    await admin.from('clients').update({ photo_path: path }).eq('id', clientId)
+  } catch {
+    // Best-effort — falha aqui nunca deve impedir o agendamento.
+  }
+}
 
 // Procedimentos com duração igual ou maior a este limiar recebem uma
 // orientação extra (chegar mais cedo, reservar bem o horário).
@@ -17,6 +48,7 @@ type BookingBody = {
   datetime: string
   patientName: string
   patientPhone: string
+  anamnese?: AnamneseQuestionnaire
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -123,6 +155,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     }
     clientId = newClient.id
     await sendWelcomeMessageIfConfigured(tenant, { name: body.patientName.trim(), phone: body.patientPhone.trim() })
+
+    if (tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
+      await saveWhatsAppProfilePhoto(
+        admin,
+        tenant.id,
+        clientId,
+        { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },
+        phone
+      )
+    }
+  }
+
+  if (body.anamnese && (body.anamnese.queixa_principal?.trim() || Object.keys(body.anamnese.answers ?? {}).length > 0)) {
+    await admin
+      .from('anamnesis')
+      .upsert(
+        { tenant_id: tenant.id, client_id: clientId, questionnaire: body.anamnese, updated_at: new Date().toISOString() },
+        { onConflict: 'client_id' }
+      )
   }
 
   const bookingExpiresAt = new Date(Date.now() + tenant.booking_hold_minutes * 60_000).toISOString()

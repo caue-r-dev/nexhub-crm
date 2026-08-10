@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ANAMNESE_QUESTIONS, type AnamneseQuestionnaire } from '@/lib/anamnese-questions'
 
 type Professional = { id: string; name: string }
 type ProcedureType = { id: string; name: string }
+
+const EMPTY_ANAMNESE: AnamneseQuestionnaire = { queixa_principal: '', answers: {} }
 
 export function BookingFlow({
   slug,
@@ -21,6 +24,7 @@ export function BookingFlow({
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [anamnese, setAnamnese] = useState<AnamneseQuestionnaire>(EMPTY_ANAMNESE)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -62,6 +66,7 @@ export function BookingFlow({
           datetime: selectedSlot,
           patientName: name,
           patientPhone: phone,
+          anamnese,
         }),
       })
       const data = await res.json()
@@ -176,6 +181,63 @@ export function BookingFlow({
           placeholder="(11) 99999-9999"
         />
       </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">O que você está sentindo? (opcional)</span>
+        <textarea
+          rows={2}
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+          value={anamnese.queixa_principal}
+          onChange={(e) => setAnamnese((prev) => ({ ...prev, queixa_principal: e.target.value }))}
+        />
+      </label>
+
+      <details className="rounded-lg border border-border">
+        <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-text">
+          Ficha de saúde (ajuda o profissional a te atender melhor — opcional)
+        </summary>
+        <div className="flex flex-col divide-y divide-border border-t border-border">
+          {ANAMNESE_QUESTIONS.map((q) => {
+            const answer = anamnese.answers[q.id]
+            return (
+              <div key={q.id} className="flex flex-col gap-2 px-3 py-3">
+                <p className="text-sm text-text">{q.label}</p>
+                <div className="flex gap-4">
+                  {(['sim', 'nao', 'nao_sei'] as const).map((opt) => (
+                    <label key={opt} className="flex items-center gap-1.5 text-sm text-text">
+                      <input
+                        type="radio"
+                        name={q.id}
+                        checked={answer?.value === opt}
+                        onChange={() =>
+                          setAnamnese((prev) => ({
+                            ...prev,
+                            answers: { ...prev.answers, [q.id]: { ...prev.answers[q.id], value: opt } },
+                          }))
+                        }
+                      />
+                      {opt === 'sim' ? 'Sim' : opt === 'nao' ? 'Não' : 'Não sei'}
+                    </label>
+                  ))}
+                </div>
+                {q.hasInfo && (
+                  <input
+                    placeholder="Informações adicionais"
+                    className="rounded-lg border border-border bg-bg px-3 py-1.5 text-sm text-text outline-none focus:border-accent"
+                    value={answer?.info ?? ''}
+                    onChange={(e) =>
+                      setAnamnese((prev) => ({
+                        ...prev,
+                        answers: { ...prev.answers, [q.id]: { value: prev.answers[q.id]?.value ?? '', info: e.target.value } },
+                      }))
+                    }
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </details>
 
       {error && <p className="text-sm text-status-cancelled">{error}</p>}
 
