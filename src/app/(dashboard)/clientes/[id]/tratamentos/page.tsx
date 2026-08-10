@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ClientTabs } from '@/components/clientes/ClientTabs'
 import { TreatmentForm } from '@/components/tratamentos/TreatmentForm'
 import { TreatmentStatusSelect } from '@/components/tratamentos/TreatmentStatusSelect'
+import { OdontogramGrid } from '@/components/odontograma/OdontogramGrid'
 
 export default async function TratamentosPage({
   params,
@@ -15,9 +16,10 @@ export default async function TratamentosPage({
   const { data: client } = await supabase.from('clients').select('id, name').eq('id', id).single()
   if (!client) notFound()
 
-  const [{ data: treatments }, { data: budgets }] = await Promise.all([
+  const [{ data: treatments }, { data: budgets }, { data: odontogramRecords }] = await Promise.all([
     supabase.from('treatments').select('*').eq('client_id', id).order('created_at', { ascending: false }),
     supabase.from('treatment_budgets').select('id, total, created_at').eq('client_id', id).order('created_at', { ascending: false }),
+    supabase.from('odontogram_records').select('tooth_number, status').eq('client_id', id),
   ])
 
   const budgetOptions = (budgets ?? []).map((b) => ({
@@ -29,6 +31,11 @@ export default async function TratamentosPage({
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold text-text">{client.name}</h1>
       <ClientTabs clientId={id} active="tratamentos" />
+
+      <div>
+        <h2 className="mb-3 text-lg font-semibold text-text">Odontograma</h2>
+        <OdontogramGrid clientId={id} records={odontogramRecords ?? []} />
+      </div>
 
       <TreatmentForm clientId={id} budgets={budgetOptions} />
 

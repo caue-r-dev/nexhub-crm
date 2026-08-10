@@ -3,7 +3,6 @@ import Link from 'next/link'
 export function ClientTabs({ clientId, active }: { clientId: string; active: string }) {
   const tabs = [
     { key: 'ficha', label: 'Ficha', href: `/clientes/${clientId}` },
-    { key: 'odontograma', label: 'Odontograma', href: `/clientes/${clientId}/odontograma` },
     { key: 'anamnese', label: 'Anamnese', href: `/clientes/${clientId}/anamnese` },
     { key: 'tratamentos', label: 'Tratamentos', href: `/clientes/${clientId}/tratamentos` },
     { key: 'orcamentos', label: 'Orçamentos', href: `/clientes/${clientId}/orcamentos` },

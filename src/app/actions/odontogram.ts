@@ -23,5 +23,5 @@ export async function upsertToothAction(
 
   if (error) return { error: error.message }
 
-  revalidatePath(`/clientes/${clientId}/odontograma`)
+  revalidatePath(`/clientes/${clientId}/tratamentos`)
 }
