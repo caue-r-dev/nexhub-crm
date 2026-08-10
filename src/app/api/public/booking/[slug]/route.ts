@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { normalizePhone } from '@/lib/evolution'
 import { confirmAppointment } from '@/lib/appointment-automation'
 import { notifyTenantOfBooking } from '@/lib/booking-notifications'
+import { sendWelcomeMessageIfConfigured } from '@/lib/welcome-message'
 
 type BookingBody = {
   professionalId: string
@@ -29,7 +30,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   const { data: tenant } = await admin
     .from('tenants')
-    .select('id, name, slot_duration_minutes, buffer_minutes, booking_hold_minutes, notification_phone, evolution_base_url, evolution_api_key, evolution_instance_name')
+    .select(
+      'id, name, slot_duration_minutes, buffer_minutes, booking_hold_minutes, notification_phone, evolution_base_url, evolution_api_key, evolution_instance_name, welcome_message'
+    )
     .eq('slug', slug)
     .single()
 
@@ -113,6 +116,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       return NextResponse.json({ error: clientError?.message ?? 'Erro ao cadastrar paciente.' }, { status: 500 })
     }
     clientId = newClient.id
+    await sendWelcomeMessageIfConfigured(tenant, { name: body.patientName.trim(), phone: body.patientPhone.trim() })
   }
 
   const bookingExpiresAt = new Date(Date.now() + tenant.booking_hold_minutes * 60_000).toISOString()

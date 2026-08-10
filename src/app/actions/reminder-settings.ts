@@ -21,3 +21,18 @@ export async function updateReminderSettingsAction(input: { message24h: string; 
 
   revalidatePath('/configuracoes/lembretes')
 }
+
+export async function updateWelcomeMessageAction(message: string) {
+  const tenant = await getCurrentTenant()
+  if (!tenant) return { error: 'Sessão inválida.' }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('tenants')
+    .update({ welcome_message: message.trim() || null })
+    .eq('id', tenant.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/configuracoes/lembretes')
+}

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTenant } from '@/lib/tenant'
+import { sendWelcomeMessageIfConfigured } from '@/lib/welcome-message'
 
 export type ClientInput = {
   name: string
@@ -42,6 +43,8 @@ async function insertClient(input: ClientInput) {
   if (error || !data) {
     return { error: error?.message ?? 'Não foi possível criar o cliente.' }
   }
+
+  await sendWelcomeMessageIfConfigured(tenant, { name: data.name, phone: data.phone })
 
   return { client: data }
 }

@@ -1,6 +1,7 @@
 import { getCurrentTenant } from '@/lib/tenant'
 import { ReminderSettingsForm } from '@/components/configuracoes/ReminderSettingsForm'
 import { BudgetFollowupSettingsForm } from '@/components/configuracoes/BudgetFollowupSettingsForm'
+import { WelcomeMessageForm } from '@/components/configuracoes/WelcomeMessageForm'
 
 export default async function LembretesConfigPage() {
   const tenant = await getCurrentTenant()
@@ -9,7 +10,18 @@ export default async function LembretesConfigPage() {
     <div className="flex flex-col gap-10">
       <div className="flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-semibold text-text">Mensagens de lembrete</h1>
+          <h1 className="text-2xl font-semibold text-text">Primeiro contato</h1>
+          <p className="text-text-secondary">
+            Mensagem enviada automaticamente por WhatsApp assim que um paciente novo é cadastrado
+            (manualmente ou pelo agendamento público). Deixe em branco pra não enviar nada.
+          </p>
+        </div>
+        {tenant && <WelcomeMessageForm initialMessage={tenant.welcome_message ?? ''} />}
+      </div>
+
+      <div className="flex flex-col gap-6">
+        <div>
+          <h2 className="text-xl font-semibold text-text">Mensagens de lembrete</h2>
           <p className="text-text-secondary">
             Texto enviado automaticamente por WhatsApp 24h e 2h antes de cada consulta. Deixe em
             branco pra usar o texto padrão.

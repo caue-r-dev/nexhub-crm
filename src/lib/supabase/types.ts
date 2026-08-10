@@ -102,6 +102,7 @@ export interface Database {
           phone: string | null
           email: string | null
           address: string | null
+          welcome_message: string | null
         }
         Insert: {
           id?: string
@@ -126,6 +127,7 @@ export interface Database {
           pix_receiver_name?: string | null
           reminder_message_24h?: string | null
           reminder_message_2h?: string | null
+          welcome_message?: string | null
           budget_followup_message_day3?: string | null
           budget_followup_message_day7?: string | null
           onboarding_completed?: boolean
