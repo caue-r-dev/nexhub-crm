@@ -7,14 +7,20 @@ export function ClinicProfileForm({
   initialPhone,
   initialEmail,
   initialAddress,
+  initialCnpj,
+  initialSocialMedia,
 }: {
   initialPhone: string
   initialEmail: string
   initialAddress: string
+  initialCnpj: string
+  initialSocialMedia: string
 }) {
   const [phone, setPhone] = useState(initialPhone)
   const [email, setEmail] = useState(initialEmail)
   const [address, setAddress] = useState(initialAddress)
+  const [cnpj, setCnpj] = useState(initialCnpj)
+  const [socialMedia, setSocialMedia] = useState(initialSocialMedia)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -23,7 +29,7 @@ export function ClinicProfileForm({
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await updateClinicProfileAction({ phone, email, address })
+      const result = await updateClinicProfileAction({ phone, email, address, cnpj, socialMedia })
       if (result && 'error' in result) {
         setError(result.error ?? null)
       } else {
@@ -71,6 +77,32 @@ export function ClinicProfileForm({
             setSaved(false)
           }}
           placeholder="Rua, número, sala, bairro, cidade - UF, CEP"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">CNPJ</span>
+        <input
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+          value={cnpj}
+          onChange={(e) => {
+            setCnpj(e.target.value)
+            setSaved(false)
+          }}
+          placeholder="00.000.000/0001-00"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">Redes sociais</span>
+        <input
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+          value={socialMedia}
+          onChange={(e) => {
+            setSocialMedia(e.target.value)
+            setSaved(false)
+          }}
+          placeholder="@clinicateste (opcional)"
         />
       </label>
 

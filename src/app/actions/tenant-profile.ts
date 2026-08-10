@@ -4,7 +4,13 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTenant } from '@/lib/tenant'
 
-export async function updateClinicProfileAction(input: { phone: string; email: string; address: string }) {
+export async function updateClinicProfileAction(input: {
+  phone: string
+  email: string
+  address: string
+  cnpj: string
+  socialMedia: string
+}) {
   const tenant = await getCurrentTenant()
   if (!tenant) return { error: 'Sessão inválida.' }
 
@@ -15,6 +21,8 @@ export async function updateClinicProfileAction(input: { phone: string; email: s
       phone: input.phone.trim() || null,
       email: input.email.trim() || null,
       address: input.address.trim() || null,
+      cnpj: input.cnpj.trim() || null,
+      social_media: input.socialMedia.trim() || null,
     })
     .eq('id', tenant.id)
 

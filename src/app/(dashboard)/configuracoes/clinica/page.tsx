@@ -17,6 +17,8 @@ export default async function ClinicaConfigPage() {
           initialPhone={tenant.phone ?? ''}
           initialEmail={tenant.email ?? ''}
           initialAddress={tenant.address ?? ''}
+          initialCnpj={tenant.cnpj ?? ''}
+          initialSocialMedia={tenant.social_media ?? ''}
         />
       )}
     </div>

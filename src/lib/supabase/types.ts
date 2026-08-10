@@ -104,6 +104,8 @@ export interface Database {
           address: string | null
           welcome_message: string | null
           google_review_link: string | null
+          cnpj: string | null
+          social_media: string | null
         }
         Insert: {
           id?: string
@@ -143,6 +145,8 @@ export interface Database {
           phone?: string | null
           email?: string | null
           address?: string | null
+          cnpj?: string | null
+          social_media?: string | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [

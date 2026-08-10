@@ -132,11 +132,13 @@ export default async function ImprimirDocumentoClinicoPage({
           )}
         </footer>
 
-        {(tenant.email || tenant.address) && (
+        {(tenant.email || tenant.address || tenant.cnpj || tenant.social_media) && (
           <div className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-1 border-t border-border pt-3 text-center text-xs text-text-secondary print:fixed print:bottom-4 print:left-0 print:right-0">
             {tenant.phone && <span>{tenant.phone}</span>}
             {tenant.email && <span>{tenant.email}</span>}
             {tenant.address && <span>{tenant.address}</span>}
+            {tenant.cnpj && <span>CNPJ {tenant.cnpj}</span>}
+            {tenant.social_media && <span>{tenant.social_media}</span>}
           </div>
         )}
       </div>
