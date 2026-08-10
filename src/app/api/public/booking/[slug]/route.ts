@@ -218,7 +218,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
         tenant.id,
         'orientacao_procedimento_longo',
         { nome_clinica: tenant.name, procedimento: procedureType.name },
-        'Só um aviso: seu procedimento tem duração maior, recomendamos chegar com 10 minutos de antecedência e reservar bem o horário na agenda.'
+        'Só um aviso: seu atendimento vai levar mais tempo que o normal. Pra ficar mais confortável: use roupas leves, pode trazer fone de ouvido, e pode se alimentar normalmente antes. Qualquer coisa é só pedir!'
       )
       await sendWhatsAppText(
         { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },

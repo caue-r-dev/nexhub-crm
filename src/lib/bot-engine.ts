@@ -133,13 +133,13 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
   }
 
   const DEFAULTS: Record<Stage, string> = {
-    primeiro_contato: `Olá! Bem-vindo(a) à ${tenant.name}. Como podemos te ajudar hoje?`,
-    pergunta_queixa: 'Pra te atender melhor, me conta rapidinho o que você está sentindo ou o que gostaria de resolver?',
-    explicacao_processo: 'Nosso processo é simples: avaliação inicial, diagnóstico e plano de tratamento. Posso te passar os horários disponíveis?',
-    valor_e_horarios: `${valorConsulta ? `O valor da avaliação é ${valorConsulta}. ` : ''}Atendemos${horarioAtendimento ? ` ${horarioAtendimento}` : ''}${tenant.address ? `, na ${tenant.address}` : ''}.`,
-    confirmacao_horario: 'Perfeito! Vou te mandar o link pra você escolher o melhor horário.',
+    primeiro_contato: `Olá! Boas-vindas à ${tenant.name}. Ficamos felizes com seu contato! Pra te conhecer melhor: qual o seu nome?`,
+    pergunta_queixa: 'Prazer! Pra te atender melhor, me conta: você tem alguma necessidade específica ou já sabe o que gostaria de resolver?',
+    explicacao_processo: `Perfeito! Pra começar, o primeiro passo é uma consulta inicial de avaliação${firstProfessional?.name ? `: ${firstProfessional.name}` : ''} vai entender sua necessidade e montar um plano personalizado, tirando todas as suas dúvidas. Podemos agendar essa consulta inicial?`,
+    valor_e_horarios: `${valorConsulta ? `Nossa consulta inicial tem o valor de ${valorConsulta}. ` : ''}${horarioAtendimento ? `Atendemos ${horarioAtendimento}. ` : ''}Quando prefere vir?`,
+    confirmacao_horario: 'Show! Vou te mandar o link com os horários disponíveis — é só escolher o que for melhor pra você.',
     envio_link_agendamento: linkAgendamento
-      ? `Aqui está o link pra você agendar direto no horário que preferir: ${linkAgendamento}`
+      ? `Aqui está o link pra você escolher o horário e confirmar sua consulta: ${linkAgendamento}`
       : 'Entre em contato com a recepção pra agendar seu horário.',
   }
 

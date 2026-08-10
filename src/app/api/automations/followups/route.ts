@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         appt.tenant_id,
         'followup_atraso',
         { nome_paciente: client.name.split(' ')[0], horario_consulta: formatTime(appt.datetime), nome_clinica: tenant.name },
-        `Olá ${client.name.split(' ')[0]}! Sua consulta era às ${formatTime(appt.datetime)} e ainda não te vimos por aqui. Está tudo bem? Ainda vem?`
+        `Olá! Aqui é a ${tenant.name}. Você está chegando? Ficamos preocupados quando não vemos o paciente no horário — está tudo bem?`
       )
       await sendWhatsAppText(
         { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
         appt.tenant_id,
         'followup_falta_sem_remarcar',
         { nome_paciente: client.name.split(' ')[0], nome_clinica: tenant.name },
-        `Olá ${client.name.split(' ')[0]}! Sentimos sua falta na consulta e ainda não remarcamos. Quer escolher um novo horário?`
+        `Olá! Aqui é a ${tenant.name}. Vimos que você não conseguiu comparecer na sua última consulta e ainda não remarcamos. Sabemos que imprevistos acontecem — quer escolher um novo horário?`
       )
       await sendWhatsAppText(
         { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },
