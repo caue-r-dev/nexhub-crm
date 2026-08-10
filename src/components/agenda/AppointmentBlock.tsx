@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Clock } from 'lucide-react'
 import { blockStyle } from '@/lib/agenda-grid'
 import { StatusSelect } from './StatusSelect'
+import { deleteAppointmentAction } from '@/app/actions/appointments'
 import type { AppointmentStatus } from '@/lib/supabase/types'
 
 const STATUS_BG: Record<string, string> = {
@@ -36,6 +37,16 @@ export type BlockAppointment = {
 // referência do Cauê). Não mudar layout/estrutura fora disso sem necessidade.
 export function AppointmentBlock({ appt, tz }: { appt: BlockAppointment; tz: string }) {
   const [open, setOpen] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function handleDelete() {
+    startTransition(async () => {
+      await deleteAppointmentAction(appt.id)
+      setOpen(false)
+      setConfirmingDelete(false)
+    })
+  }
 
   return (
     <div className="absolute right-1 left-1" style={blockStyle(appt.datetime, appt.duration_min, tz)}>
@@ -66,6 +77,35 @@ export function AppointmentBlock({ appt, tz }: { appt: BlockAppointment; tz: str
           >
             Pix / sinal
           </Link>
+          {appt.status === 'cancelled' && !confirmingDelete && (
+            <button
+              onClick={() => setConfirmingDelete(true)}
+              className="mt-2 block w-full rounded-md border border-status-cancelled px-2 py-1 text-center text-xs font-medium text-status-cancelled"
+            >
+              Apagar
+            </button>
+          )}
+          {appt.status === 'cancelled' && confirmingDelete && (
+            <div className="mt-2 flex flex-col gap-1">
+              <span className="text-xs text-text-secondary">Apagar de vez? Não dá pra desfazer.</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={handleDelete}
+                  disabled={isPending}
+                  className="flex-1 rounded-md bg-status-cancelled px-2 py-1 text-center text-xs font-medium text-white disabled:opacity-40"
+                >
+                  {isPending ? 'Apagando...' : 'Confirmar'}
+                </button>
+                <button
+                  onClick={() => setConfirmingDelete(false)}
+                  disabled={isPending}
+                  className="flex-1 rounded-md border border-border px-2 py-1 text-center text-xs font-medium text-text"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

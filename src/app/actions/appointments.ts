@@ -125,3 +125,20 @@ export async function updateAppointmentStatusAction(id: string, status: Appointm
   revalidatePath('/agenda')
   revalidatePath('/clientes')
 }
+
+// Só apaga se já estiver cancelado — evita perder um agendamento ativo por
+// engano; pra remover outro status, o usuário cancela primeiro.
+export async function deleteAppointmentAction(id: string) {
+  const supabase = await createClient()
+
+  const { data: current } = await supabase.from('appointments').select('status').eq('id', id).single()
+  if (!current || current.status !== 'cancelled') {
+    return { error: 'Só é possível apagar agendamentos cancelados.' }
+  }
+
+  const { error } = await supabase.from('appointments').delete().eq('id', id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/agenda')
+  revalidatePath('/clientes')
+}
