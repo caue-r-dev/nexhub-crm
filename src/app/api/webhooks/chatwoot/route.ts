@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   }
 
   // Sem consulta pendente pra confirmar/cancelar — passa pro bot de
-  // primeiro contato (só roda se ANTHROPIC_API_KEY estiver configurada).
+  // primeiro contato (fluxo linear por template, sem IA por enquanto).
   if (tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
     try {
       const reply = await getBotReply(tenant, phone, content)

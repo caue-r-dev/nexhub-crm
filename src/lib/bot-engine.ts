@@ -3,9 +3,10 @@
 // chat). Chamado pelo webhook do Chatwoot quando a mensagem recebida não é
 // resposta sim/não a uma confirmação pendente.
 //
-// Depende de ANTHROPIC_API_KEY. Sem a chave configurada, o motor não roda —
-// getBotReply retorna null e o webhook simplesmente ignora a mensagem (não
-// quebra o fluxo existente de confirmação/cancelamento).
+// Sem IA por enquanto (decisão do usuário — fluxo é linear e previsível,
+// não precisa de LLM pra classificar estágio): qualquer mensagem recebida
+// avança um estágio. Pode plugar Claude/outro LLM aqui depois se o fluxo
+// precisar ramificar de verdade.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTemplate } from '@/lib/message-templates'
 
@@ -47,68 +48,24 @@ async function saveConversationState(tenantId: string, phone: string, stage: str
   )
 }
 
-// Decide, via Claude API, se a conversa avança de estágio e o que capturar
-// (ex: nome, queixa) a partir da última mensagem do paciente.
-async function decideNextStage(
-  currentStage: string,
-  incomingText: string,
-  capturedData: Record<string, unknown>
-): Promise<{ nextStage: string; capturedData: Record<string, unknown> }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) return { nextStage: currentStage, capturedData }
-
-  const currentIndex = STAGES.indexOf(currentStage as Stage)
-  const stagesList = STAGES.join(', ')
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-5',
-      max_tokens: 300,
-      system:
-        `Você decide o próximo estágio de uma conversa de atendimento de clínica. ` +
-        `Estágios possíveis, em ordem: ${stagesList}. ` +
-        `Estágio atual: ${currentStage}. ` +
-        `Dados já capturados: ${JSON.stringify(capturedData)}. ` +
-        `Responda SOMENTE um JSON válido no formato {"next_stage": "...", "captured_data": {...}}. ` +
-        `Avance de estágio só quando a resposta do paciente indicar que o assunto do estágio atual foi resolvido. ` +
-        `Nunca invente estágio fora da lista.`,
-      messages: [{ role: 'user', content: incomingText }],
-    }),
-  })
-
-  if (!res.ok) return { nextStage: currentStage, capturedData }
-
-  const data = (await res.json()) as { content: { type: string; text?: string }[] }
-  const text = data.content.find((b) => b.type === 'text')?.text ?? ''
-
-  try {
-    const parsed = JSON.parse(text) as { next_stage: string; captured_data: Record<string, unknown> }
-    const nextStage = STAGES.includes(parsed.next_stage as Stage) ? parsed.next_stage : currentStage
-    const currentIdxSafe = currentIndex === -1 ? 0 : currentIndex
-    const nextIdx = STAGES.indexOf(nextStage as Stage)
-    // Nunca deixa a IA voltar estágio nem pular mais de um por vez.
-    const safeStage = nextIdx > currentIdxSafe ? STAGES[currentIdxSafe + 1] : currentStage
-    return { nextStage: safeStage, capturedData: { ...capturedData, ...parsed.captured_data } }
-  } catch {
-    return { nextStage: currentStage, capturedData }
-  }
-}
-
-// Retorna o texto de resposta pra enviar, ou null se o motor não puder
-// rodar (sem API key) ou a conversa já tiver chegado ao fim do fluxo.
+// Retorna o texto de resposta pra enviar, ou null se a conversa já tiver
+// chegado ao fim do fluxo (link já enviado — não fica insistindo).
 export async function getBotReply(tenant: TenantInfo, phone: string, incomingText: string): Promise<string | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null
-
   const state = await getConversationState(tenant.id, phone)
-  const { nextStage, capturedData } = await decideNextStage(state.current_stage, incomingText, state.captured_data as Record<string, unknown>)
+  const currentIndex = STAGES.indexOf(state.current_stage as Stage)
+  const currentIdxSafe = currentIndex === -1 ? 0 : currentIndex
 
-  await saveConversationState(tenant.id, phone, nextStage, capturedData)
+  if (currentIdxSafe >= STAGES.length - 1) return null
+
+  const nextStage = STAGES[currentIdxSafe + 1]
+  const capturedData = state.captured_data as Record<string, unknown>
+
+  // Primeira mensagem livre do paciente (estágio pergunta_queixa) é
+  // guardada como queixa capturada, pra reaproveitar em templates futuros.
+  const updatedCapturedData =
+    state.current_stage === 'pergunta_queixa' ? { ...capturedData, queixa: incomingText } : capturedData
+
+  await saveConversationState(tenant.id, phone, nextStage, updatedCapturedData)
 
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexhub.nexvix.com.br'
@@ -125,7 +82,6 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
   const context = {
     nome_clinica: tenant.name,
     endereco: tenant.address ?? '',
-    nome_paciente: (capturedData.nome as string) ?? '',
     nome_profissional: firstProfessional?.name ?? '',
     link_agendamento: linkAgendamento,
   }
@@ -141,5 +97,5 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
       : 'Entre em contato com a recepção pra agendar seu horário.',
   }
 
-  return resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage as Stage])
+  return resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
 }
