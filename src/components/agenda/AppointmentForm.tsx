@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { createAppointmentAction } from '@/app/actions/appointments'
 import { createClientQuickAction } from '@/app/actions/clients'
 import { createLabelAction } from '@/app/actions/appointment-labels'
@@ -26,6 +27,7 @@ export function AppointmentForm({
   packages: Package[]
   defaultDatetime?: string
 }) {
+  const router = useRouter()
   const [type, setType] = useState<AppointmentType>('consulta')
   const [clients, setClients] = useState(initialClients)
   const [labels, setLabels] = useState(initialLabels)
@@ -101,7 +103,9 @@ export function AppointmentForm({
       })
       if (result && 'error' in result) {
         setError(result.error)
+        return
       }
+      router.push('/agenda')
     })
   }
 

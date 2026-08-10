@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTenant } from '@/lib/tenant'
 import { sendWhatsAppText } from '@/lib/evolution'
@@ -89,7 +88,7 @@ export async function createAppointmentAction(input: AppointmentInput) {
   }
 
   revalidatePath('/agenda')
-  redirect('/agenda')
+  revalidatePath('/clientes')
 }
 
 export async function updateAppointmentStatusAction(id: string, status: AppointmentStatus) {

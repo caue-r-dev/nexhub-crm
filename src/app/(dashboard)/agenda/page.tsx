@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Clock as ClockIcon, Plus, QrCode, Link2, ListChecks, ClipboardList, Building2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock as ClockIcon, QrCode, Link2, ListChecks, ClipboardList, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import {
   addDays,
@@ -10,11 +10,14 @@ import {
   weekdayIndexBR,
   BR_TZ,
 } from '@/lib/date-range'
-import { GRID_HEIGHT } from '@/lib/agenda-grid'
-import { TimeGutter, GridBackground } from '@/components/agenda/TimeGutter'
-import { AppointmentBlock, type BlockAppointment } from '@/components/agenda/AppointmentBlock'
+import type { BlockAppointment } from '@/components/agenda/AppointmentBlock'
+import { AgendaSlotColumn } from '@/components/agenda/AgendaSlotColumn'
 import { ProfessionalChips } from '@/components/agenda/ProfessionalChips'
 import { WeekProfessionalSelect } from '@/components/agenda/WeekProfessionalSelect'
+import { TimeGutter } from '@/components/agenda/TimeGutter'
+import { AgendaModalProvider } from '@/components/agenda/AgendaModalContext'
+import { NewAppointmentButton } from '@/components/agenda/NewAppointmentButton'
+import { AppointmentModalHost } from '@/components/agenda/AppointmentModalHost'
 import { initials } from '@/lib/professional-colors'
 
 const WEEKDAY_LABEL = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
@@ -76,6 +79,19 @@ export default async function AgendaPage({
 
   const rows = (appointments ?? []) as unknown as Row[]
 
+  // Dados pro modal de novo agendamento (clique direto na agenda) — mesmo
+  // dataset que /agenda/novo já carregava, só que aqui alimenta o modal.
+  const [{ data: modalClients }, { data: modalLabels }, { data: modalPackages }, { data: professionalHours }] =
+    await Promise.all([
+      supabase.from('clients').select('id, name, phone').order('name'),
+      supabase.from('appointment_labels').select('id, name, color').order('name'),
+      supabase
+        .from('packages')
+        .select('id, client_id, service_name, used_sessions, total_sessions')
+        .order('purchased_at', { ascending: false }),
+      supabase.from('professional_hours').select('professional_id, weekday, start_time, end_time'),
+    ])
+
   const prevDate = toDateInputValue(addDays(rangeStart, view === 'day' ? -1 : -7))
   const nextDate = toDateInputValue(addDays(rangeStart, view === 'day' ? 1 : 7))
   const todayValue = toDateInputValue(refDate)
@@ -83,6 +99,7 @@ export default async function AgendaPage({
   const dayLabel = refDate.toLocaleDateString('pt-BR', { timeZone: BR_TZ, weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
+    <AgendaModalProvider>
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -155,13 +172,7 @@ export default async function AgendaPage({
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Dados da clínica</span>
           </Link>
-          <Link
-            href="/agenda/novo"
-            className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-white sm:text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Novo agendamento</span>
-          </Link>
+          <NewAppointmentButton />
         </div>
       </div>
 
@@ -180,12 +191,22 @@ export default async function AgendaPage({
 
       <div className="overflow-hidden rounded-xl border border-border bg-surface">
         {view === 'day' ? (
-          <DayGrid professionals={professionals ?? []} hiddenIds={hiddenIds} rows={rows} />
+          <DayGrid professionals={professionals ?? []} hiddenIds={hiddenIds} rows={rows} date={todayValue} />
         ) : (
           <WeekGrid professionals={professionals ?? []} selectedId={pro} rows={rows} rangeStart={rangeStart} date={todayValue} />
         )}
       </div>
+
+      <AppointmentModalHost
+        clients={modalClients ?? []}
+        labels={modalLabels ?? []}
+        professionals={(professionals ?? []).map((p) => ({ id: p.id, name: p.name }))}
+        packages={modalPackages ?? []}
+        professionalHours={professionalHours ?? []}
+        existingAppointments={rows.map((r) => ({ professional_id: r.professional_id, datetime: r.datetime, duration_min: r.duration_min }))}
+      />
     </div>
+    </AgendaModalProvider>
   )
 }
 
@@ -193,10 +214,12 @@ function DayGrid({
   professionals,
   hiddenIds,
   rows,
+  date,
 }: {
   professionals: { id: string; name: string; color: string }[]
   hiddenIds: string[]
   rows: Row[]
+  date: string
 }) {
   const visible = professionals.filter((p) => !hiddenIds.includes(p.id))
   const unassigned = rows.filter((r) => !r.professional_id)
@@ -236,14 +259,12 @@ function DayGrid({
                 </span>
                 <span className="truncate text-xs font-medium text-text">{p.name}</span>
               </div>
-              <div className="relative" style={{ height: GRID_HEIGHT }}>
-                <GridBackground />
-                {rows
-                  .filter((r) => r.professional_id === p.id)
-                  .map((r) => (
-                    <AppointmentBlock key={r.id} appt={toBlock(r)} tz={BR_TZ} />
-                  ))}
-              </div>
+              <AgendaSlotColumn
+                professionalId={p.id}
+                date={date}
+                tz={BR_TZ}
+                blocks={rows.filter((r) => r.professional_id === p.id).map(toBlock)}
+              />
             </div>
           ))}
 
@@ -255,12 +276,7 @@ function DayGrid({
                 </span>
                 <span className="truncate text-xs font-medium text-text">Sem profissional</span>
               </div>
-              <div className="relative" style={{ height: GRID_HEIGHT }}>
-                <GridBackground />
-                {unassigned.map((r) => (
-                  <AppointmentBlock key={r.id} appt={toBlock(r)} tz={BR_TZ} />
-                ))}
-              </div>
+              <AgendaSlotColumn professionalId={null} date={date} tz={BR_TZ} blocks={unassigned.map(toBlock)} />
             </div>
           )}
         </div>
@@ -313,14 +329,14 @@ function WeekGrid({
                   <span className="text-[10px] text-text-secondary">{WEEKDAY_LABEL[weekdayIndexBR(day)]}</span>
                   <span className="text-xs font-semibold text-text">{dayOfMonthBR(day)}</span>
                 </div>
-                <div className="relative" style={{ height: GRID_HEIGHT }}>
-                  <GridBackground />
-                  {rows
+                <AgendaSlotColumn
+                  professionalId={activeId}
+                  date={toDateInputValue(day)}
+                  tz={BR_TZ}
+                  blocks={rows
                     .filter((r) => r.professional_id === activeId && startOfDay(new Date(r.datetime)).getTime() === day.getTime())
-                    .map((r) => (
-                      <AppointmentBlock key={r.id} appt={toBlock(r)} tz={BR_TZ} />
-                    ))}
-                </div>
+                    .map(toBlock)}
+                />
               </div>
             ))}
           </div>

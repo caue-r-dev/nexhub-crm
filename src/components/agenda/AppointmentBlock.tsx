@@ -49,7 +49,11 @@ export function AppointmentBlock({ appt, tz }: { appt: BlockAppointment; tz: str
   }
 
   return (
-    <div className="absolute right-1 left-1" style={blockStyle(appt.datetime, appt.duration_min, tz)}>
+    <div
+      className="absolute right-1 left-1"
+      style={blockStyle(appt.datetime, appt.duration_min, tz)}
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         onClick={() => setOpen((v) => !v)}
         className="h-full w-full overflow-hidden rounded-md px-2 py-1 text-left transition-shadow hover:shadow-md"
