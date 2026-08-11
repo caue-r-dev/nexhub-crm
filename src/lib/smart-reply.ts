@@ -46,13 +46,20 @@ ${knownFacts}
 const URL_RE = /https?:\/\/\S+/g
 const MONEY_RE = /R\$\s?[\d.,]+/g
 
+// Ponto final de frase logo após um valor/link vira parte do match (ex:
+// "R$ 150,00." ou ".../teste."). Sem tirar esse ponto, uma resposta correta
+// terminando a frase logo depois do fato bate errado.
+function extractFacts(text: string, re: RegExp): string[] {
+  return (text.match(re) ?? []).map((m) => m.replace(/\.+$/, ''))
+}
+
 // Resposta gerada só pode citar link/valor que já existe nos dados
 // conhecidos da clínica — nunca um novo, inventado pela IA.
 function answerStaysWithinKnownFacts(answer: string, knownFacts: string): boolean {
   const patterns: RegExp[] = [URL_RE, MONEY_RE]
   for (const re of patterns) {
-    const usedInAnswer: string[] = answer.match(re) ?? []
-    const knownValues: string[] = knownFacts.match(re) ?? []
+    const usedInAnswer = extractFacts(answer, re)
+    const knownValues = extractFacts(knownFacts, re)
     if (!usedInAnswer.every((fact) => knownValues.includes(fact))) return false
   }
   return true

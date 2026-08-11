@@ -972,6 +972,8 @@ export interface Database {
           captured_data: Record<string, unknown>
           updated_at: string
           escalated: boolean
+          messages: { role: 'paciente' | 'bot'; text: string }[]
+          done: boolean
         }
         Insert: {
           id?: string
@@ -981,6 +983,8 @@ export interface Database {
           captured_data?: Record<string, unknown>
           updated_at?: string
           escalated?: boolean
+          messages?: { role: 'paciente' | 'bot'; text: string }[]
+          done?: boolean
         }
         Update: Partial<Database['public']['Tables']['conversation_state']['Insert']>
         Relationships: [

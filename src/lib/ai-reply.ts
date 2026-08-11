@@ -23,8 +23,11 @@ Texto do roteiro: "${scriptText}"`
 const URL_RE = /https?:\/\/\S+/g
 const MONEY_RE = /R\$\s?[\d.,]+/g
 
+// Ponto final de frase logo após um valor/link vira parte do match (ex:
+// "R$ 150,00." ou ".../teste."). Sem tirar esse ponto, uma reescrita
+// correta terminando a frase logo depois do fato cai no fallback à toa.
 function extractFacts(text: string, re: RegExp): string[] {
-  return text.match(re) ?? []
+  return (text.match(re) ?? []).map((m) => m.replace(/\.+$/, ''))
 }
 
 function preservesFacts(scriptText: string, candidate: string): boolean {
