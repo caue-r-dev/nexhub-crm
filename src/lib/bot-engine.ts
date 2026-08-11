@@ -176,10 +176,17 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
 
   const capturedData = state.captured_data as Record<string, unknown>
 
-  // Primeira mensagem livre do paciente (estágio pergunta_queixa) é
-  // guardada como queixa capturada, pra reaproveitar em templates futuros.
+  // Resposta ao "qual seu nome?" (primeiro_contato) e à queixa
+  // (pergunta_queixa) são guardadas pra reaproveitar no resto da conversa
+  // (ex: chamar o paciente pelo nome nas próximas mensagens).
   const updatedCapturedData =
-    state.current_stage === 'pergunta_queixa' ? { ...capturedData, queixa: incomingText } : capturedData
+    state.current_stage === 'primeiro_contato'
+      ? { ...capturedData, nome: incomingText.trim() }
+      : state.current_stage === 'pergunta_queixa'
+        ? { ...capturedData, queixa: incomingText }
+        : capturedData
+
+  const nomePaciente = (updatedCapturedData.nome as string | undefined) ?? ''
 
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexhub.nexvix.com.br'
@@ -212,11 +219,12 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
     link_agendamento: linkAgendamento,
     valor_consulta: valorConsulta,
     horario_atendimento: horarioAtendimento,
+    nome_paciente: nomePaciente,
   }
 
   const DEFAULTS: Record<Stage, string> = {
     primeiro_contato: `Olá! Boas-vindas à ${tenant.name}. Ficamos felizes com seu contato! Pra te conhecer melhor: qual o seu nome?`,
-    pergunta_queixa: 'Prazer! Pra te atender melhor, me conta: você tem alguma necessidade específica ou já sabe o que gostaria de resolver?',
+    pergunta_queixa: `Prazer${nomePaciente ? `, ${nomePaciente}` : ''}! Pra te atender melhor, me conta: você tem alguma necessidade específica ou já sabe o que gostaria de resolver?`,
     explicacao_processo: `Perfeito! Pra começar, o primeiro passo é uma consulta inicial de avaliação${firstProfessional?.name ? `: ${firstProfessional.name}` : ''} vai entender sua necessidade e montar um plano personalizado, tirando todas as suas dúvidas. Podemos agendar essa consulta inicial?`,
     valor_e_horarios: `${valorConsulta ? `Nossa consulta inicial tem o valor de ${valorConsulta}. ` : ''}${horarioAtendimento ? `Atendemos ${horarioAtendimento}. ` : ''}${
       linkAgendamento
