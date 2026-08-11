@@ -971,6 +971,7 @@ export interface Database {
           current_stage: string
           captured_data: Record<string, unknown>
           updated_at: string
+          escalated: boolean
         }
         Insert: {
           id?: string
@@ -979,6 +980,7 @@ export interface Database {
           current_stage?: string
           captured_data?: Record<string, unknown>
           updated_at?: string
+          escalated?: boolean
         }
         Update: Partial<Database['public']['Tables']['conversation_state']['Insert']>
         Relationships: [

@@ -4,12 +4,18 @@
 // resposta sim/não a uma confirmação pendente.
 //
 // Estágio avança de forma linear e previsível (qualquer mensagem recebida
-// avança um estágio) — a IA (ver src/lib/ai-reply.ts) só reescreve o texto
-// de cada estágio de forma natural, não decide o fluxo.
+// avança um estágio, DESDE QUE a IA classifique como resposta ao estágio —
+// ver classifyMessage) — a IA (ver src/lib/ai-reply.ts) reescreve o texto
+// de cada estágio de forma natural, e também decide (src/lib/smart-reply.ts)
+// se a mensagem do paciente é uma pergunta fora do roteiro respondível com
+// os dados da clínica, ou algo que precisa escalar pra atendimento humano.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTemplate } from '@/lib/message-templates'
 import { humanizeReply } from '@/lib/ai-reply'
+import { classifyMessage } from '@/lib/smart-reply'
 import type { BusinessHours } from '@/lib/supabase/types'
+
+const ESCALATION_MESSAGE = 'Vou confirmar essa informação com a equipe e já te retorno por aqui. 🙂'
 
 const WEEKDAY_LABELS: Record<keyof BusinessHours, string> = {
   monday: 'seg',
@@ -51,6 +57,7 @@ type TenantInfo = {
   address: string | null
   business_hours: BusinessHours | null
   slug: string | null
+  bot_context_notes: string | null
 }
 
 export function isSessionExpired(updatedAt: string | null, now: Date, maxHours = 12): boolean {
@@ -80,13 +87,18 @@ async function getConversationState(tenantId: string, phone: string) {
   const admin = createAdminClient()
   const { data } = await admin
     .from('conversation_state')
-    .select('current_stage, captured_data, updated_at')
+    .select('current_stage, captured_data, updated_at, escalated')
     .eq('tenant_id', tenantId)
     .eq('contact_phone', phone)
     .maybeSingle()
 
   if (!data) {
-    return { current_stage: null as string | null, captured_data: {} as Record<string, unknown>, rawCurrentStage: null as string | null }
+    return {
+      current_stage: null as string | null,
+      captured_data: {} as Record<string, unknown>,
+      rawCurrentStage: null as string | null,
+      escalated: false,
+    }
   }
 
   const expired = isSessionExpired(data.updated_at, new Date())
@@ -94,6 +106,7 @@ async function getConversationState(tenantId: string, phone: string) {
     current_stage: expired ? null : (data.current_stage as string | null),
     captured_data: expired ? ({} as Record<string, unknown>) : (data.captured_data as Record<string, unknown>),
     rawCurrentStage: data.current_stage as string,
+    escalated: expired ? false : data.escalated,
   }
 }
 
@@ -136,10 +149,28 @@ async function saveConversationStateIfUnchanged(
   return !error && !!data && data.length > 0
 }
 
+// Marca a conversa como escalada pra atendimento humano — bot fica em
+// silêncio nela até a sessão expirar (12h). Não mexe no estágio, só na
+// flag, pra não perder o progresso caso alguém retome depois.
+async function escalateConversation(tenantId: string, phone: string, expectedRawCurrentStage: string): Promise<boolean> {
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('conversation_state')
+    .update({ escalated: true, updated_at: new Date().toISOString() })
+    .eq('tenant_id', tenantId)
+    .eq('contact_phone', phone)
+    .eq('current_stage', expectedRawCurrentStage)
+    .select('id')
+
+  return !error && !!data && data.length > 0
+}
+
 // Retorna o texto de resposta pra enviar, ou null se a conversa já tiver
 // chegado ao fim do fluxo (link já enviado — não fica insistindo).
 export async function getBotReply(tenant: TenantInfo, phone: string, incomingText: string): Promise<string | null> {
   const state = await getConversationState(tenant.id, phone)
+  if (state.escalated) return null
+
   const nextStage = computeNextStage(state.current_stage)
   if (!nextStage) return null
 
@@ -192,6 +223,44 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
         ? `Aqui está o link com os horários disponíveis — é só escolher o que for melhor pra você e confirmar sua consulta: ${linkAgendamento}`
         : 'Entre em contato com a recepção pra agendar seu horário.'
     }`,
+  }
+
+  // Só classifica quando já existe uma pergunta pendente de verdade — na
+  // primeiríssima mensagem de um contato novo (state.current_stage null),
+  // o bot ainda não perguntou nada, não tem o que classificar.
+  if (state.current_stage) {
+    const knownFacts = [
+      `Nome da clínica: ${tenant.name}`,
+      tenant.address ? `Endereço: ${tenant.address}` : null,
+      firstProfessional?.name ? `Profissional: ${firstProfessional.name}` : null,
+      valorConsulta ? `Valor da consulta inicial: ${valorConsulta}` : null,
+      horarioAtendimento ? `Horário de atendimento: ${horarioAtendimento}` : null,
+      linkAgendamento ? `Link de agendamento: ${linkAgendamento}` : null,
+      tenant.bot_context_notes ? `Observações adicionais: ${tenant.bot_context_notes}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    const pendingQuestion = await resolveTemplate(
+      tenant.id,
+      state.current_stage,
+      context,
+      DEFAULTS[state.current_stage as Stage]
+    )
+    const classification = await classifyMessage(pendingQuestion, incomingText, knownFacts)
+
+    if (classification.kind === 'escalar') {
+      const escalated = await escalateConversation(tenant.id, phone, state.rawCurrentStage as string)
+      return escalated ? ESCALATION_MESSAGE : null
+    }
+
+    if (classification.kind === 'responde_pergunta') {
+      // Não avança estágio — a pergunta pendente continua sem resposta, o
+      // paciente ainda precisa respondê-la na próxima mensagem.
+      return classification.answer
+    }
+
+    // classification.kind === 'responde_estagio' — segue o fluxo normal abaixo.
   }
 
   const scriptText = await resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
