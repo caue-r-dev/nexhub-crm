@@ -324,7 +324,7 @@ Usuário roda no terminal (fora do agente, chave é secreta):
 1. Rodar `npm run dev`, mandar mensagem de teste pro WhatsApp do bot, avançar 1-2 estágios.
 2. Editar manualmente `conversation_state.updated_at` daquele registro no Supabase pra uma data > 12h atrás (SQL Editor: `update conversation_state set updated_at = now() - interval '13 hours' where contact_phone = '<numero de teste>'`).
 3. Mandar nova mensagem de teste.
-4. Esperado: bot responde como `primeiro_contato` (recomeça do zero), não continua do estágio salvo.
+4. Esperado: bot recomeça do zero, não continua do estágio salvo — na prática responde com a mensagem de `pergunta_queixa` (não `primeiro_contato`), por um bug pré-existente e fora de escopo desta feature: `primeiro_contato` nunca é a mensagem efetivamente enviada, `getBotReply` já pula direto pro próximo estágio na primeira interação também pra contato novo. O que valida o fix aqui é a conversa recomeçar (nova pergunta de queixa, não continuar de onde parou ontem), não qual estágio específico aparece.
 
 - [ ] **Step 5: Teste manual — humanização + fallback**
 
