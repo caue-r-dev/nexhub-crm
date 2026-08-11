@@ -59,6 +59,18 @@ export function isSessionExpired(updatedAt: string | null, now: Date, maxHours =
   return elapsedMs > maxHours * 60 * 60 * 1000
 }
 
+// Estágio seguinte a partir do último estágio já respondido pelo paciente.
+// `currentStage` null (ou um valor que não bate com nenhum STAGES — sessão
+// nunca salva, ou expirada) significa "contato novo": o próximo estágio é o
+// primeiro da lista, não o segundo. Usar o nome do primeiro estágio como
+// sentinela de "vazio" causava um bug onde todo contato novo pulava direto
+// a saudação (`primeiro_contato`) e ia pra próxima pergunta.
+export function computeNextStage(currentStage: string | null): Stage | null {
+  const currentIndex = currentStage ? STAGES.indexOf(currentStage as Stage) : -1
+  const nextIndex = currentIndex === -1 ? 0 : currentIndex + 1
+  return nextIndex < STAGES.length ? STAGES[nextIndex] : null
+}
+
 async function getConversationState(tenantId: string, phone: string) {
   const admin = createAdminClient()
   const { data } = await admin
@@ -68,10 +80,10 @@ async function getConversationState(tenantId: string, phone: string) {
     .eq('contact_phone', phone)
     .maybeSingle()
 
-  const fresh = { current_stage: 'primeiro_contato' as string, captured_data: {} as Record<string, unknown> }
+  const fresh = { current_stage: null as string | null, captured_data: {} as Record<string, unknown> }
   if (!data || isSessionExpired(data.updated_at, new Date())) return fresh
 
-  return { current_stage: data.current_stage, captured_data: data.captured_data as Record<string, unknown> }
+  return { current_stage: data.current_stage as string | null, captured_data: data.captured_data as Record<string, unknown> }
 }
 
 async function saveConversationState(tenantId: string, phone: string, stage: string, capturedData: Record<string, unknown>) {
@@ -86,12 +98,9 @@ async function saveConversationState(tenantId: string, phone: string, stage: str
 // chegado ao fim do fluxo (link já enviado — não fica insistindo).
 export async function getBotReply(tenant: TenantInfo, phone: string, incomingText: string): Promise<string | null> {
   const state = await getConversationState(tenant.id, phone)
-  const currentIndex = STAGES.indexOf(state.current_stage as Stage)
-  const currentIdxSafe = currentIndex === -1 ? 0 : currentIndex
+  const nextStage = computeNextStage(state.current_stage)
+  if (!nextStage) return null
 
-  if (currentIdxSafe >= STAGES.length - 1) return null
-
-  const nextStage = STAGES[currentIdxSafe + 1]
   const capturedData = state.captured_data as Record<string, unknown>
 
   // Primeira mensagem livre do paciente (estágio pergunta_queixa) é
