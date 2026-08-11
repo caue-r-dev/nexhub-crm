@@ -47,6 +47,7 @@ type BookingBody = {
   procedureTypeId: string
   datetime: string
   patientName: string
+  patientDocument?: string
   patientPhone: string
   anamnese?: AnamneseQuestionnaire
 }
@@ -147,7 +148,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   if (!clientId) {
     const { data: newClient, error: clientError } = await admin
       .from('clients')
-      .insert({ tenant_id: tenant.id, name: body.patientName.trim(), phone: body.patientPhone.trim() })
+      .insert({
+        tenant_id: tenant.id,
+        name: body.patientName.trim(),
+        phone: body.patientPhone.trim(),
+        document: body.patientDocument?.trim() || null,
+      })
       .select('id')
       .single()
     if (clientError || !newClient) {

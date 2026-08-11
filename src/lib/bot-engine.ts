@@ -42,13 +42,7 @@ function formatBusinessHours(hours: BusinessHours | null): string {
   return groups.map((g) => `${g.label} ${g.start}-${g.end}`).join(', ')
 }
 
-const STAGES = [
-  'primeiro_contato',
-  'pergunta_queixa',
-  'explicacao_processo',
-  'valor_e_horarios',
-  'envio_link_agendamento',
-] as const
+const STAGES = ['primeiro_contato', 'pergunta_queixa', 'explicacao_processo', 'valor_e_horarios'] as const
 type Stage = (typeof STAGES)[number]
 
 type TenantInfo = {
@@ -135,10 +129,11 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
     primeiro_contato: `Olá! Boas-vindas à ${tenant.name}. Ficamos felizes com seu contato! Pra te conhecer melhor: qual o seu nome?`,
     pergunta_queixa: 'Prazer! Pra te atender melhor, me conta: você tem alguma necessidade específica ou já sabe o que gostaria de resolver?',
     explicacao_processo: `Perfeito! Pra começar, o primeiro passo é uma consulta inicial de avaliação${firstProfessional?.name ? `: ${firstProfessional.name}` : ''} vai entender sua necessidade e montar um plano personalizado, tirando todas as suas dúvidas. Podemos agendar essa consulta inicial?`,
-    valor_e_horarios: `${valorConsulta ? `Nossa consulta inicial tem o valor de ${valorConsulta}. ` : ''}${horarioAtendimento ? `Atendemos ${horarioAtendimento}. ` : ''}Quando prefere vir?`,
-    envio_link_agendamento: linkAgendamento
-      ? `Show! Aqui está o link com os horários disponíveis — é só escolher o que for melhor pra você e confirmar sua consulta: ${linkAgendamento}`
-      : 'Show! Entre em contato com a recepção pra agendar seu horário.',
+    valor_e_horarios: `${valorConsulta ? `Nossa consulta inicial tem o valor de ${valorConsulta}. ` : ''}${horarioAtendimento ? `Atendemos ${horarioAtendimento}. ` : ''}${
+      linkAgendamento
+        ? `Aqui está o link com os horários disponíveis — é só escolher o que for melhor pra você e confirmar sua consulta: ${linkAgendamento}`
+        : 'Entre em contato com a recepção pra agendar seu horário.'
+    }`,
   }
 
   return resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
