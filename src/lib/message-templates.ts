@@ -17,11 +17,12 @@ export type TemplateContext = {
   link_agendamento?: string
 }
 
+// Variável ausente do contexto vira string vazia, nunca o placeholder cru
+// — "{{endereco}}" aparecendo pro paciente de verdade é pior que uma frase
+// com um buraco (aconteceu: confirmação de agendamento não passava
+// endereco no contexto, template mostrou o placeholder literal).
 function applyVars(content: string, vars: TemplateContext): string {
-  return content.replace(/{{\s*(\w+)\s*}}/g, (match, key: string) => {
-    const value = vars[key as keyof TemplateContext]
-    return value != null && value !== '' ? value : match
-  })
+  return content.replace(/{{\s*(\w+)\s*}}/g, (_match, key: string) => vars[key as keyof TemplateContext] ?? '')
 }
 
 // Busca o template ativo do tenant; se não existir linha (tenant antigo,
@@ -51,8 +52,7 @@ export const TEMPLATE_KEYS = [
   { key: 'pergunta_queixa', label: 'Pergunta sobre a queixa' },
   { key: 'explicacao_processo', label: 'Explicação do processo' },
   { key: 'valor_e_horarios', label: 'Valor e horários' },
-  { key: 'confirmacao_horario', label: 'Confirmação de horário' },
-  { key: 'envio_link_agendamento', label: 'Envio do link de agendamento' },
+  { key: 'envio_link_agendamento', label: 'Confirmação de horário + link de agendamento' },
   { key: 'agendamento_confirmado', label: 'Agendamento confirmado' },
   { key: 'orientacao_procedimento_longo', label: 'Orientação — procedimento longo' },
   { key: 'followup_falta_sem_remarcar', label: 'Follow-up — faltou e não remarcou' },

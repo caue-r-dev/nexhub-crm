@@ -10,6 +10,7 @@ import { resolveTemplate } from '@/lib/message-templates'
 
 type TenantEvolutionFields = {
   name: string
+  address: string | null
   evolution_base_url: string | null
   evolution_api_key: string | null
   evolution_instance_name: string | null
@@ -23,7 +24,7 @@ export async function confirmAppointment(
   const { data: appt, error: fetchError } = await admin
     .from('appointments')
     .select(
-      'id, tenant_id, deposit_amount, client_id, clients(name, phone), tenants(name, evolution_base_url, evolution_api_key, evolution_instance_name, pix_key, pix_receiver_name, default_deposit_amount)'
+      'id, tenant_id, deposit_amount, client_id, clients(name, phone), tenants(name, address, evolution_base_url, evolution_api_key, evolution_instance_name, pix_key, pix_receiver_name, default_deposit_amount)'
     )
     .eq('id', appointmentId)
     .single()
@@ -69,7 +70,7 @@ export async function confirmAppointment(
     const message = await resolveTemplate(
       appt.tenant_id,
       'agendamento_confirmado',
-      { nome_clinica: tenant.name, nome_paciente: client.name },
+      { nome_clinica: tenant.name, nome_paciente: client.name, endereco: tenant.address ?? '' },
       `Agendado! Pra facilitar sua vinda: aceitamos Pix, cartão e dinheiro. Te esperamos na ${tenant.name}!`
     )
     await sendWhatsAppText(evolutionConfig, client.phone, message)

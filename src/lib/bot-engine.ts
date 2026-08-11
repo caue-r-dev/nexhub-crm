@@ -47,7 +47,6 @@ const STAGES = [
   'pergunta_queixa',
   'explicacao_processo',
   'valor_e_horarios',
-  'confirmacao_horario',
   'envio_link_agendamento',
 ] as const
 type Stage = (typeof STAGES)[number]
@@ -137,10 +136,9 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
     pergunta_queixa: 'Prazer! Pra te atender melhor, me conta: você tem alguma necessidade específica ou já sabe o que gostaria de resolver?',
     explicacao_processo: `Perfeito! Pra começar, o primeiro passo é uma consulta inicial de avaliação${firstProfessional?.name ? `: ${firstProfessional.name}` : ''} vai entender sua necessidade e montar um plano personalizado, tirando todas as suas dúvidas. Podemos agendar essa consulta inicial?`,
     valor_e_horarios: `${valorConsulta ? `Nossa consulta inicial tem o valor de ${valorConsulta}. ` : ''}${horarioAtendimento ? `Atendemos ${horarioAtendimento}. ` : ''}Quando prefere vir?`,
-    confirmacao_horario: 'Show! Vou te mandar o link com os horários disponíveis — é só escolher o que for melhor pra você.',
     envio_link_agendamento: linkAgendamento
-      ? `Aqui está o link pra você escolher o horário e confirmar sua consulta: ${linkAgendamento}`
-      : 'Entre em contato com a recepção pra agendar seu horário.',
+      ? `Show! Aqui está o link com os horários disponíveis — é só escolher o que for melhor pra você e confirmar sua consulta: ${linkAgendamento}`
+      : 'Show! Entre em contato com a recepção pra agendar seu horário.',
   }
 
   return resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
