@@ -20,8 +20,48 @@ function normalize(text: string): string {
     .replace(/[̀-ͯ]/g, '')
 }
 
-const CONFIRM_WORDS = ['sim', 'confirmo', 'confirmar', 'ok', 'pode']
-const CANCEL_WORDS = ['nao', 'cancelo', 'cancelar', 'desmarcar']
+// Botão de resposta rápida não entrega em número não-oficial (Baileys) —
+// só resta ampliar a lista de variações de texto livre que o paciente pode
+// digitar, cobrindo gírias/abreviações comuns em vez de exigir "sim"/"não"
+// exatos.
+const CONFIRM_WORDS = [
+  'sim',
+  'confirmo',
+  'confirmar',
+  'confirmado',
+  'ok',
+  'okay',
+  'blz',
+  'beleza',
+  'pode',
+  'claro',
+  'certo',
+  'isso',
+  'positivo',
+  'presente',
+  'comparecerei',
+  'comparecer',
+  'irei',
+  'vou',
+  'fechado',
+  'combinado',
+  'perfeito',
+  '👍',
+  '✅',
+]
+const CANCEL_WORDS = [
+  'nao',
+  'cancelo',
+  'cancelar',
+  'cancelado',
+  'desmarcar',
+  'desmarco',
+  'negativo',
+  'impossivel',
+  'infelizmente',
+  '👎',
+  '❌',
+]
 
 export async function POST(request: Request) {
   const payload = await request.json().catch(() => null)
