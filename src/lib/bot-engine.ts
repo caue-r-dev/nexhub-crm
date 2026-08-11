@@ -53,16 +53,25 @@ type TenantInfo = {
   slug: string | null
 }
 
+export function isSessionExpired(updatedAt: string | null, now: Date, maxHours = 12): boolean {
+  if (!updatedAt) return false
+  const elapsedMs = now.getTime() - new Date(updatedAt).getTime()
+  return elapsedMs > maxHours * 60 * 60 * 1000
+}
+
 async function getConversationState(tenantId: string, phone: string) {
   const admin = createAdminClient()
   const { data } = await admin
     .from('conversation_state')
-    .select('current_stage, captured_data')
+    .select('current_stage, captured_data, updated_at')
     .eq('tenant_id', tenantId)
     .eq('contact_phone', phone)
     .maybeSingle()
 
-  return data ?? { current_stage: 'primeiro_contato' as string, captured_data: {} as Record<string, unknown> }
+  const fresh = { current_stage: 'primeiro_contato' as string, captured_data: {} as Record<string, unknown> }
+  if (!data || isSessionExpired(data.updated_at, new Date())) return fresh
+
+  return { current_stage: data.current_stage, captured_data: data.captured_data as Record<string, unknown> }
 }
 
 async function saveConversationState(tenantId: string, phone: string, stage: string, capturedData: Record<string, unknown>) {
