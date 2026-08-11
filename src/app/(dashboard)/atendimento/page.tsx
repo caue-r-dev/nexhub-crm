@@ -4,12 +4,15 @@ import { listConversationsAction } from '@/app/actions/chat'
 import { getCurrentTenant } from '@/lib/tenant'
 import { getConnectionState } from '@/lib/evolution-admin'
 import { deleteImportStatusConversation } from '@/lib/chatwoot-platform'
+import { getCurrentAdmin } from '@/lib/admin'
 import { ChatApp } from '@/components/atendimento/ChatApp'
 import { ConnectWhatsAppButton } from '@/components/atendimento/ConnectWhatsAppButton'
 import { DisconnectWhatsAppButton } from '@/components/atendimento/DisconnectWhatsAppButton'
+import { RestartEvolutionButton } from '@/components/atendimento/RestartEvolutionButton'
 
 export default async function AtendimentoPage() {
   const tenant = await getCurrentTenant()
+  const admin = await getCurrentAdmin()
 
   // "Tem inbox no Chatwoot" não é o mesmo que "WhatsApp pareado de verdade"
   // — o inbox já existe desde a primeira tentativa de conexão, mesmo que o
@@ -26,6 +29,7 @@ export default async function AtendimentoPage() {
         <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface p-6">
           <p className="text-text-secondary">Conecte agora seu WhatsApp</p>
           {tenant && <ConnectWhatsAppButton tenantId={tenant.id} />}
+          {admin && <RestartEvolutionButton />}
         </div>
       </div>
     )
@@ -48,6 +52,7 @@ export default async function AtendimentoPage() {
         <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface p-6">
           <p className="text-text-secondary">{result.error}</p>
           <ConnectWhatsAppButton tenantId={tenant.id} />
+          {admin && <RestartEvolutionButton />}
         </div>
       </div>
     )
@@ -73,6 +78,7 @@ export default async function AtendimentoPage() {
             <span className="hidden sm:inline">Mensagens personalizadas</span>
           </Link>
           <DisconnectWhatsAppButton tenantId={tenant.id} />
+          {admin && <RestartEvolutionButton />}
         </div>
       </div>
       <ChatApp initial={result.conversations} />
