@@ -3,10 +3,9 @@
 // chat). Chamado pelo webhook do Chatwoot quando a mensagem recebida não é
 // resposta sim/não a uma confirmação pendente.
 //
-// Sem IA por enquanto (decisão do usuário — fluxo é linear e previsível,
-// não precisa de LLM pra classificar estágio): qualquer mensagem recebida
-// avança um estágio. Pode plugar Claude/outro LLM aqui depois se o fluxo
-// precisar ramificar de verdade.
+// Estágio avança de forma linear e previsível (qualquer mensagem recebida
+// avança um estágio) — a IA (ver src/lib/ai-reply.ts) só reescreve o texto
+// de cada estágio de forma natural, não decide o fluxo.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTemplate } from '@/lib/message-templates'
 import { humanizeReply } from '@/lib/ai-reply'
@@ -100,8 +99,6 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
   const updatedCapturedData =
     state.current_stage === 'pergunta_queixa' ? { ...capturedData, queixa: incomingText } : capturedData
 
-  await saveConversationState(tenant.id, phone, nextStage, updatedCapturedData)
-
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexhub.nexvix.com.br'
   const linkAgendamento = tenant.slug ? `${appUrl}/agendar/${tenant.slug}` : ''
@@ -147,5 +144,7 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
   }
 
   const scriptText = await resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
-  return humanizeReply(scriptText, incomingText)
+  const reply = await humanizeReply(scriptText, incomingText)
+  await saveConversationState(tenant.id, phone, nextStage, updatedCapturedData)
+  return reply
 }

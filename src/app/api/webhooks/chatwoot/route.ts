@@ -106,7 +106,8 @@ export async function POST(request: Request) {
   }
 
   // Sem consulta pendente pra confirmar/cancelar — passa pro bot de
-  // primeiro contato (fluxo linear por template, sem IA por enquanto).
+  // primeiro contato (fluxo linear por template; a IA só humaniza o texto
+  // de cada estágio, não decide o fluxo).
   if (tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
     try {
       const reply = await getBotReply(tenant, phone, content)
