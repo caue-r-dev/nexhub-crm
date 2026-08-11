@@ -3,6 +3,7 @@ import { MessageSquareText } from 'lucide-react'
 import { listConversationsAction } from '@/app/actions/chat'
 import { getCurrentTenant } from '@/lib/tenant'
 import { getConnectionState } from '@/lib/evolution-admin'
+import { deleteImportStatusConversation } from '@/lib/chatwoot-platform'
 import { ChatApp } from '@/components/atendimento/ChatApp'
 import { ConnectWhatsAppButton } from '@/components/atendimento/ConnectWhatsAppButton'
 import { DisconnectWhatsAppButton } from '@/components/atendimento/DisconnectWhatsAppButton'
@@ -28,6 +29,14 @@ export default async function AtendimentoPage() {
         </div>
       </div>
     )
+  }
+
+  // A Evolution cria uma conversa "init" (contato +123456) durante o
+  // handshake de conexão — a exclusão automática que roda no meio do
+  // polling de conexão pode disparar antes dela existir de verdade (corrida
+  // de tempo). Refaz aqui, toda vez que a tela abre, pra nunca aparecer.
+  if (tenant.chatwoot_account_id && tenant.chatwoot_api_token) {
+    await deleteImportStatusConversation(tenant.chatwoot_account_id, tenant.chatwoot_api_token).catch(() => {})
   }
 
   const result = await listConversationsAction()
