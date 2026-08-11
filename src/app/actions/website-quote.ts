@@ -1,11 +1,12 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { getCurrentTenant } from '@/lib/tenant'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendWhatsAppText } from '@/lib/evolution'
 
 // Número do NexHub — quem vende/orça o site fica sabendo na hora que um
-// tenant clicou em "Site da clínica" sem ter site configurado ainda.
+// tenant clicou em "Site da clínica" e não tinha site configurado.
 const ADMIN_PHONE = '15981504416'
 
 export async function requestWebsiteQuoteAction() {
@@ -27,11 +28,25 @@ export async function requestWebsiteQuoteAction() {
     await sendWhatsAppText(
       { baseUrl: t.evolution_base_url, apiKey: t.evolution_api_key, instanceName: t.evolution_instance_name },
       ADMIN_PHONE,
-      `A clínica "${t.name}" clicou em "Site da clínica" e ainda não tem site configurado — quer orçamento pra criar um.`
+      `A clínica "${t.name}" clicou em "Site da clínica" e não tem site ainda — quer orçamento pra criar um.`
     )
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Não foi possível enviar o aviso.' }
   }
 
+  return { ok: true }
+}
+
+export async function saveWebsiteUrlAction(url: string) {
+  const tenant = await getCurrentTenant()
+  if (!tenant) return { error: 'Sessão inválida.' }
+  if (!url.trim()) return { error: 'Informe a URL do site.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin.from('tenants').update({ website_url: url.trim() }).eq('id', tenant.id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/agenda')
+  revalidatePath('/configuracoes/clinica')
   return { ok: true }
 }
