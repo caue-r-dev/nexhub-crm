@@ -71,6 +71,11 @@ export function computeNextStage(currentStage: string | null): Stage | null {
   return nextIndex < STAGES.length ? STAGES[nextIndex] : null
 }
 
+// `current_stage` é o estágio "lógico" (null se contato novo ou sessão
+// expirada — usado por computeNextStage). `rawCurrentStage` é o valor
+// exato que está gravado no banco agora (null só quando não existe linha
+// nenhuma) — usado por saveConversationStateIfUnchanged pra checagem de
+// concorrência, que precisa saber o valor real, não o "resetado".
 async function getConversationState(tenantId: string, phone: string) {
   const admin = createAdminClient()
   const { data } = await admin
@@ -80,18 +85,55 @@ async function getConversationState(tenantId: string, phone: string) {
     .eq('contact_phone', phone)
     .maybeSingle()
 
-  const fresh = { current_stage: null as string | null, captured_data: {} as Record<string, unknown> }
-  if (!data || isSessionExpired(data.updated_at, new Date())) return fresh
+  if (!data) {
+    return { current_stage: null as string | null, captured_data: {} as Record<string, unknown>, rawCurrentStage: null as string | null }
+  }
 
-  return { current_stage: data.current_stage as string | null, captured_data: data.captured_data as Record<string, unknown> }
+  const expired = isSessionExpired(data.updated_at, new Date())
+  return {
+    current_stage: expired ? null : (data.current_stage as string | null),
+    captured_data: expired ? ({} as Record<string, unknown>) : (data.captured_data as Record<string, unknown>),
+    rawCurrentStage: data.current_stage as string,
+  }
 }
 
-async function saveConversationState(tenantId: string, phone: string, stage: string, capturedData: Record<string, unknown>) {
+// Salva o próximo estágio SÓ SE ninguém mais avançou essa conversa nesse
+// meio-tempo (comparação otimista contra `expectedRawCurrentStage`, o
+// valor lido no início do processamento). Sem isso, duas mensagens do
+// mesmo paciente chegando quase juntas (ex: 2 mensagens rápidas) geram 2
+// respostas duplicadas — cada uma lê o mesmo estado "velho" antes da
+// outra salvar (confirmado em produção: saudação mandada 2x pro mesmo
+// contato). Retorna false quando perdeu a corrida — quem perdeu não deve
+// mandar a mensagem que já preparou, ela ficaria duplicada/fora de ordem.
+async function saveConversationStateIfUnchanged(
+  tenantId: string,
+  phone: string,
+  expectedRawCurrentStage: string | null,
+  nextStage: string,
+  capturedData: Record<string, unknown>
+): Promise<boolean> {
   const admin = createAdminClient()
-  await admin.from('conversation_state').upsert(
-    { tenant_id: tenantId, contact_phone: phone, current_stage: stage, captured_data: capturedData, updated_at: new Date().toISOString() },
-    { onConflict: 'tenant_id,contact_phone' }
-  )
+  const updatedAt = new Date().toISOString()
+
+  if (expectedRawCurrentStage === null) {
+    // Contato nunca teve linha em conversation_state — insere. Se outra
+    // mensagem concorrente já inseriu primeiro, a constraint unique
+    // (tenant_id, contact_phone) rejeita e a gente sabe que perdeu.
+    const { error } = await admin
+      .from('conversation_state')
+      .insert({ tenant_id: tenantId, contact_phone: phone, current_stage: nextStage, captured_data: capturedData, updated_at: updatedAt })
+    return !error
+  }
+
+  const { data, error } = await admin
+    .from('conversation_state')
+    .update({ current_stage: nextStage, captured_data: capturedData, updated_at: updatedAt })
+    .eq('tenant_id', tenantId)
+    .eq('contact_phone', phone)
+    .eq('current_stage', expectedRawCurrentStage)
+    .select('id')
+
+  return !error && !!data && data.length > 0
 }
 
 // Retorna o texto de resposta pra enviar, ou null se a conversa já tiver
@@ -154,6 +196,12 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
 
   const scriptText = await resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
   const reply = await humanizeReply(scriptText, incomingText)
-  await saveConversationState(tenant.id, phone, nextStage, updatedCapturedData)
+
+  const saved = await saveConversationStateIfUnchanged(tenant.id, phone, state.rawCurrentStage, nextStage, updatedCapturedData)
+  // Perdeu a corrida: outra mensagem concorrente do mesmo contato já
+  // avançou esse estágio enquanto essa aqui rodava — não manda, senão
+  // duplica a resposta.
+  if (!saved) return null
+
   return reply
 }
