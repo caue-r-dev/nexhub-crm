@@ -9,6 +9,7 @@
 // precisar ramificar de verdade.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTemplate } from '@/lib/message-templates'
+import { humanizeReply } from '@/lib/ai-reply'
 import type { BusinessHours } from '@/lib/supabase/types'
 
 const WEEKDAY_LABELS: Record<keyof BusinessHours, string> = {
@@ -145,5 +146,6 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
     }`,
   }
 
-  return resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
+  const scriptText = await resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
+  return humanizeReply(scriptText, incomingText)
 }
