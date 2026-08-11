@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Globe } from 'lucide-react'
+import { Globe, Pencil } from 'lucide-react'
 import { requestWebsiteQuoteAction, saveWebsiteUrlAction } from '@/app/actions/website-quote'
 
 type Step = 'closed' | 'ask' | 'enter-url' | 'sent' | 'saved'
@@ -10,23 +10,9 @@ type Step = 'closed' | 'ask' | 'enter-url' | 'sent' | 'saved'
 export function SiteClinicaButton({ websiteUrl }: { websiteUrl: string | null }) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('closed')
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState(websiteUrl ?? '')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-
-  if (websiteUrl) {
-    return (
-      <a
-        href={websiteUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-      >
-        <Globe className="h-4 w-4" />
-        <span className="hidden sm:inline">Site da clínica</span>
-      </a>
-    )
-  }
 
   function requestQuote() {
     setError(null)
@@ -53,14 +39,39 @@ export function SiteClinicaButton({ websiteUrl }: { websiteUrl: string | null })
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setStep('ask')}
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-      >
-        <Globe className="h-4 w-4" />
-        <span className="hidden sm:inline">Site da clínica</span>
-      </button>
+      {websiteUrl ? (
+        <div className="flex items-center gap-1">
+          <a
+            href={websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
+          >
+            <Globe className="h-4 w-4" />
+            <span className="hidden sm:inline">Site da clínica</span>
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              setUrl(websiteUrl)
+              setStep('enter-url')
+            }}
+            title="Trocar site"
+            className="rounded-lg border border-border bg-surface p-2 text-text"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setStep('ask')}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
+        >
+          <Globe className="h-4 w-4" />
+          <span className="hidden sm:inline">Site da clínica</span>
+        </button>
+      )}
 
       {step !== 'closed' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
