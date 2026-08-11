@@ -9,18 +9,21 @@ export function ClinicProfileForm({
   initialAddress,
   initialCnpj,
   initialSocialMedia,
+  initialWebsiteUrl,
 }: {
   initialPhone: string
   initialEmail: string
   initialAddress: string
   initialCnpj: string
   initialSocialMedia: string
+  initialWebsiteUrl: string
 }) {
   const [phone, setPhone] = useState(initialPhone)
   const [email, setEmail] = useState(initialEmail)
   const [address, setAddress] = useState(initialAddress)
   const [cnpj, setCnpj] = useState(initialCnpj)
   const [socialMedia, setSocialMedia] = useState(initialSocialMedia)
+  const [websiteUrl, setWebsiteUrl] = useState(initialWebsiteUrl)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -29,7 +32,7 @@ export function ClinicProfileForm({
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await updateClinicProfileAction({ phone, email, address, cnpj, socialMedia })
+      const result = await updateClinicProfileAction({ phone, email, address, cnpj, socialMedia, websiteUrl })
       if (result && 'error' in result) {
         setError(result.error ?? null)
       } else {
@@ -104,6 +107,22 @@ export function ClinicProfileForm({
           }}
           placeholder="@clinicateste (opcional)"
         />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-text">Site da clínica</span>
+        <input
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+          value={websiteUrl}
+          onChange={(e) => {
+            setWebsiteUrl(e.target.value)
+            setSaved(false)
+          }}
+          placeholder="https://minhaclinica.com.br (opcional)"
+        />
+        <span className="text-xs text-text-secondary">
+          Se preenchido, o botão &quot;Site da clínica&quot; na agenda abre esse link direto.
+        </span>
       </label>
 
       {error && <p className="text-sm text-status-cancelled">{error}</p>}

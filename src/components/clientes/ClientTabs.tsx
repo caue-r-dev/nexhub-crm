@@ -7,6 +7,7 @@ export function ClientTabs({ clientId, active }: { clientId: string; active: str
     { key: 'tratamentos', label: 'Tratamentos', href: `/clientes/${clientId}/tratamentos` },
     { key: 'orcamentos', label: 'Orçamentos', href: `/clientes/${clientId}/orcamentos` },
     { key: 'evolucoes', label: 'Evoluções', href: `/clientes/${clientId}/evolucoes` },
+    { key: 'proteses', label: 'Próteses', href: `/clientes/${clientId}/proteses` },
   ]
 
   return (

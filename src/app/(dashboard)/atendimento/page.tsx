@@ -56,6 +56,13 @@ export default async function AtendimentoPage() {
             <MessageSquareText className="h-4 w-4" />
             <span className="hidden sm:inline">Mensagens de lembrete</span>
           </Link>
+          <Link
+            href="/configuracoes/mensagens"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
+          >
+            <MessageSquareText className="h-4 w-4" />
+            <span className="hidden sm:inline">Mensagens personalizadas</span>
+          </Link>
           <DisconnectWhatsAppButton tenantId={tenant.id} />
         </div>
       </div>

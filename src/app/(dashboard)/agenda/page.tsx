@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Clock as ClockIcon, QrCode, Link2, ListChecks, ClipboardList, Building2, Star, MessageSquare } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import {
   addDays,
@@ -19,6 +19,7 @@ import { AgendaModalProvider } from '@/components/agenda/AgendaModalContext'
 import { NewAppointmentButton } from '@/components/agenda/NewAppointmentButton'
 import { AppointmentModalHost } from '@/components/agenda/AppointmentModalHost'
 import { initials } from '@/lib/professional-colors'
+import { SiteClinicaButton } from '@/components/configuracoes/SiteClinicaButton'
 
 const WEEKDAY_LABEL = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
@@ -63,6 +64,8 @@ export default async function AgendaPage({
   const rangeEnd = view === 'day' ? addDays(rangeStart, 1) : addDays(rangeStart, 7)
 
   const supabase = await createClient()
+
+  const { data: tenant } = await supabase.from('tenants').select('website_url').single()
 
   const { data: professionals } = await supabase
     .from('professionals')
@@ -130,62 +133,7 @@ export default async function AgendaPage({
             </Link>
           </div>
 
-          <Link
-            href="/configuracoes/horarios"
-            className="ml-1 flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-          >
-            <ClockIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Horário</span>
-          </Link>
-          <Link
-            href="/configuracoes/pix"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-          >
-            <QrCode className="h-4 w-4" />
-            <span className="hidden sm:inline">Pix</span>
-          </Link>
-          <Link
-            href="/configuracoes/procedimentos"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-          >
-            <ListChecks className="h-4 w-4" />
-            <span className="hidden sm:inline">Procedimentos</span>
-          </Link>
-          <Link
-            href="/configuracoes/agendamento-publico"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-          >
-            <Link2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Agendamento público</span>
-          </Link>
-          <Link
-            href="/configuracoes/servicos"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-          >
-            <ClipboardList className="h-4 w-4" />
-            <span className="hidden sm:inline">Serviços</span>
-          </Link>
-          <Link
-            href="/configuracoes/clinica"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-          >
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Dados da clínica</span>
-          </Link>
-          <Link
-            href="/configuracoes/satisfacao"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-          >
-            <Star className="h-4 w-4" />
-            <span className="hidden sm:inline">Satisfação</span>
-          </Link>
-          <Link
-            href="/configuracoes/mensagens"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
-          >
-            <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">Mensagens</span>
-          </Link>
+          <SiteClinicaButton websiteUrl={tenant?.website_url ?? null} />
           <NewAppointmentButton />
         </div>
       </div>

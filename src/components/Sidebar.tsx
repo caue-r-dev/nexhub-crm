@@ -4,14 +4,23 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  Building2,
   Calendar,
+  ChevronDown,
+  Clock as ClockIcon,
+  ClipboardList,
   Home,
+  Link2,
+  ListChecks,
   LogOut,
   Menu,
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
   Package,
+  QrCode,
+  Settings,
+  Star,
   Users,
   Wallet,
   X,
@@ -27,6 +36,16 @@ const LINKS = [
   { href: '/financeiro', label: 'Financeiro', icon: Wallet },
   { href: '/estoque', label: 'Estoque', icon: Package },
   { href: '/atendimento', label: 'Atendimento', icon: MessageCircle },
+]
+
+const SETTINGS_LINKS = [
+  { href: '/configuracoes/clinica', label: 'Dados da clínica', icon: Building2 },
+  { href: '/configuracoes/horarios', label: 'Horário', icon: ClockIcon },
+  { href: '/configuracoes/pix', label: 'Pix', icon: QrCode },
+  { href: '/configuracoes/procedimentos', label: 'Procedimentos', icon: ListChecks },
+  { href: '/configuracoes/agendamento-publico', label: 'Agendamento público', icon: Link2 },
+  { href: '/configuracoes/servicos', label: 'Serviços', icon: ClipboardList },
+  { href: '/configuracoes/satisfacao', label: 'Satisfação', icon: Star },
 ]
 
 const STORAGE_KEY = 'nexhub_sidebar_collapsed'
@@ -46,6 +65,8 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showRenewModal, setShowRenewModal] = useState(false)
+  const settingsActive = pathname.startsWith('/configuracoes')
+  const [settingsOpen, setSettingsOpen] = useState(settingsActive)
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -134,6 +155,41 @@ export function Sidebar({
               </Link>
             )
           })}
+
+          <div className={collapsed ? 'md:hidden' : undefined}>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((v) => !v)}
+              className="sidebar-link flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+              style={settingsActive ? textFull : textMuted}
+            >
+              <Settings className="h-5 w-5 shrink-0" />
+              <span className="flex-1 truncate text-left">Configurações</span>
+              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {settingsOpen && (
+              <div className="ml-3 flex flex-col gap-1 border-l pl-3" style={{ borderColor: 'color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}>
+                {SETTINGS_LINKS.map((link) => {
+                  const active = pathname.startsWith(link.href)
+                  const Icon = link.icon
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="sidebar-link flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors"
+                      style={{
+                        ...(active ? textFull : textMuted),
+                        backgroundColor: active ? 'var(--accent-hover)' : undefined,
+                      }}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{link.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className={`mx-2 mb-2 rounded-lg px-3 py-2 text-xs ${collapsed ? 'md:hidden' : ''}`} style={textMuted}>

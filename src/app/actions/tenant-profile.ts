@@ -10,6 +10,7 @@ export async function updateClinicProfileAction(input: {
   address: string
   cnpj: string
   socialMedia: string
+  websiteUrl: string
 }) {
   const tenant = await getCurrentTenant()
   if (!tenant) return { error: 'Sessão inválida.' }
@@ -23,6 +24,7 @@ export async function updateClinicProfileAction(input: {
       address: input.address.trim() || null,
       cnpj: input.cnpj.trim() || null,
       social_media: input.socialMedia.trim() || null,
+      website_url: input.websiteUrl.trim() || null,
     })
     .eq('id', tenant.id)
 

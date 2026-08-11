@@ -106,6 +106,7 @@ export interface Database {
           google_review_link: string | null
           cnpj: string | null
           social_media: string | null
+          website_url: string | null
         }
         Insert: {
           id?: string
@@ -147,6 +148,7 @@ export interface Database {
           address?: string | null
           cnpj?: string | null
           social_media?: string | null
+          website_url?: string | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [
@@ -894,6 +896,45 @@ export interface Database {
             foreignKeyName: 'message_templates_tenant_id_fkey'
             columns: ['tenant_id']
             referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      prostheses: {
+        Row: {
+          id: string
+          tenant_id: string
+          client_id: string
+          type: string
+          tooth_number: string | null
+          status: string
+          sent_to_lab_at: string | null
+          expected_return_at: string | null
+          received_at: string | null
+          delivered_at: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          client_id: string
+          type: string
+          tooth_number?: string | null
+          status?: string
+          sent_to_lab_at?: string | null
+          expected_return_at?: string | null
+          received_at?: string | null
+          delivered_at?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['prostheses']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'prostheses_client_id_fkey'
+            columns: ['client_id']
+            referencedRelation: 'clients'
             referencedColumns: ['id']
           },
         ]
