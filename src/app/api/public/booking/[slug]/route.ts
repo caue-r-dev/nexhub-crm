@@ -171,6 +171,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
         phone
       )
     }
+  } else {
+    // Cliente já existente reagendando — atualiza nome/CPF se ele preencheu
+    // diferente do que já estava (nunca apaga um valor já cadastrado com um
+    // campo vazio, só sobrescreve com o que veio preenchido de novo).
+    const clientUpdate: { name?: string; document?: string } = {}
+    if (body.patientName?.trim()) clientUpdate.name = body.patientName.trim()
+    if (body.patientDocument?.trim()) clientUpdate.document = body.patientDocument.trim()
+    if (Object.keys(clientUpdate).length > 0) {
+      await admin.from('clients').update(clientUpdate).eq('id', clientId)
+    }
   }
 
   if (body.anamnese && (body.anamnese.queixa_principal?.trim() || Object.keys(body.anamnese.answers ?? {}).length > 0)) {
