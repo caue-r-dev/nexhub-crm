@@ -108,6 +108,8 @@ export interface Database {
           social_media: string | null
           website_url: string | null
           last_whatsapp_state: string | null
+          bot_enabled: boolean
+          bot_context_notes: string | null
         }
         Insert: {
           id?: string
@@ -151,6 +153,8 @@ export interface Database {
           social_media?: string | null
           website_url?: string | null
           last_whatsapp_state?: string | null
+          bot_enabled?: boolean
+          bot_context_notes?: string | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [

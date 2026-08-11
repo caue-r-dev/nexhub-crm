@@ -1,6 +1,10 @@
 import { MessageTemplatesForm } from '@/components/configuracoes/MessageTemplatesForm'
+import { BotSettingsForm } from '@/components/configuracoes/BotSettingsForm'
+import { getCurrentTenant } from '@/lib/tenant'
 
-export default function MensagensConfigPage() {
+export default async function MensagensConfigPage() {
+  const tenant = await getCurrentTenant()
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -13,6 +17,12 @@ export default function MensagensConfigPage() {
           <code>{'{{link_agendamento}}'}</code>.
         </p>
       </div>
+      {tenant && (
+        <BotSettingsForm
+          initialBotEnabled={tenant.bot_enabled}
+          initialBotContextNotes={tenant.bot_context_notes ?? ''}
+        />
+      )}
       <MessageTemplatesForm />
     </div>
   )

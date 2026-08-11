@@ -80,7 +80,9 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const { data: tenant } = await admin
     .from('tenants')
-    .select('id, name, address, business_hours, slug, evolution_base_url, evolution_api_key, evolution_instance_name')
+    .select(
+      'id, name, address, business_hours, slug, evolution_base_url, evolution_api_key, evolution_instance_name, bot_enabled, bot_context_notes'
+    )
     .eq('chatwoot_account_id', accountId)
     .single()
   if (!tenant) return NextResponse.json({ ok: true })
@@ -108,7 +110,7 @@ export async function POST(request: Request) {
   // Sem consulta pendente pra confirmar/cancelar — passa pro bot de
   // primeiro contato (fluxo linear por template; a IA só humaniza o texto
   // de cada estágio, não decide o fluxo).
-  if (tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
+  if (tenant.bot_enabled && tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
     try {
       const reply = await getBotReply(tenant, phone, content)
       if (reply) {
