@@ -16,6 +16,26 @@ export function normalizePhone(phone: string): string | null {
   return digits
 }
 
+// Assinatura exata do bug de "socket fantasma": connectionState mente
+// 'open' mas o envio real falha com esse erro — só reinicia o container
+// inteiro na VPS resolve (confirmado, ver feedback_evolution_ghost_socket_restart).
+// Registra o incidente (best-effort, nunca derruba o envio original por
+// causa disso) pra um cron detectar e reiniciar sozinho, sem esperar
+// ninguém perceber.
+const GHOST_SOCKET_PATTERN = /connection closed/i
+
+async function logGhostSocketIncident(instanceName: string, errorMessage: string) {
+  if (!GHOST_SOCKET_PATTERN.test(errorMessage)) return
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const admin = createAdminClient()
+    await admin.from('evolution_incidents').insert({ instance_name: instanceName, error_message: errorMessage })
+  } catch {
+    // Log é best-effort — se a própria infra de log estiver com problema,
+    // não é isso que deve derrubar o fluxo de mensagens.
+  }
+}
+
 export async function sendWhatsAppText(
   config: EvolutionConfig,
   phone: string,
@@ -34,7 +54,9 @@ export async function sendWhatsAppText(
   })
 
   if (!res.ok) {
-    throw new Error(`Evolution API ${res.status}: ${await res.text()}`)
+    const body = await res.text()
+    await logGhostSocketIncident(config.instanceName, body)
+    throw new Error(`Evolution API ${res.status}: ${body}`)
   }
 }
 
@@ -94,6 +116,8 @@ export async function sendWhatsAppImage(
   })
 
   if (!res.ok) {
-    throw new Error(`Evolution API ${res.status}: ${await res.text()}`)
+    const body = await res.text()
+    await logGhostSocketIncident(config.instanceName, body)
+    throw new Error(`Evolution API ${res.status}: ${body}`)
   }
 }

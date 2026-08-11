@@ -107,6 +107,7 @@ export interface Database {
           cnpj: string | null
           social_media: string | null
           website_url: string | null
+          last_whatsapp_state: string | null
         }
         Insert: {
           id?: string
@@ -149,6 +150,7 @@ export interface Database {
           cnpj?: string | null
           social_media?: string | null
           website_url?: string | null
+          last_whatsapp_state?: string | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [
@@ -899,6 +901,24 @@ export interface Database {
             referencedColumns: ['id']
           },
         ]
+      }
+      evolution_incidents: {
+        Row: {
+          id: string
+          instance_name: string
+          error_message: string
+          created_at: string
+          resolved_at: string | null
+        }
+        Insert: {
+          id?: string
+          instance_name: string
+          error_message: string
+          created_at?: string
+          resolved_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['evolution_incidents']['Insert']>
+        Relationships: []
       }
       prostheses: {
         Row: {
