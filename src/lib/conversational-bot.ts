@@ -83,18 +83,18 @@ function replyStaysWithinKnownFacts(reply: string, knownFacts: string): boolean 
   return true
 }
 
-function parseTurn(raw: string, knownFacts: string): BotTurn {
+function parseTurn(raw: string, knownFacts: string, handoffMessage: string): BotTurn {
   let parsed: unknown
   try {
     // Gemini às vezes envolve o JSON em ```json ... ``` mesmo pedindo pra não fazer isso.
     const cleaned = raw.trim().replace(/^```json\s*/i, '').replace(/```$/, '')
     parsed = JSON.parse(cleaned)
   } catch {
-    return { reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false }
+    return { reply: handoffMessage, extractedFacts: {}, handoff: true, done: false }
   }
 
   if (typeof parsed !== 'object' || parsed === null) {
-    return { reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false }
+    return { reply: handoffMessage, extractedFacts: {}, handoff: true, done: false }
   }
 
   const obj = parsed as Record<string, unknown>
@@ -109,11 +109,11 @@ function parseTurn(raw: string, knownFacts: string): BotTurn {
   if (reply && !replyStaysWithinKnownFacts(reply, knownFacts)) {
     // Citou fato que não bate com o que a clínica informou — mais seguro
     // escalar do que arriscar um valor/link errado indo pro paciente.
-    return { reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false }
+    return { reply: handoffMessage, extractedFacts: {}, handoff: true, done: false }
   }
 
   if (handoff && !reply) {
-    return { reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts, handoff: true, done }
+    return { reply: handoffMessage, extractedFacts, handoff: true, done }
   }
 
   return { reply, extractedFacts, handoff, done }
@@ -157,15 +157,16 @@ export async function decideBotTurn(
   capturedFacts: Record<string, string>,
   history: ConversationMessage[],
   incomingText: string,
+  handoffMessage: string = HANDOFF_FALLBACK_MESSAGE,
   generate: GenerateFn = defaultGenerate,
   timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<BotTurn> {
   try {
     const prompt = buildTurnPrompt(roteiro, knownFacts, capturedFacts, history, incomingText)
     const raw = await withTimeout(generate(prompt), timeoutMs)
-    return parseTurn(raw, knownFacts)
+    return parseTurn(raw, knownFacts, handoffMessage)
   } catch (err) {
     console.error('[conversational-bot] turno falhou, escalando:', err)
-    return { reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false }
+    return { reply: handoffMessage, extractedFacts: {}, handoff: true, done: false }
   }
 }

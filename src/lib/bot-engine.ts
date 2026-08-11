@@ -9,7 +9,7 @@
 // resposta sim/não a uma confirmação pendente.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTemplate } from '@/lib/message-templates'
-import { decideBotTurn, type ConversationMessage } from '@/lib/conversational-bot'
+import { decideBotTurn, HANDOFF_FALLBACK_MESSAGE, type ConversationMessage } from '@/lib/conversational-bot'
 import type { BusinessHours } from '@/lib/supabase/types'
 
 const WEEKDAY_LABELS: Record<keyof BusinessHours, string> = {
@@ -212,7 +212,8 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
 
   const roteiro = await buildRoteiro(tenant.id, DEFAULTS)
 
-  const turn = await decideBotTurn(roteiro, knownFacts, state.captured_data, state.messages, incomingText)
+  const handoffMessage = await resolveTemplate(tenant.id, 'escalar_atendimento_humano', {}, HANDOFF_FALLBACK_MESSAGE)
+  const turn = await decideBotTurn(roteiro, knownFacts, state.captured_data, state.messages, incomingText, handoffMessage)
 
   const newMessages: ConversationMessage[] = [
     ...state.messages,

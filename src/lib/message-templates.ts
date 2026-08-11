@@ -56,4 +56,5 @@ export const TEMPLATE_KEYS = [
   { key: 'orientacao_procedimento_longo', label: 'Orientação — procedimento longo' },
   { key: 'followup_falta_sem_remarcar', label: 'Follow-up — faltou e não remarcou' },
   { key: 'followup_atraso', label: 'Follow-up — atraso' },
+  { key: 'escalar_atendimento_humano', label: 'Escalonamento pra atendimento humano (IA não sabe responder)' },
 ] as const

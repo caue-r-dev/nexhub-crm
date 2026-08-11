@@ -24,7 +24,7 @@ describe('decideBotTurn', () => {
         handoff: false,
         done: true,
       })
-    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'sou o Marcos, quero marcar', generate)
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'sou o Marcos, quero marcar', HANDOFF_FALLBACK_MESSAGE, generate)
     expect(result).toEqual({
       reply: 'Olá Marcos! Nossa consulta custa R$ 150,00. Link: https://nexhub.nexvix.com.br/agendar/teste',
       extractedFacts: { nome: 'Marcos' },
@@ -35,27 +35,27 @@ describe('decideBotTurn', () => {
 
   it('aceita JSON envolvido em ```json apesar de instruído a não fazer isso', async () => {
     const generate = async () => '```json\n{"reply": "Oi!", "extracted_facts": {}, "handoff": false, "done": false}\n```'
-    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', generate)
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', HANDOFF_FALLBACK_MESSAGE, generate)
     expect(result.reply).toBe('Oi!')
   })
 
   it('escala quando o reply cita valor que não bate com os dados conhecidos', async () => {
     const generate = async () =>
       JSON.stringify({ reply: 'A consulta custa R$ 1,00.', extracted_facts: {}, handoff: false, done: false })
-    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'quanto custa?', generate)
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'quanto custa?', HANDOFF_FALLBACK_MESSAGE, generate)
     expect(result).toEqual({ reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false })
   })
 
   it('escala quando o reply cita link que não bate com os dados conhecidos', async () => {
     const generate = async () =>
       JSON.stringify({ reply: 'Acesse https://outro-link.com', extracted_facts: {}, handoff: false, done: false })
-    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'qual o link?', generate)
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'qual o link?', HANDOFF_FALLBACK_MESSAGE, generate)
     expect(result).toEqual({ reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false })
   })
 
   it('cai pro fallback de escalação quando a resposta não é JSON válido', async () => {
     const generate = async () => 'isso não é json'
-    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', generate)
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', HANDOFF_FALLBACK_MESSAGE, generate)
     expect(result).toEqual({ reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false })
   })
 
@@ -63,7 +63,7 @@ describe('decideBotTurn', () => {
     const generate = async () => {
       throw new Error('rate limit')
     }
-    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', generate)
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', HANDOFF_FALLBACK_MESSAGE, generate)
     expect(result).toEqual({ reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false })
   })
 
@@ -72,13 +72,22 @@ describe('decideBotTurn', () => {
       new Promise<string>((resolve) =>
         setTimeout(() => resolve(JSON.stringify({ reply: 'tarde demais', extracted_facts: {}, handoff: false, done: false })), 50)
       )
-    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', generate, 10)
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', HANDOFF_FALLBACK_MESSAGE, generate, 10)
     expect(result).toEqual({ reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false })
   })
 
   it('usa o fallback fixo quando handoff é true e a IA não deu texto de resposta', async () => {
     const generate = async () => JSON.stringify({ reply: null, extracted_facts: {}, handoff: true, done: false })
-    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'pergunta muito específica', generate)
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'pergunta muito específica', HANDOFF_FALLBACK_MESSAGE, generate)
     expect(result).toEqual({ reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false })
+  })
+
+  it('usa a mensagem de escalonamento personalizada do tenant, não a padrão', async () => {
+    const customMessage = 'Já te chamo, um segundinho!'
+    const generate = async () => {
+      throw new Error('falha qualquer')
+    }
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', customMessage, generate)
+    expect(result).toEqual({ reply: customMessage, extractedFacts: {}, handoff: true, done: false })
   })
 })
