@@ -157,7 +157,12 @@ async function buildRoteiro(
 // terminado (link já enviado, "done") ou estiver escalada pra humano.
 export async function getBotReply(tenant: TenantInfo, phone: string, incomingText: string): Promise<string | null> {
   const state = await getConversationState(tenant.id, phone)
-  if (state.done || state.escalated) return null
+  // `escalated` é silêncio total (humano assumiu). `done` NÃO é — só quer
+  // dizer "já mandou o link, não insista de novo à toa"; o bot continua
+  // respondendo pergunta nova depois disso (confirmado em teste real: bot
+  // ficou mudo pra "quais as formas de pagamento?" só porque tinha mandado
+  // o link na resposta anterior — não fazia sentido).
+  if (state.escalated) return null
 
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexhub.nexvix.com.br'
@@ -191,6 +196,9 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
     horarioAtendimento ? `Horário de atendimento: ${horarioAtendimento}` : null,
     linkAgendamento ? `Link de agendamento: ${linkAgendamento}` : null,
     tenant.bot_context_notes ? `Observações adicionais: ${tenant.bot_context_notes}` : null,
+    state.done
+      ? 'O link de agendamento já foi enviado nesta conversa (veja o histórico) — não repita o link nem insista em agendar de novo à toa, mas continue respondendo normalmente qualquer pergunta nova que o paciente fizer.'
+      : null,
   ]
     .filter(Boolean)
     .join('\n')
