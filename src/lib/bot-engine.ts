@@ -1,21 +1,16 @@
-// Motor do bot de primeiro contato — conduz a conversa até o envio do link
-// de agendamento público (já existente, não recria coleta de dados via
-// chat). Chamado pelo webhook do Chatwoot quando a mensagem recebida não é
+// Motor do bot de atendimento — a IA (src/lib/conversational-bot.ts)
+// conduz a conversa de verdade, com memória do histórico completo, usando
+// o roteiro personalizado de cada tenant como guia (não uma sequência
+// fixa obrigatória): extrai fatos de qualquer parte da mensagem, pula
+// etapa já resolvida, responde pergunta fora de ordem quando os dados
+// conhecidos permitem, e escala pra atendimento humano quando reconhece
+// que não é caso de lead novo ou não sabe responder com confiança.
+// Chamado pelo webhook do Chatwoot quando a mensagem recebida não é
 // resposta sim/não a uma confirmação pendente.
-//
-// Estágio avança de forma linear e previsível (qualquer mensagem recebida
-// avança um estágio, DESDE QUE a IA classifique como resposta ao estágio —
-// ver classifyMessage) — a IA (ver src/lib/ai-reply.ts) reescreve o texto
-// de cada estágio de forma natural, e também decide (src/lib/smart-reply.ts)
-// se a mensagem do paciente é uma pergunta fora do roteiro respondível com
-// os dados da clínica, ou algo que precisa escalar pra atendimento humano.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTemplate } from '@/lib/message-templates'
-import { humanizeReply } from '@/lib/ai-reply'
-import { classifyMessage } from '@/lib/smart-reply'
+import { decideBotTurn, type ConversationMessage } from '@/lib/conversational-bot'
 import type { BusinessHours } from '@/lib/supabase/types'
-
-const ESCALATION_MESSAGE = 'Vou confirmar essa informação com a equipe e já te retorno por aqui. 🙂'
 
 const WEEKDAY_LABELS: Record<keyof BusinessHours, string> = {
   monday: 'seg',
@@ -48,8 +43,12 @@ function formatBusinessHours(hours: BusinessHours | null): string {
   return groups.map((g) => `${g.label} ${g.start}-${g.end}`).join(', ')
 }
 
-const STAGES = ['primeiro_contato', 'pergunta_queixa', 'explicacao_processo', 'valor_e_horarios'] as const
-type Stage = (typeof STAGES)[number]
+const ROTEIRO_STAGES = [
+  { key: 'primeiro_contato', label: 'Primeiro contato' },
+  { key: 'pergunta_queixa', label: 'Entender a necessidade' },
+  { key: 'explicacao_processo', label: 'Explicar o processo' },
+  { key: 'valor_e_horarios', label: 'Valor, horários e link' },
+] as const
 
 type TenantInfo = {
   id: string
@@ -66,127 +65,99 @@ export function isSessionExpired(updatedAt: string | null, now: Date, maxHours =
   return elapsedMs > maxHours * 60 * 60 * 1000
 }
 
-// Estágio seguinte a partir do último estágio já respondido pelo paciente.
-// `currentStage` null (ou um valor que não bate com nenhum STAGES — sessão
-// nunca salva, ou expirada) significa "contato novo": o próximo estágio é o
-// primeiro da lista, não o segundo. Usar o nome do primeiro estágio como
-// sentinela de "vazio" causava um bug onde todo contato novo pulava direto
-// a saudação (`primeiro_contato`) e ia pra próxima pergunta.
-export function computeNextStage(currentStage: string | null): Stage | null {
-  const currentIndex = currentStage ? STAGES.indexOf(currentStage as Stage) : -1
-  const nextIndex = currentIndex === -1 ? 0 : currentIndex + 1
-  return nextIndex < STAGES.length ? STAGES[nextIndex] : null
+type ConversationState = {
+  captured_data: Record<string, string>
+  messages: ConversationMessage[]
+  done: boolean
+  escalated: boolean
+  // Valor exato de `updated_at` lido agora (null = linha não existe ainda)
+  // — usado como token de concorrência otimista no save: se ninguém mais
+  // escreveu nessa linha nesse meio-tempo, `updated_at` continua igual.
+  expectedUpdatedAt: string | null
 }
 
-// `current_stage` é o estágio "lógico" (null se contato novo ou sessão
-// expirada — usado por computeNextStage). `rawCurrentStage` é o valor
-// exato que está gravado no banco agora (null só quando não existe linha
-// nenhuma) — usado por saveConversationStateIfUnchanged pra checagem de
-// concorrência, que precisa saber o valor real, não o "resetado".
-async function getConversationState(tenantId: string, phone: string) {
+async function getConversationState(tenantId: string, phone: string): Promise<ConversationState> {
   const admin = createAdminClient()
   const { data } = await admin
     .from('conversation_state')
-    .select('current_stage, captured_data, updated_at, escalated')
+    .select('captured_data, updated_at, escalated, messages, done')
     .eq('tenant_id', tenantId)
     .eq('contact_phone', phone)
     .maybeSingle()
 
   if (!data) {
-    return {
-      current_stage: null as string | null,
-      captured_data: {} as Record<string, unknown>,
-      rawCurrentStage: null as string | null,
-      escalated: false,
-    }
+    return { captured_data: {}, messages: [], done: false, escalated: false, expectedUpdatedAt: null }
   }
 
   const expired = isSessionExpired(data.updated_at, new Date())
   return {
-    current_stage: expired ? null : (data.current_stage as string | null),
-    captured_data: expired ? ({} as Record<string, unknown>) : (data.captured_data as Record<string, unknown>),
-    rawCurrentStage: data.current_stage as string,
+    captured_data: expired ? {} : (data.captured_data as Record<string, string>),
+    messages: expired ? [] : data.messages,
+    done: expired ? false : data.done,
     escalated: expired ? false : data.escalated,
+    expectedUpdatedAt: data.updated_at,
   }
 }
 
-// Salva o próximo estágio SÓ SE ninguém mais avançou essa conversa nesse
-// meio-tempo (comparação otimista contra `expectedRawCurrentStage`, o
-// valor lido no início do processamento). Sem isso, duas mensagens do
-// mesmo paciente chegando quase juntas (ex: 2 mensagens rápidas) geram 2
-// respostas duplicadas — cada uma lê o mesmo estado "velho" antes da
-// outra salvar (confirmado em produção: saudação mandada 2x pro mesmo
-// contato). Retorna false quando perdeu a corrida — quem perdeu não deve
-// mandar a mensagem que já preparou, ela ficaria duplicada/fora de ordem.
+// Salva o novo estado SÓ SE ninguém mais escreveu nessa conversa nesse
+// meio-tempo (comparação otimista contra `updated_at` lido no início do
+// processamento). Sem isso, duas mensagens do mesmo paciente chegando
+// quase juntas geram 2 respostas concorrentes pisando uma na outra —
+// confirmado em produção antes dessa proteção existir (saudação
+// duplicada). Retorna false quando perdeu a corrida — quem perdeu não
+// deve mandar a resposta que já preparou.
 async function saveConversationStateIfUnchanged(
   tenantId: string,
   phone: string,
-  expectedRawCurrentStage: string | null,
-  nextStage: string,
-  capturedData: Record<string, unknown>
+  expectedUpdatedAt: string | null,
+  fields: { messages: ConversationMessage[]; captured_data: Record<string, string>; done: boolean; escalated: boolean }
 ): Promise<boolean> {
   const admin = createAdminClient()
   const updatedAt = new Date().toISOString()
 
-  if (expectedRawCurrentStage === null) {
+  if (expectedUpdatedAt === null) {
     // Contato nunca teve linha em conversation_state — insere. Se outra
     // mensagem concorrente já inseriu primeiro, a constraint unique
     // (tenant_id, contact_phone) rejeita e a gente sabe que perdeu.
     const { error } = await admin
       .from('conversation_state')
-      .insert({ tenant_id: tenantId, contact_phone: phone, current_stage: nextStage, captured_data: capturedData, updated_at: updatedAt })
+      .insert({ tenant_id: tenantId, contact_phone: phone, updated_at: updatedAt, ...fields })
     return !error
   }
 
   const { data, error } = await admin
     .from('conversation_state')
-    .update({ current_stage: nextStage, captured_data: capturedData, updated_at: updatedAt })
+    .update({ updated_at: updatedAt, ...fields })
     .eq('tenant_id', tenantId)
     .eq('contact_phone', phone)
-    .eq('current_stage', expectedRawCurrentStage)
+    .eq('updated_at', expectedUpdatedAt)
     .select('id')
 
   return !error && !!data && data.length > 0
 }
 
-// Marca a conversa como escalada pra atendimento humano — bot fica em
-// silêncio nela até a sessão expirar (12h). Não mexe no estágio, só na
-// flag, pra não perder o progresso caso alguém retome depois.
-async function escalateConversation(tenantId: string, phone: string, expectedRawCurrentStage: string): Promise<boolean> {
-  const admin = createAdminClient()
-  const { data, error } = await admin
-    .from('conversation_state')
-    .update({ escalated: true, updated_at: new Date().toISOString() })
-    .eq('tenant_id', tenantId)
-    .eq('contact_phone', phone)
-    .eq('current_stage', expectedRawCurrentStage)
-    .select('id')
-
-  return !error && !!data && data.length > 0
+// Concatena o roteiro personalizado do tenant (texto de cada etapa,
+// customizado por clínica em /configuracoes/mensagens, ou o padrão se
+// nunca editou) — é isso que a IA usa como guia do que cobrir na
+// conversa, na ordem que fizer sentido, sem ser uma sequência obrigatória.
+async function buildRoteiro(
+  tenantId: string,
+  defaults: Record<(typeof ROTEIRO_STAGES)[number]['key'], string>
+): Promise<string> {
+  const parts = await Promise.all(
+    ROTEIRO_STAGES.map(async ({ key, label }, i) => {
+      const text = await resolveTemplate(tenantId, key, {}, defaults[key])
+      return `${i + 1}. ${label}: "${text}"`
+    })
+  )
+  return parts.join('\n')
 }
 
 // Retorna o texto de resposta pra enviar, ou null se a conversa já tiver
-// chegado ao fim do fluxo (link já enviado — não fica insistindo).
+// terminado (link já enviado, "done") ou estiver escalada pra humano.
 export async function getBotReply(tenant: TenantInfo, phone: string, incomingText: string): Promise<string | null> {
   const state = await getConversationState(tenant.id, phone)
-  if (state.escalated) return null
-
-  const nextStage = computeNextStage(state.current_stage)
-  if (!nextStage) return null
-
-  const capturedData = state.captured_data as Record<string, unknown>
-
-  // Resposta ao "qual seu nome?" (primeiro_contato) e à queixa
-  // (pergunta_queixa) são guardadas pra reaproveitar no resto da conversa
-  // (ex: chamar o paciente pelo nome nas próximas mensagens).
-  const updatedCapturedData =
-    state.current_stage === 'primeiro_contato'
-      ? { ...capturedData, nome: incomingText.trim() }
-      : state.current_stage === 'pergunta_queixa'
-        ? { ...capturedData, queixa: incomingText }
-        : capturedData
-
-  const nomePaciente = (updatedCapturedData.nome as string | undefined) ?? ''
+  if (state.done || state.escalated) return null
 
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexhub.nexvix.com.br'
@@ -212,73 +183,45 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
   const valorConsulta = firstService?.default_value != null ? `R$ ${firstService.default_value.toFixed(2)}` : ''
   const horarioAtendimento = formatBusinessHours(tenant.business_hours)
 
-  const context = {
-    nome_clinica: tenant.name,
-    endereco: tenant.address ?? '',
-    nome_profissional: firstProfessional?.name ?? '',
-    link_agendamento: linkAgendamento,
-    valor_consulta: valorConsulta,
-    horario_atendimento: horarioAtendimento,
-    nome_paciente: nomePaciente,
+  const knownFacts = [
+    `Nome: ${tenant.name}`,
+    tenant.address ? `Endereço: ${tenant.address}` : null,
+    firstProfessional?.name ? `Profissional: ${firstProfessional.name}` : null,
+    valorConsulta ? `Valor da consulta/atendimento inicial: ${valorConsulta}` : null,
+    horarioAtendimento ? `Horário de atendimento: ${horarioAtendimento}` : null,
+    linkAgendamento ? `Link de agendamento: ${linkAgendamento}` : null,
+    tenant.bot_context_notes ? `Observações adicionais: ${tenant.bot_context_notes}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  const DEFAULTS = {
+    primeiro_contato: `Dar boas-vindas em nome de "${tenant.name}" e perguntar o nome do contato.`,
+    pergunta_queixa: 'Perguntar qual a necessidade específica ou o que a pessoa gostaria de resolver.',
+    explicacao_processo: `Explicar que o primeiro passo é um atendimento inicial de avaliação${firstProfessional?.name ? ` com ${firstProfessional.name}` : ''}, que vai entender a necessidade e montar um plano personalizado.`,
+    valor_e_horarios: `Informar o valor${valorConsulta ? ` (${valorConsulta})` : ''}, o horário de atendimento${horarioAtendimento ? ` (${horarioAtendimento})` : ''} e mandar o link de agendamento${linkAgendamento ? ` (${linkAgendamento})` : ''}.`,
   }
 
-  const DEFAULTS: Record<Stage, string> = {
-    primeiro_contato: `Olá! Boas-vindas à ${tenant.name}. Ficamos felizes com seu contato! Pra te conhecer melhor: qual o seu nome?`,
-    pergunta_queixa: `Prazer${nomePaciente ? `, ${nomePaciente}` : ''}! Pra te atender melhor, me conta: você tem alguma necessidade específica ou já sabe o que gostaria de resolver?`,
-    explicacao_processo: `Perfeito! Pra começar, o primeiro passo é uma consulta inicial de avaliação${firstProfessional?.name ? `: ${firstProfessional.name}` : ''} vai entender sua necessidade e montar um plano personalizado, tirando todas as suas dúvidas. Podemos agendar essa consulta inicial?`,
-    valor_e_horarios: `${valorConsulta ? `Nossa consulta inicial tem o valor de ${valorConsulta}. ` : ''}${horarioAtendimento ? `Atendemos ${horarioAtendimento}. ` : ''}${
-      linkAgendamento
-        ? `Aqui está o link com os horários disponíveis — é só escolher o que for melhor pra você e confirmar sua consulta: ${linkAgendamento}`
-        : 'Entre em contato com a recepção pra agendar seu horário.'
-    }`,
-  }
+  const roteiro = await buildRoteiro(tenant.id, DEFAULTS)
 
-  // Só classifica quando já existe uma pergunta pendente de verdade — na
-  // primeiríssima mensagem de um contato novo (state.current_stage null),
-  // o bot ainda não perguntou nada, não tem o que classificar.
-  if (state.current_stage) {
-    const knownFacts = [
-      `Nome da clínica: ${tenant.name}`,
-      tenant.address ? `Endereço: ${tenant.address}` : null,
-      firstProfessional?.name ? `Profissional: ${firstProfessional.name}` : null,
-      valorConsulta ? `Valor da consulta inicial: ${valorConsulta}` : null,
-      horarioAtendimento ? `Horário de atendimento: ${horarioAtendimento}` : null,
-      linkAgendamento ? `Link de agendamento: ${linkAgendamento}` : null,
-      tenant.bot_context_notes ? `Observações adicionais: ${tenant.bot_context_notes}` : null,
-    ]
-      .filter(Boolean)
-      .join('\n')
+  const turn = await decideBotTurn(roteiro, knownFacts, state.captured_data, state.messages, incomingText)
 
-    const pendingQuestion = await resolveTemplate(
-      tenant.id,
-      state.current_stage,
-      context,
-      DEFAULTS[state.current_stage as Stage]
-    )
-    const classification = await classifyMessage(pendingQuestion, incomingText, knownFacts)
+  const newMessages: ConversationMessage[] = [
+    ...state.messages,
+    { role: 'paciente', text: incomingText },
+    ...(turn.reply ? ([{ role: 'bot', text: turn.reply }] as ConversationMessage[]) : []),
+  ]
 
-    if (classification.kind === 'escalar') {
-      const escalated = await escalateConversation(tenant.id, phone, state.rawCurrentStage as string)
-      return escalated ? ESCALATION_MESSAGE : null
-    }
-
-    if (classification.kind === 'responde_pergunta') {
-      // Não avança estágio — a pergunta pendente continua sem resposta, o
-      // paciente ainda precisa respondê-la na próxima mensagem.
-      return classification.answer
-    }
-
-    // classification.kind === 'responde_estagio' — segue o fluxo normal abaixo.
-  }
-
-  const scriptText = await resolveTemplate(tenant.id, nextStage, context, DEFAULTS[nextStage])
-  const reply = await humanizeReply(scriptText, incomingText)
-
-  const saved = await saveConversationStateIfUnchanged(tenant.id, phone, state.rawCurrentStage, nextStage, updatedCapturedData)
+  const saved = await saveConversationStateIfUnchanged(tenant.id, phone, state.expectedUpdatedAt, {
+    messages: newMessages,
+    captured_data: { ...state.captured_data, ...turn.extractedFacts },
+    done: turn.done,
+    escalated: turn.handoff,
+  })
   // Perdeu a corrida: outra mensagem concorrente do mesmo contato já
-  // avançou esse estágio enquanto essa aqui rodava — não manda, senão
-  // duplica a resposta.
+  // escreveu nessa conversa enquanto essa aqui rodava — não manda, senão
+  // duplica/desalinha a resposta.
   if (!saved) return null
 
-  return reply
+  return turn.reply
 }
