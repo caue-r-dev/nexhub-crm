@@ -36,7 +36,7 @@ export async function cadastroAction(input: CadastroInput): Promise<CadastroResu
 
   const { data: tenant, error: tenantError } = await admin
     .from('tenants')
-    .insert({ name: businessName, niche_id: nicheId, theme_palette: palette })
+    .insert({ name: businessName, niche_id: nicheId, theme_palette: palette, onboarding_completed: false })
     .select()
     .single()
 
