@@ -9,6 +9,8 @@ import { ClientPhotoUpload } from '@/components/clientes/ClientPhotoUpload'
 import { ClientDocuments } from '@/components/clientes/ClientDocuments'
 import { ClinicalDocumentGenerator } from '@/components/clientes/ClinicalDocumentGenerator'
 
+const HEALTH_NICHES = new Set(['dentista', 'medicina', 'fisioterapia', 'psicologia', 'nutricionista'])
+
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
   confirmed: 'Confirmado',
@@ -172,10 +174,12 @@ export default async function FichaClientePage({
 
       {tenant && <ClientDocuments clientId={id} tenantId={tenant.id} />}
 
-      <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-text">Atestado / Receita</h2>
-        <ClinicalDocumentGenerator clientId={id} professionals={professionals ?? []} />
-      </div>
+      {nicheSlug && HEALTH_NICHES.has(nicheSlug) && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-text">Atestado / Receita</h2>
+          <ClinicalDocumentGenerator clientId={id} professionals={professionals ?? []} />
+        </div>
+      )}
     </div>
   )
 }

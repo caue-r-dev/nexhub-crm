@@ -11,11 +11,7 @@ const ONBOARDING_ROUTE = '/onboarding'
 const TROCAR_SENHA_ROUTE = '/trocar-senha'
 
 export async function proxy(request: NextRequest) {
-  // Painel admin tem auth própria (admin_users, checado no layout), separada
-  // da sessão de tenant — não aplica aqui o redirect de tenant não-autenticado.
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    return NextResponse.next()
-  }
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
 
   let response = NextResponse.next({ request })
 
@@ -39,7 +35,15 @@ export async function proxy(request: NextRequest) {
   )
 
   // Sempre revalidar sessão — necessário para manter cookies atualizados
+  // (inclusive no /admin: sem chamar getUser() aqui o token de sessão nunca
+  // é renovado nessas rotas, expira depois de ~1h e força relogar — o
+  // painel admin tem auth própria via admin_users, mas ainda precisa desse
+  // refresh, só não passa pelo redirect de tenant abaixo).
   const { data: { user } } = await supabase.auth.getUser()
+
+  if (isAdminRoute) {
+    return response
+  }
 
   const { pathname } = request.nextUrl
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
