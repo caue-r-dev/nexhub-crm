@@ -18,7 +18,9 @@ export async function listMessageTemplatesAction() {
   if (error) return { error: error.message }
 
   const byKey = new Map((data ?? []).map((row) => [row.template_key, row]))
-  const templates = TEMPLATE_KEYS.filter(({ key }) => !byKey.get(key)?.hidden).map(({ key, label }) => ({
+  // Cards de campanha têm tela própria (perto de lembretes), não duplicam aqui.
+  const CAMPAIGN_KEYS = new Set(['campanha_sem_visita', 'campanha_orcamento_aberto'])
+  const templates = TEMPLATE_KEYS.filter(({ key }) => !CAMPAIGN_KEYS.has(key) && !byKey.get(key)?.hidden).map(({ key, label }) => ({
     key,
     label: byKey.get(key)?.label?.trim() || label,
     content: byKey.get(key)?.content ?? '',

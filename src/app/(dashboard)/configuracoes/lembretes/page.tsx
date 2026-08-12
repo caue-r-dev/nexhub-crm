@@ -1,10 +1,19 @@
 import { getCurrentTenant } from '@/lib/tenant'
+import { getStoredTemplate } from '@/lib/message-templates'
 import { ReminderSettingsForm } from '@/components/configuracoes/ReminderSettingsForm'
 import { BudgetFollowupSettingsForm } from '@/components/configuracoes/BudgetFollowupSettingsForm'
 import { WelcomeMessageForm } from '@/components/configuracoes/WelcomeMessageForm'
+import { CampaignTemplatesForm } from '@/components/configuracoes/CampaignTemplatesForm'
 
 export default async function LembretesConfigPage() {
   const tenant = await getCurrentTenant()
+
+  const [semVisitaTemplate, orcamentoAbertoTemplate] = tenant
+    ? await Promise.all([
+        getStoredTemplate(tenant.id, 'campanha_sem_visita'),
+        getStoredTemplate(tenant.id, 'campanha_orcamento_aberto'),
+      ])
+    : [null, null]
 
   return (
     <div className="flex flex-col gap-10">
@@ -47,6 +56,25 @@ export default async function LembretesConfigPage() {
           <BudgetFollowupSettingsForm
             initialMessageDay3={tenant.budget_followup_message_day3 ?? ''}
             initialMessageDay7={tenant.budget_followup_message_day7 ?? ''}
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-6">
+        <div>
+          <h2 className="text-xl font-semibold text-text">Campanhas de reengajamento</h2>
+          <p className="text-text-secondary">
+            Mensagem usada quando você dispara uma campanha manualmente em{' '}
+            <a href="/clientes/campanhas" className="text-accent hover:underline">
+              /clientes/campanhas
+            </a>
+            . Deixe em branco pra usar o texto padrão.
+          </p>
+        </div>
+        {tenant && (
+          <CampaignTemplatesForm
+            initialSemVisita={semVisitaTemplate?.content ?? ''}
+            initialOrcamentoAberto={orcamentoAbertoTemplate?.content ?? ''}
           />
         )}
       </div>
