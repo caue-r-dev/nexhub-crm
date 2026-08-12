@@ -133,7 +133,7 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 px-2">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2">
           {LINKS.map((link) => {
             const active = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)
             const Icon = link.icon
@@ -192,7 +192,7 @@ export function Sidebar({
           </div>
         </nav>
 
-        <div className={`mx-2 mb-2 rounded-lg px-3 py-2 text-xs ${collapsed ? 'md:hidden' : ''}`} style={textMuted}>
+        <div className={`mx-2 mb-2 shrink-0 rounded-lg px-3 py-2 text-xs ${collapsed ? 'md:hidden' : ''}`} style={textMuted}>
           {subscription.status === 'trial' && (
             <span>
               {subscription.daysLeft !== null
@@ -241,7 +241,7 @@ export function Sidebar({
         </div>
 
         <div
-          className="flex flex-col gap-1 p-2"
+          className="flex shrink-0 flex-col gap-1 p-2"
           style={{ borderTop: '1px solid color-mix(in srgb, var(--sidebar-text) 15%, transparent)' }}
         >
           <button

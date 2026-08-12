@@ -146,9 +146,9 @@ export function TreatmentBudgetForm({
       <div className="flex flex-col gap-3">
         {items.map((item, i) => (
           <div key={i} className="flex flex-col gap-2 rounded-lg border border-border p-3">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
-                className="w-48 rounded-lg border border-border bg-bg px-2 py-2 text-sm text-text outline-none focus:border-accent"
+                className="w-full rounded-lg border border-border bg-bg px-2 py-2 text-sm text-text outline-none focus:border-accent sm:w-48"
                 value={item.service_id ?? ''}
                 onChange={(e) => applyService(i, e.target.value)}
               >
@@ -162,7 +162,7 @@ export function TreatmentBudgetForm({
               </select>
               <input
                 placeholder="Descrição"
-                className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-accent"
+                className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-accent"
                 value={item.description}
                 onChange={(e) => updateItem(i, { description: e.target.value })}
               />
@@ -201,7 +201,7 @@ export function TreatmentBudgetForm({
             </div>
 
             {creatingServiceAt === i && (
-              <div className="flex items-end gap-2 rounded-lg border border-dashed border-border p-2">
+              <div className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-2">
                 <label className="flex flex-1 flex-col gap-1">
                   <span className="text-xs text-text-secondary">Nome do novo serviço</span>
                   <input
