@@ -16,3 +16,8 @@ export const PAIN_MAP_NICHES = new Set(['fisioterapia'])
 export const BEFORE_AFTER_NICHES = new Set(['estetica'])
 
 export const PROCESSOS_NICHES = new Set(['advogado'])
+
+// Nichos sem prontuário/documentação clínica nenhuma — não faz sentido
+// anexar "documento do cliente" (não há contrato, laudo, exame etc a guardar
+// nesse fluxo simples de agendamento).
+export const NO_DOCUMENTS_NICHES = new Set(['unhas', 'cabeleireiro', 'sobrancelha'])
