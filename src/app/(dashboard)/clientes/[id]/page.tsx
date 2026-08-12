@@ -115,50 +115,54 @@ export default async function FichaClientePage({
             <p className="text-text">{client.birth_date ?? '—'}</p>
           </div>
         </div>
-        <div className="flex items-start gap-2.5">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" />
-          <div>
-            <p className="text-xs text-text-secondary">Convênio</p>
-            <p className="text-text">{client.convenio ?? 'Particular'}</p>
+        {nicheSlug && ATESTADO_RECEITA_NICHES.has(nicheSlug) && nicheSlug !== 'veterinario' && (
+          <div className="flex items-start gap-2.5">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" />
+            <div>
+              <p className="text-xs text-text-secondary">Convênio</p>
+              <p className="text-text">{client.convenio ?? 'Particular'}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-text">Pacotes</h2>
-          <Link href={`/clientes/${id}/pacotes/novo`} className="text-sm font-medium text-accent">
-            + Novo pacote
-          </Link>
-        </div>
-        <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
-          {packages?.length ? (
-            packages.map((p) => {
-              const expired = !!p.expires_at && p.expires_at < new Date().toISOString().slice(0, 10)
-              const finished = p.used_sessions >= p.total_sessions
-              return (
-                <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-text">{p.service_name}</p>
-                    {p.expires_at && (
-                      <p className={`text-xs ${expired ? 'text-status-cancelled' : 'text-text-secondary'}`}>
-                        Válido até {new Date(`${p.expires_at}T00:00:00`).toLocaleDateString('pt-BR')}
-                      </p>
-                    )}
+      {nicheSlug !== 'advogado' && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-text">Pacotes</h2>
+            <Link href={`/clientes/${id}/pacotes/novo`} className="text-sm font-medium text-accent">
+              + Novo pacote
+            </Link>
+          </div>
+          <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
+            {packages?.length ? (
+              packages.map((p) => {
+                const expired = !!p.expires_at && p.expires_at < new Date().toISOString().slice(0, 10)
+                const finished = p.used_sessions >= p.total_sessions
+                return (
+                  <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-text">{p.service_name}</p>
+                      {p.expires_at && (
+                        <p className={`text-xs ${expired ? 'text-status-cancelled' : 'text-text-secondary'}`}>
+                          Válido até {new Date(`${p.expires_at}T00:00:00`).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`text-sm font-medium ${finished ? 'text-status-cancelled' : 'text-text'}`}
+                    >
+                      {p.used_sessions}/{p.total_sessions} sessões
+                    </span>
                   </div>
-                  <span
-                    className={`text-sm font-medium ${finished ? 'text-status-cancelled' : 'text-text'}`}
-                  >
-                    {p.used_sessions}/{p.total_sessions} sessões
-                  </span>
-                </div>
-              )
-            })
-          ) : (
-            <p className="px-4 py-6 text-center text-text-secondary">Nenhum pacote ainda.</p>
-          )}
+                )
+              })
+            ) : (
+              <p className="px-4 py-6 text-center text-text-secondary">Nenhum pacote ainda.</p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-text">Últimos agendamentos</h2>

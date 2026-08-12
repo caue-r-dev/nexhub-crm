@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { ClientForm } from '@/components/clientes/ClientForm'
 
 export default async function EditarClientePage({
@@ -9,6 +10,7 @@ export default async function EditarClientePage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const nicheSlug = await getCurrentTenantNicheSlug()
 
   const { data: client } = await supabase.from('clients').select('*').eq('id', id).single()
   if (!client) notFound()
@@ -18,6 +20,7 @@ export default async function EditarClientePage({
       <h1 className="text-2xl font-semibold text-text">Editar cliente</h1>
       <ClientForm
         clientId={client.id}
+        nicheSlug={nicheSlug}
         initial={{
           name: client.name,
           phone: client.phone ?? '',

@@ -164,13 +164,13 @@ export function TreatmentBudgetForm({
                 value={item.service_id ?? ''}
                 onChange={(e) => applyService(i, e.target.value)}
               >
-                <option value="">Selecione um serviço</option>
+                <option value="">{isAdvogado ? 'Selecione um item de cobrança' : 'Selecione um serviço'}</option>
                 {catalog.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
                 ))}
-                <option value="__new__">+ Cadastrar novo serviço</option>
+                <option value="__new__">{isAdvogado ? '+ Cadastrar novo item de cobrança' : '+ Cadastrar novo serviço'}</option>
               </select>
               <input
                 placeholder="Descrição"
@@ -217,7 +217,7 @@ export function TreatmentBudgetForm({
             {creatingServiceAt === i && (
               <div className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-2">
                 <label className="flex flex-1 flex-col gap-1">
-                  <span className="text-xs text-text-secondary">Nome do novo serviço</span>
+                  <span className="text-xs text-text-secondary">{isAdvogado ? 'Nome do novo item de cobrança' : 'Nome do novo serviço'}</span>
                   <input
                     className="rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-text outline-none focus:border-accent"
                     value={newServiceName}

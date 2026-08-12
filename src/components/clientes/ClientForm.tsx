@@ -2,14 +2,18 @@
 
 import { useState, useTransition } from 'react'
 import { createClientAction, updateClientAction, type ClientInput } from '@/app/actions/clients'
+import { ATESTADO_RECEITA_NICHES } from '@/lib/niche-features'
 
 export function ClientForm({
   clientId,
   initial,
+  nicheSlug,
 }: {
   clientId?: string
   initial?: Partial<ClientInput>
+  nicheSlug?: string | null
 }) {
+  const showConvenio = !!nicheSlug && ATESTADO_RECEITA_NICHES.has(nicheSlug) && nicheSlug !== 'veterinario'
   const [name, setName] = useState(initial?.name ?? '')
   const [phone, setPhone] = useState(initial?.phone ?? '')
   const [document, setDocument] = useState(initial?.document ?? '')
@@ -71,15 +75,17 @@ export function ClientForm({
         />
       </label>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-text">Convênio</span>
-        <input
-          placeholder="Ex: Particular, Bradesco Dental, Amil..."
-          className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
-          value={convenio}
-          onChange={(e) => setConvenio(e.target.value)}
-        />
-      </label>
+      {showConvenio && (
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-text">Convênio</span>
+          <input
+            placeholder="Ex: Particular, Bradesco Dental, Amil..."
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+            value={convenio}
+            onChange={(e) => setConvenio(e.target.value)}
+          />
+        </label>
+      )}
 
       {error && <p className="text-sm text-status-cancelled">{error}</p>}
 
