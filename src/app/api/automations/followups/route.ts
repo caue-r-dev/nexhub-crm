@@ -2,9 +2,11 @@
 // Dois gatilhos:
 // - atraso: passou 30-90min do horário e o paciente ainda não foi
 //   marcado como confirmado/atendido — pode só estar atrasado.
-// - falta_sem_remarcar: passou 24-25h do horário, status ainda pending/
-//   confirmed/no_show, e o cliente não tem nenhum agendamento futuro —
-//   sinal de que perdeu a consulta e não remarcou sozinho.
+// - falta_sem_remarcar: status marcado como "Faltou" (no_show) manualmente
+//   na agenda pela equipe, e o cliente não tem nenhum agendamento futuro
+//   — não dispara sozinho só por tempo, depende de alguém confirmar a
+//   falta de verdade (evita mandar mensagem de falta pra quem só atrasou
+//   ou não teve o status atualizado ainda).
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendWhatsAppText } from '@/lib/evolution'
@@ -83,21 +85,16 @@ export async function POST(request: Request) {
     }
   }
 
-  // --- falta_sem_remarcar: 24-25h após o horário, sem remarcação ---
-  const faltaFrom = new Date(now - 25 * 3600_000).toISOString()
-  const faltaTo = new Date(now - 24 * 3600_000).toISOString()
-
+  // --- falta_sem_remarcar: status "Faltou" marcado na agenda, sem remarcação ---
   const { data: faltosos } = await admin
     .from('appointments')
     .select(
       'id, tenant_id, datetime, client_id, clients(name, phone), tenants(name, evolution_base_url, evolution_api_key, evolution_instance_name)'
     )
     .eq('type', 'consulta')
-    .in('status', ['pending', 'confirmed', 'no_show'])
+    .eq('status', 'no_show')
     .not('client_id', 'is', null)
     .is('followup_falta_sent_at', null)
-    .gte('datetime', faltaFrom)
-    .lt('datetime', faltaTo)
 
   for (const appt of faltosos ?? []) {
     const client = appt.clients as unknown as { name: string; phone: string | null } | null
