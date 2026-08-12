@@ -679,6 +679,7 @@ export interface Database {
           active: boolean
           created_at: string
           default_duration_min: number | null
+          protocol: string | null
         }
         Insert: {
           id?: string
@@ -687,6 +688,7 @@ export interface Database {
           active?: boolean
           created_at?: string
           default_duration_min?: number | null
+          protocol?: string | null
         }
         Update: Partial<Database['public']['Tables']['procedure_types']['Insert']>
         Relationships: [
@@ -1025,6 +1027,37 @@ export interface Database {
             foreignKeyName: 'campaigns_tenant_id_fkey'
             columns: ['tenant_id']
             referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      pain_points: {
+        Row: {
+          id: string
+          tenant_id: string
+          client_id: string
+          view: 'front' | 'back'
+          x: number
+          y: number
+          note: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          client_id: string
+          view: 'front' | 'back'
+          x: number
+          y: number
+          note?: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['pain_points']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'pain_points_client_id_fkey'
+            columns: ['client_id']
+            referencedRelation: 'clients'
             referencedColumns: ['id']
           },
         ]

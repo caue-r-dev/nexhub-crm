@@ -39,3 +39,14 @@ export async function updateProcedureTypeDurationAction(id: string, defaultDurat
   if (error) return { error: error.message }
   revalidatePath('/configuracoes/procedimentos')
 }
+
+export async function updateProcedureTypeProtocolAction(id: string, protocol: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('procedure_types')
+    .update({ protocol: protocol.trim() || null })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/configuracoes/procedimentos')
+}

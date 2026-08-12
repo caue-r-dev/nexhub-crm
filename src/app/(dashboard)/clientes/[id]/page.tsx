@@ -8,7 +8,8 @@ import { ClientTabs } from '@/components/clientes/ClientTabs'
 import { ClientPhotoUpload } from '@/components/clientes/ClientPhotoUpload'
 import { ClientDocuments } from '@/components/clientes/ClientDocuments'
 import { ClinicalDocumentGenerator } from '@/components/clientes/ClinicalDocumentGenerator'
-import { ATESTADO_RECEITA_NICHES } from '@/lib/niche-features'
+import { BeforeAfterPhotos } from '@/components/clientes/BeforeAfterPhotos'
+import { ATESTADO_RECEITA_NICHES, BEFORE_AFTER_NICHES } from '@/lib/niche-features'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
@@ -172,6 +173,10 @@ export default async function FichaClientePage({
       </div>
 
       {tenant && <ClientDocuments clientId={id} tenantId={tenant.id} />}
+
+      {tenant && nicheSlug && BEFORE_AFTER_NICHES.has(nicheSlug) && (
+        <BeforeAfterPhotos clientId={id} tenantId={tenant.id} />
+      )}
 
       {nicheSlug && ATESTADO_RECEITA_NICHES.has(nicheSlug) && (
         <div className="flex flex-col gap-3">

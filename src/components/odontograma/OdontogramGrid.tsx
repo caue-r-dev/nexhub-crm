@@ -2,7 +2,15 @@
 
 import { useState, useTransition } from 'react'
 import { upsertToothAction } from '@/app/actions/odontogram'
-import { UPPER_TEETH, LOWER_TEETH, STATUS_LABEL, STATUS_COLOR, toothKind } from '@/lib/odontogram'
+import {
+  UPPER_TEETH,
+  LOWER_TEETH,
+  UPPER_TEETH_DECIDUOUS,
+  LOWER_TEETH_DECIDUOUS,
+  STATUS_LABEL,
+  STATUS_COLOR,
+  toothKind,
+} from '@/lib/odontogram'
 import { ToothIcon } from './ToothIcon'
 import type { OdontogramStatus } from '@/lib/supabase/types'
 
@@ -108,12 +116,32 @@ export function OdontogramGrid({
 }) {
   const statusByTooth = new Map(records.map((r) => [r.tooth_number, r.status]))
   const [openTooth, setOpenTooth] = useState<string | null>(null)
+  const [dentition, setDentition] = useState<'permanente' | 'decidua'>('permanente')
+  const upperTeeth = dentition === 'permanente' ? UPPER_TEETH : UPPER_TEETH_DECIDUOUS
+  const lowerTeeth = dentition === 'permanente' ? LOWER_TEETH : LOWER_TEETH_DECIDUOUS
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex gap-1 self-start rounded-lg border border-border p-1">
+        <button
+          type="button"
+          onClick={() => setDentition('permanente')}
+          className={`rounded-md px-3 py-1 text-sm ${dentition === 'permanente' ? 'bg-accent text-white' : 'text-text'}`}
+        >
+          Permanente
+        </button>
+        <button
+          type="button"
+          onClick={() => setDentition('decidua')}
+          className={`rounded-md px-3 py-1 text-sm ${dentition === 'decidua' ? 'bg-accent text-white' : 'text-text'}`}
+        >
+          Decídua (leite)
+        </button>
+      </div>
+
       <div className="rounded-xl border border-border bg-surface p-6">
         <div className="mb-1 flex justify-center gap-1">
-          {UPPER_TEETH.map((tooth) => (
+          {upperTeeth.map((tooth) => (
             <Tooth
               key={tooth}
               clientId={clientId}
@@ -127,7 +155,7 @@ export function OdontogramGrid({
         </div>
         <div className="my-3 border-t border-dashed border-border" />
         <div className="flex justify-center gap-1">
-          {LOWER_TEETH.map((tooth) => (
+          {lowerTeeth.map((tooth) => (
             <Tooth
               key={tooth}
               clientId={clientId}

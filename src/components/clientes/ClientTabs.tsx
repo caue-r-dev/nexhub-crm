@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ANAMNESE_EVOLUCOES_NICHES } from '@/lib/niche-features'
+import { ANAMNESE_EVOLUCOES_NICHES, PAIN_MAP_NICHES } from '@/lib/niche-features'
 
 export function ClientTabs({
   clientId,
@@ -12,6 +12,7 @@ export function ClientTabs({
 }) {
   const isDentist = nicheSlug === 'dentista'
   const hasAnamneseEvolucoes = !!nicheSlug && ANAMNESE_EVOLUCOES_NICHES.has(nicheSlug)
+  const hasPainMap = !!nicheSlug && PAIN_MAP_NICHES.has(nicheSlug)
 
   const tabs = [
     { key: 'ficha', label: 'Ficha', href: `/clientes/${clientId}` },
@@ -19,6 +20,7 @@ export function ClientTabs({
     isDentist && { key: 'tratamentos', label: 'Tratamentos', href: `/clientes/${clientId}/tratamentos` },
     { key: 'orcamentos', label: 'Orçamentos', href: `/clientes/${clientId}/orcamentos` },
     hasAnamneseEvolucoes && { key: 'evolucoes', label: 'Evoluções', href: `/clientes/${clientId}/evolucoes` },
+    hasPainMap && { key: 'dor', label: 'Avaliação de dor', href: `/clientes/${clientId}/dor` },
     isDentist && { key: 'proteses', label: 'Próteses', href: `/clientes/${clientId}/proteses` },
   ].filter((t): t is { key: string; label: string; href: string } => !!t)
 

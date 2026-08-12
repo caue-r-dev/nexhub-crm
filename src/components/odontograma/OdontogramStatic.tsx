@@ -1,4 +1,12 @@
-import { UPPER_TEETH, LOWER_TEETH, STATUS_LABEL, STATUS_COLOR, toothKind } from '@/lib/odontogram'
+import {
+  UPPER_TEETH,
+  LOWER_TEETH,
+  UPPER_TEETH_DECIDUOUS,
+  LOWER_TEETH_DECIDUOUS,
+  STATUS_LABEL,
+  STATUS_COLOR,
+  toothKind,
+} from '@/lib/odontogram'
 import { ToothIcon } from './ToothIcon'
 import type { OdontogramStatus } from '@/lib/supabase/types'
 
@@ -8,6 +16,7 @@ const STATUS_OPTIONS = Object.keys(STATUS_LABEL) as OdontogramStatus[]
 // (não tem clique/popover como o OdontogramGrid, que é só pra tela interativa).
 export function OdontogramStatic({ records }: { records: { tooth_number: string; status: OdontogramStatus }[] }) {
   const statusByTooth = new Map(records.map((r) => [r.tooth_number, r.status]))
+  const hasDeciduousRecords = records.some((r) => Number(r.tooth_number[0]) >= 5)
 
   function row(teeth: string[], upper: boolean) {
     return (
@@ -38,6 +47,15 @@ export function OdontogramStatic({ records }: { records: { tooth_number: string;
         <div className="my-3 border-t border-dashed border-border" />
         {row(LOWER_TEETH, false)}
       </div>
+
+      {hasDeciduousRecords && (
+        <div className="rounded-xl border border-border p-4">
+          <p className="mb-2 text-xs font-medium text-text-secondary">Dentição decídua (leite)</p>
+          {row(UPPER_TEETH_DECIDUOUS, true)}
+          <div className="my-3 border-t border-dashed border-border" />
+          {row(LOWER_TEETH_DECIDUOUS, false)}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3 text-xs text-text-secondary">
         {STATUS_OPTIONS.map((s) => (

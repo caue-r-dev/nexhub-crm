@@ -5,9 +5,16 @@ import {
   createProcedureTypeAction,
   toggleProcedureTypeAction,
   updateProcedureTypeDurationAction,
+  updateProcedureTypeProtocolAction,
 } from '@/app/actions/procedure-types'
 
-type ProcedureType = { id: string; name: string; active: boolean; default_duration_min: number | null }
+type ProcedureType = {
+  id: string
+  name: string
+  active: boolean
+  default_duration_min: number | null
+  protocol: string | null
+}
 
 export function ProcedureTypesForm({ initial }: { initial: ProcedureType[] }) {
   const [name, setName] = useState('')
@@ -66,40 +73,96 @@ export function ProcedureTypesForm({ initial }: { initial: ProcedureType[] }) {
 
       <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
         {initial.map((p) => (
-          <div key={p.id} className="flex items-center justify-between gap-2 px-4 py-3">
-            <span className="text-sm text-text">{p.name}</span>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1">
-                <input
-                  type="number"
-                  min={5}
-                  step={5}
-                  defaultValue={p.default_duration_min ?? ''}
-                  placeholder="Padrão"
-                  className="w-20 rounded-lg border border-border bg-bg px-2 py-1 text-xs text-text outline-none focus:border-accent"
-                  onBlur={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null
-                    if (value === p.default_duration_min) return
-                    startTransition(async () => {
-                      await updateProcedureTypeDurationAction(p.id, value)
-                    })
-                  }}
-                />
-                <span className="text-xs text-text-secondary">min</span>
-              </label>
-              <input
-                type="checkbox"
-                checked={p.active}
-                onChange={(e) =>
-                  startTransition(async () => {
-                    await toggleProcedureTypeAction(p.id, e.target.checked)
-                  })
-                }
-              />
-            </div>
-          </div>
+          <ProcedureRow key={p.id} procedure={p} />
         ))}
       </div>
+    </div>
+  )
+}
+
+function ProcedureRow({ procedure }: { procedure: ProcedureType }) {
+  const [showProtocol, setShowProtocol] = useState(false)
+  const [protocol, setProtocol] = useState(procedure.protocol ?? '')
+  const [saved, setSaved] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function saveProtocol() {
+    if (protocol === (procedure.protocol ?? '')) return
+    startTransition(async () => {
+      await updateProcedureTypeProtocolAction(procedure.id, protocol)
+      setSaved(true)
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-2 px-4 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm text-text">{procedure.name}</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowProtocol((v) => !v)}
+            className="text-xs font-medium text-accent"
+          >
+            {procedure.protocol ? 'Protocolo' : '+ Protocolo'}
+          </button>
+          <label className="flex items-center gap-1">
+            <input
+              type="number"
+              min={5}
+              step={5}
+              defaultValue={procedure.default_duration_min ?? ''}
+              placeholder="Padrão"
+              className="w-20 rounded-lg border border-border bg-bg px-2 py-1 text-xs text-text outline-none focus:border-accent"
+              onBlur={(e) => {
+                const value = e.target.value ? Number(e.target.value) : null
+                if (value === procedure.default_duration_min) return
+                startTransition(async () => {
+                  await updateProcedureTypeDurationAction(procedure.id, value)
+                })
+              }}
+            />
+            <span className="text-xs text-text-secondary">min</span>
+          </label>
+          <input
+            type="checkbox"
+            checked={procedure.active}
+            onChange={(e) =>
+              startTransition(async () => {
+                await toggleProcedureTypeAction(procedure.id, e.target.checked)
+              })
+            }
+          />
+        </div>
+      </div>
+
+      {showProtocol && (
+        <div className="flex flex-col gap-1.5 rounded-lg border border-dashed border-border p-2">
+          <span className="text-xs text-text-secondary">
+            Protocolo padrão — o profissional lê/ajusta na hora do atendimento.
+          </span>
+          <textarea
+            rows={3}
+            className="rounded-md border border-border bg-bg px-2 py-1.5 text-xs text-text outline-none focus:border-accent"
+            value={protocol}
+            onChange={(e) => {
+              setProtocol(e.target.value)
+              setSaved(false)
+            }}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={saveProtocol}
+              disabled={isPending}
+              className="self-start rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-white disabled:opacity-40"
+            >
+              {isPending ? 'Salvando...' : 'Salvar protocolo'}
+            </button>
+            {saved && !isPending && <span className="text-xs text-status-confirmed">Salvo.</span>}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
