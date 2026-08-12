@@ -133,7 +133,7 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2">
+        <nav className="sidebar-nav flex flex-1 flex-col gap-1 overflow-y-auto px-2">
           {LINKS.map((link) => {
             const active = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)
             const Icon = link.icon
@@ -275,6 +275,20 @@ export function Sidebar({
           .sidebar-link:hover {
             background-color: color-mix(in srgb, var(--sidebar-text) 8%, transparent);
             color: var(--sidebar-text);
+          }
+          .sidebar-nav {
+            scrollbar-width: thin;
+            scrollbar-color: color-mix(in srgb, var(--sidebar-text) 25%, transparent) transparent;
+          }
+          .sidebar-nav::-webkit-scrollbar {
+            width: 6px;
+          }
+          .sidebar-nav::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .sidebar-nav::-webkit-scrollbar-thumb {
+            background-color: color-mix(in srgb, var(--sidebar-text) 25%, transparent);
+            border-radius: 999px;
           }
         `}</style>
 
