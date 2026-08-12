@@ -13,7 +13,7 @@ export const PALETTES: Record<
   }
 > = {
   petroleo: {
-    label: 'Azul-petróleo',
+    label: 'Verde-petróleo',
     bg: '#fafaf9',
     surface: '#ffffff',
     accent: '#0f6e56',

@@ -92,6 +92,7 @@ export function OnboardingForm({ niches }: { niches: Niche[] }) {
                 }`}
                 style={{ background: p.bg, color: p.text }}
               >
+                <span className="mb-2 block h-2 w-full rounded-full" style={{ background: p.accent }} />
                 {p.label}
               </button>
             ))}
