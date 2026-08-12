@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { confirmAppointment, cancelAppointment, findPendingAppointmentByPhone } from '@/lib/appointment-automation'
-import { getBotReply } from '@/lib/bot-engine'
+import { getBotReply, markEscalatedIfHumanSent } from '@/lib/bot-engine'
 import { sendWhatsAppText } from '@/lib/evolution'
 import { isExistingClient } from '@/lib/existing-client'
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null)
   if (!payload) return NextResponse.json({ ok: true })
 
-  if (payload.event !== 'message_created' || payload.message_type !== 'incoming') {
+  if (payload.event !== 'message_created') {
     return NextResponse.json({ ok: true })
   }
 
@@ -87,6 +87,16 @@ export async function POST(request: Request) {
     .eq('chatwoot_account_id', accountId)
     .single()
   if (!tenant) return NextResponse.json({ ok: true })
+
+  // "outgoing" cobre tanto o reply automático do bot quanto o dono
+  // digitando direto no celular (não existe webhook nativo do WhatsApp
+  // que diferencie os dois) — só serve pra detectar assunção manual.
+  if (payload.message_type === 'outgoing') {
+    await markEscalatedIfHumanSent(tenant.id, phone, content)
+    return NextResponse.json({ ok: true })
+  }
+
+  if (payload.message_type !== 'incoming') return NextResponse.json({ ok: true })
 
   const appointmentId = await findPendingAppointmentByPhone(tenant.id, phone)
 

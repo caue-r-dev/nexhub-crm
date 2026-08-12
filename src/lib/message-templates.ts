@@ -17,6 +17,8 @@ export type TemplateContext = {
   link_agendamento?: string
 }
 
+export type StoredTemplate = { content: string; active: boolean; label: string | null; hidden: boolean }
+
 // Variável ausente do contexto vira string vazia, nunca o placeholder cru
 // — "{{endereco}}" aparecendo pro paciente de verdade é pior que uma frase
 // com um buraco (aconteceu: confirmação de agendamento não passava
@@ -41,10 +43,26 @@ export async function resolveTemplate(
     .eq('tenant_id', tenantId)
     .eq('template_key', templateKey)
     .eq('active', true)
+    .eq('hidden', false)
     .maybeSingle()
 
   const content = data?.content?.trim() || fallback
   return applyVars(content, context)
+}
+
+// Busca a linha crua do banco (sem aplicar fallback) — usada por quem
+// precisa decidir sozinho o que fazer quando o card está oculto (ex:
+// pular a etapa do roteiro inteira em vez de cair no texto padrão).
+export async function getStoredTemplate(tenantId: string, templateKey: string): Promise<StoredTemplate | null> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('message_templates')
+    .select('content, active, label, hidden')
+    .eq('tenant_id', tenantId)
+    .eq('template_key', templateKey)
+    .maybeSingle()
+
+  return data
 }
 
 export const TEMPLATE_KEYS = [
@@ -57,4 +75,5 @@ export const TEMPLATE_KEYS = [
   { key: 'followup_falta_sem_remarcar', label: 'Follow-up — faltou e não remarcou' },
   { key: 'followup_atraso', label: 'Follow-up — atraso' },
   { key: 'escalar_atendimento_humano', label: 'Escalonamento pra atendimento humano (IA não sabe responder)' },
+  { key: 'contato_recorrente', label: 'Contato que já falou antes (sessão expirada)' },
 ] as const

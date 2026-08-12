@@ -889,6 +889,8 @@ export interface Database {
           content: string
           active: boolean
           updated_at: string
+          label: string | null
+          hidden: boolean
         }
         Insert: {
           id?: string
@@ -897,6 +899,8 @@ export interface Database {
           content: string
           active?: boolean
           updated_at?: string
+          label?: string | null
+          hidden?: boolean
         }
         Update: Partial<Database['public']['Tables']['message_templates']['Insert']>
         Relationships: [

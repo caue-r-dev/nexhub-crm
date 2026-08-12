@@ -8,7 +8,7 @@
 // Chamado pelo webhook do Chatwoot quando a mensagem recebida não é
 // resposta sim/não a uma confirmação pendente.
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveTemplate } from '@/lib/message-templates'
+import { resolveTemplate, getStoredTemplate } from '@/lib/message-templates'
 import { decideBotTurn, HANDOFF_FALLBACK_MESSAGE, type ConversationMessage } from '@/lib/conversational-bot'
 import type { BusinessHours } from '@/lib/supabase/types'
 
@@ -43,6 +43,9 @@ function formatBusinessHours(hours: BusinessHours | null): string {
   return groups.map((g) => `${g.label} ${g.start}-${g.end}`).join(', ')
 }
 
+const DEFAULT_CONTATO_RECORRENTE =
+  'Olá! Que bom ter você de volta. Já te conhecemos por aqui — em breve alguém da equipe retorna sua mensagem. Se for urgente, me conta o que você precisa que já sinalizamos.'
+
 const ROTEIRO_STAGES = [
   { key: 'primeiro_contato', label: 'Primeiro contato' },
   { key: 'pergunta_queixa', label: 'Entender a necessidade' },
@@ -75,6 +78,13 @@ type ConversationState = {
   // — usado como token de concorrência otimista no save: se ninguém mais
   // escreveu nessa linha nesse meio-tempo, `updated_at` continua igual.
   expectedUpdatedAt: string | null
+  // Já existiu linha alguma vez pra esse telefone, independente de ter
+  // expirado — diferencia "nunca falou com a gente" de "já falou, sumiu
+  // e voltou depois da sessão expirar" (contato recorrente).
+  hasHistory: boolean
+  // Sessão sem linha nenhuma OU expirada — é o início de uma conversa
+  // "nova" do ponto de vista do bot, mesmo que hasHistory seja true.
+  isNewSession: boolean
 }
 
 async function getConversationState(tenantId: string, phone: string): Promise<ConversationState> {
@@ -87,7 +97,15 @@ async function getConversationState(tenantId: string, phone: string): Promise<Co
     .maybeSingle()
 
   if (!data) {
-    return { captured_data: {}, messages: [], done: false, escalated: false, expectedUpdatedAt: null }
+    return {
+      captured_data: {},
+      messages: [],
+      done: false,
+      escalated: false,
+      expectedUpdatedAt: null,
+      hasHistory: false,
+      isNewSession: true,
+    }
   }
 
   const expired = isSessionExpired(data.updated_at, new Date())
@@ -97,7 +115,34 @@ async function getConversationState(tenantId: string, phone: string): Promise<Co
     done: expired ? false : data.done,
     escalated: expired ? false : data.escalated,
     expectedUpdatedAt: data.updated_at,
+    hasHistory: true,
+    isNewSession: expired,
   }
+}
+
+// Chamado pelo webhook quando o Chatwoot reporta uma mensagem "outgoing"
+// (reflexo de qualquer envio pelo número — nosso reply automático OU o
+// dono digitando direto no celular; não existe webhook nativo do
+// WhatsApp que diferencie os dois). Se o texto bate com a última
+// resposta que o próprio bot salvou, é eco do bot — ignora. Se não bate,
+// foi humano que escreveu — bot cala a boca pra essa conversa (mesma
+// janela de 12h de qualquer sessão expirada).
+export async function markEscalatedIfHumanSent(tenantId: string, phone: string, content: string): Promise<void> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('conversation_state')
+    .select('messages, escalated')
+    .eq('tenant_id', tenantId)
+    .eq('contact_phone', phone)
+    .maybeSingle()
+
+  if (!data || data.escalated) return
+
+  const messages = data.messages as ConversationMessage[]
+  const lastBot = [...messages].reverse().find((m) => m.role === 'bot')
+  if (lastBot && lastBot.text.trim() === content.trim()) return
+
+  await admin.from('conversation_state').update({ escalated: true }).eq('tenant_id', tenantId).eq('contact_phone', phone)
 }
 
 // Salva o novo estado SÓ SE ninguém mais escreveu nessa conversa nesse
@@ -145,12 +190,20 @@ async function buildRoteiro(
   tenantId: string,
   defaults: Record<(typeof ROTEIRO_STAGES)[number]['key'], string>
 ): Promise<string> {
-  const parts = await Promise.all(
-    ROTEIRO_STAGES.map(async ({ key, label }, i) => {
-      const text = await resolveTemplate(tenantId, key, {}, defaults[key])
-      return `${i + 1}. ${label}: "${text}"`
+  const withStored = await Promise.all(
+    ROTEIRO_STAGES.map(async ({ key, label }) => {
+      const stored = await getStoredTemplate(tenantId, key)
+      // Card excluído (hidden) pula a etapa inteira em vez de cair no
+      // texto padrão — dono decidiu que o bot não deve nem tocar nesse
+      // assunto, diferente de só desativar (que ainda usa o default).
+      if (stored?.hidden) return null
+      const text = stored?.active ? stored.content.trim() || defaults[key] : defaults[key]
+      return { label, text }
     })
   )
+  const parts = withStored
+    .filter((s) => s !== null)
+    .map((s, i) => `${i + 1}. ${s.label}: "${s.text}"`)
   return parts.join('\n')
 }
 
@@ -164,6 +217,21 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
   // ficou mudo pra "quais as formas de pagamento?" só porque tinha mandado
   // o link na resposta anterior — não fazia sentido).
   if (state.escalated) return null
+
+  // Já falou com a gente antes (mesmo que a sessão tenha expirado) —
+  // não repete o roteiro de lead novo perguntando tudo de novo. Manda
+  // um "boas-vindas de volta" fixo e já escala pra humano — dono decidiu
+  // que ele mesmo assume a partir daqui.
+  if (state.hasHistory && state.isNewSession) {
+    const message = await resolveTemplate(tenant.id, 'contato_recorrente', { nome_clinica: tenant.name }, DEFAULT_CONTATO_RECORRENTE)
+    const saved = await saveConversationStateIfUnchanged(tenant.id, phone, state.expectedUpdatedAt, {
+      messages: [...state.messages, { role: 'paciente', text: incomingText }, { role: 'bot', text: message }],
+      captured_data: state.captured_data,
+      done: true,
+      escalated: true,
+    })
+    return saved ? message : null
+  }
 
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexhub.nexvix.com.br'
