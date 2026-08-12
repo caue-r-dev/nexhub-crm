@@ -27,7 +27,9 @@ function BodyView({
   onAdded: (p: PainPoint) => void
   onDeleted: (id: string) => void
 }) {
-  const [pending, setPending] = useState<{ x: number; y: number; region: string } | null>(null)
+  const [pending, setPending] = useState<{ x: number; y: number; region: string; customRegion: string } | null>(
+    null
+  )
   const [openPointId, setOpenPointId] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -38,14 +40,17 @@ function BodyView({
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
     const region = findBodyRegion(view, x, y)
-    setPending({ x, y, region: region?.id ?? '' })
+    setPending({ x, y, region: region ? region.id : '__custom__', customRegion: '' })
     setNote('')
     setOpenPointId(null)
   }
 
   function confirmPending() {
     if (!pending || !note.trim()) return
-    const regionLabel = regions.find((r) => r.id === pending.region)?.label
+    const regionLabel =
+      pending.region === '__custom__'
+        ? pending.customRegion.trim() || undefined
+        : regions.find((r) => r.id === pending.region)?.label
     startTransition(async () => {
       const result = await addPainPointAction({
         clientId,
@@ -110,13 +115,21 @@ function BodyView({
             value={pending.region}
             onChange={(e) => setPending((prev) => (prev ? { ...prev, region: e.target.value } : prev))}
           >
-            <option value="">Região não identificada</option>
             {regions.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.label}
               </option>
             ))}
+            <option value="__custom__">Outra região (escrever)</option>
           </select>
+          {pending.region === '__custom__' && (
+            <input
+              placeholder="Qual região?"
+              className="mb-1 w-full rounded-md border border-border bg-bg px-2 py-1 text-xs text-text outline-none focus:border-accent"
+              value={pending.customRegion}
+              onChange={(e) => setPending((prev) => (prev ? { ...prev, customRegion: e.target.value } : prev))}
+            />
+          )}
           <textarea
             autoFocus
             rows={2}
