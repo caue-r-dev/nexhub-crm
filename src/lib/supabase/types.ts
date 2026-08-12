@@ -1236,6 +1236,7 @@ export interface Database {
           x: number
           y: number
           note: string
+          region: string | null
           created_at: string
         }
         Insert: {
@@ -1246,6 +1247,7 @@ export interface Database {
           x: number
           y: number
           note?: string
+          region?: string | null
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['pain_points']['Insert']>

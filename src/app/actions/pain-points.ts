@@ -12,6 +12,7 @@ export async function addPainPointAction(input: {
   x: number
   y: number
   note: string
+  region?: string
 }) {
   const tenant = await getCurrentTenant()
   if (!tenant) return { error: 'Sessão inválida.' }
@@ -26,6 +27,7 @@ export async function addPainPointAction(input: {
       x: input.x,
       y: input.y,
       note: input.note.trim(),
+      region: input.region || null,
     })
     .select()
     .single()

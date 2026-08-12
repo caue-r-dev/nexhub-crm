@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { addPainPointAction, deletePainPointAction, type PainPointView } from '@/app/actions/pain-points'
+import { FRONT_REGIONS, BACK_REGIONS, findBodyRegion } from '@/lib/body-regions'
 
 type PainPoint = {
   id: string
@@ -9,6 +10,7 @@ type PainPoint = {
   x: number
   y: number
   note: string
+  region: string | null
   created_at: string
 }
 
@@ -25,24 +27,34 @@ function BodyView({
   onAdded: (p: PainPoint) => void
   onDeleted: (id: string) => void
 }) {
-  const [pending, setPending] = useState<{ x: number; y: number } | null>(null)
+  const [pending, setPending] = useState<{ x: number; y: number; region: string } | null>(null)
   const [openPointId, setOpenPointId] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [isPending, startTransition] = useTransition()
+  const regions = view === 'front' ? FRONT_REGIONS : BACK_REGIONS
 
   function handleImageClick(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
-    setPending({ x, y })
+    const region = findBodyRegion(view, x, y)
+    setPending({ x, y, region: region?.id ?? '' })
     setNote('')
     setOpenPointId(null)
   }
 
   function confirmPending() {
     if (!pending || !note.trim()) return
+    const regionLabel = regions.find((r) => r.id === pending.region)?.label
     startTransition(async () => {
-      const result = await addPainPointAction({ clientId, view, x: pending.x, y: pending.y, note })
+      const result = await addPainPointAction({
+        clientId,
+        view,
+        x: pending.x,
+        y: pending.y,
+        note,
+        region: regionLabel,
+      })
       if (!('error' in result) && result.point) {
         onAdded(result.point as PainPoint)
       }
@@ -83,16 +95,28 @@ function BodyView({
           }}
           className="absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-status-cancelled shadow"
           style={{ left: `${p.x}%`, top: `${p.y}%` }}
-          title={p.note}
+          title={p.region ? `${p.region} — ${p.note}` : p.note}
         />
       ))}
 
       {pending && (
         <div
-          className="absolute z-10 w-48 -translate-x-1/2 rounded-lg border border-border bg-surface p-2 shadow-lg"
+          className="absolute z-10 w-52 -translate-x-1/2 rounded-lg border border-border bg-surface p-2 shadow-lg"
           style={{ left: `${pending.x}%`, top: `${pending.y}%` }}
           onClick={(e) => e.stopPropagation()}
         >
+          <select
+            className="mb-1 w-full rounded-md border border-border bg-bg px-2 py-1 text-xs text-text outline-none focus:border-accent"
+            value={pending.region}
+            onChange={(e) => setPending((prev) => (prev ? { ...prev, region: e.target.value } : prev))}
+          >
+            <option value="">Região não identificada</option>
+            {regions.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label}
+              </option>
+            ))}
+          </select>
           <textarea
             autoFocus
             rows={2}
@@ -131,6 +155,7 @@ function BodyView({
               style={{ left: `${p.x}%`, top: `${p.y}%` }}
               onClick={(e) => e.stopPropagation()}
             >
+              {p.region && <p className="text-xs font-semibold text-text">{p.region}</p>}
               <p className="text-xs text-text">{p.note}</p>
               <button
                 type="button"
@@ -151,7 +176,10 @@ export function PainMap({ clientId, initial }: { clientId: string; initial: Pain
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-text-secondary">Clique no corpo pra marcar um ponto de dor e descrever. Clique num ponto já marcado pra ver ou excluir.</p>
+      <p className="text-sm text-text-secondary">
+        Clique no corpo pra marcar um ponto de dor — a região é reconhecida automaticamente, mas pode
+        trocar antes de salvar. Clique num ponto já marcado pra ver ou excluir.
+      </p>
       <div className="grid grid-cols-2 gap-6">
         <div className="flex flex-col items-center gap-2">
           <span className="text-xs font-medium text-text-secondary">Frente</span>
@@ -183,7 +211,10 @@ export function PainMap({ clientId, initial }: { clientId: string; initial: Pain
               <div key={p.id} className="flex items-start gap-2 px-3 py-2 text-sm">
                 <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-status-cancelled" />
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs text-text-secondary">{p.view === 'front' ? 'Frente' : 'Costas'} — </span>
+                  <span className="text-xs text-text-secondary">
+                    {p.view === 'front' ? 'Frente' : 'Costas'}
+                    {p.region ? ` — ${p.region}` : ''} —{' '}
+                  </span>
                   <span className="text-text">{p.note}</span>
                 </div>
               </div>
