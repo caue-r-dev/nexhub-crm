@@ -99,7 +99,7 @@ export function ClinicalDocumentGenerator({
         </select>
         {professionals.length === 0 && (
           <span className="text-xs text-status-cancelled">
-            Nenhum profissional cadastrado com registro (CRO/CRM) — cadastre um antes de gerar.
+            Nenhum profissional cadastrado com registro profissional — cadastre um antes de gerar.
           </span>
         )}
       </label>

@@ -883,6 +883,128 @@ export interface Database {
           },
         ]
       }
+      animals: {
+        Row: {
+          id: string
+          tenant_id: string
+          client_id: string
+          name: string
+          species: string | null
+          breed: string | null
+          weight: number | null
+          birth_date: string | null
+          hospitalized: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          client_id: string
+          name: string
+          species?: string | null
+          breed?: string | null
+          weight?: number | null
+          birth_date?: string | null
+          hospitalized?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['animals']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'animals_client_id_fkey'
+            columns: ['client_id']
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      animal_vaccines: {
+        Row: {
+          id: string
+          tenant_id: string
+          animal_id: string
+          vaccine_name: string
+          applied_at: string
+          professional: string | null
+          next_dose_at: string | null
+          reminder_sent_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          animal_id: string
+          vaccine_name: string
+          applied_at: string
+          professional?: string | null
+          next_dose_at?: string | null
+          reminder_sent_at?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['animal_vaccines']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'animal_vaccines_animal_id_fkey'
+            columns: ['animal_id']
+            referencedRelation: 'animals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      animal_hospitalizations: {
+        Row: {
+          id: string
+          tenant_id: string
+          animal_id: string
+          reason: string | null
+          admitted_at: string
+          discharged_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          animal_id: string
+          reason?: string | null
+          admitted_at?: string
+          discharged_at?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['animal_hospitalizations']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'animal_hospitalizations_animal_id_fkey'
+            columns: ['animal_id']
+            referencedRelation: 'animals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      animal_hospitalization_notes: {
+        Row: {
+          id: string
+          hospitalization_id: string
+          tenant_id: string
+          note: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          hospitalization_id: string
+          tenant_id: string
+          note: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['animal_hospitalization_notes']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'animal_hospitalization_notes_hospitalization_id_fkey'
+            columns: ['hospitalization_id']
+            referencedRelation: 'animal_hospitalizations'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       message_templates: {
         Row: {
           id: string

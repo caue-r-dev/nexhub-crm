@@ -7,7 +7,7 @@
 // existam tenants antigos com esse niche_id, pra não reintroduzir o módulo.
 export const ANAMNESE_EVOLUCOES_NICHES = new Set(['dentista', 'medicina', 'fisioterapia', 'psicologia'])
 
-export const ATESTADO_RECEITA_NICHES = new Set(['dentista', 'medicina', 'fisioterapia', 'psicologia'])
+export const ATESTADO_RECEITA_NICHES = new Set(['dentista', 'medicina', 'fisioterapia', 'psicologia', 'veterinario'])
 
 export const ESTOQUE_NICHES = new Set(['dentista', 'estetica', 'unhas', 'veterinario', 'cabeleireiro', 'sobrancelha'])
 

@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Package,
+  PawPrint,
   QrCode,
   Settings,
   Star,
@@ -30,10 +31,13 @@ import { SubscriptionRenewModal } from '@/components/SubscriptionRenewModal'
 import type { SubscriptionStatus } from '@/lib/supabase/types'
 import { ESTOQUE_NICHES } from '@/lib/niche-features'
 
+const VETERINARIO_NICHES = new Set(['veterinario'])
+
 const LINKS = [
   { href: '/', label: 'Início', icon: Home },
   { href: '/agenda', label: 'Agenda', icon: Calendar },
   { href: '/clientes', label: 'Clientes', icon: Users },
+  { href: '/animais', label: 'Animais', icon: PawPrint, nicheGate: VETERINARIO_NICHES },
   { href: '/financeiro', label: 'Financeiro', icon: Wallet },
   { href: '/estoque', label: 'Estoque', icon: Package, nicheGate: ESTOQUE_NICHES },
   { href: '/atendimento', label: 'Atendimento', icon: MessageCircle },

@@ -80,6 +80,15 @@ export default async function FichaClientePage({
 
       <ClientTabs clientId={id} active="ficha" nicheSlug={nicheSlug} />
 
+      {nicheSlug === 'veterinario' && (
+        <Link
+          href={`/clientes/${id}/animais`}
+          className="self-start rounded-lg border border-border px-4 py-2 text-sm font-medium text-accent"
+        >
+          Ver animais do tutor
+        </Link>
+      )}
+
       {tenant && (
         <ClientPhotoUpload clientId={id} tenantId={tenant.id} initialPhotoPath={client.photo_path} initials={initials} />
       )}
