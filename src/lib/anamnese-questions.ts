@@ -4,7 +4,8 @@ export type AnamneseQuestion = {
   hasInfo: boolean
 }
 
-// Roteiro de saúde — dentista, medicina, fisioterapia, psicologia.
+// Roteiro de saúde bucal — só dentista (dependência de anestesia local,
+// abertura de boca, febre reumática etc não fazem sentido fora de odonto).
 const HEALTH_QUESTIONS: AnamneseQuestion[] = [
   { id: 'pressao_alta', label: 'Tem pressão alta?', hasInfo: true },
   { id: 'alergia', label: 'Possui alguma alergia? (Como penicilinas, AAS ou outra)', hasInfo: true },
@@ -30,6 +31,43 @@ const HEALTH_QUESTIONS: AnamneseQuestion[] = [
   { id: 'anticoncepcional', label: 'Toma anticoncepcional?', hasInfo: true },
 ]
 
+// Intake clínico geral — medicina.
+const MEDICAL_QUESTIONS: AnamneseQuestion[] = [
+  { id: 'doenca_cronica', label: 'Tem diagnóstico de alguma doença crônica (hipertensão, diabetes, etc)?', hasInfo: true },
+  { id: 'medicacao_continua', label: 'Faz uso contínuo de algum medicamento?', hasInfo: true },
+  { id: 'alergia_medicamento', label: 'Tem alergia a algum medicamento?', hasInfo: true },
+  { id: 'cirurgia_previa', label: 'Já passou por alguma cirurgia?', hasInfo: true },
+  { id: 'internacao_previa', label: 'Já foi internado alguma vez?', hasInfo: true },
+  { id: 'historico_familiar', label: 'Tem histórico familiar de doença relevante (cardíaca, câncer, etc)?', hasInfo: true },
+  { id: 'fumante', label: 'É fumante ou ex-fumante?', hasInfo: true },
+  { id: 'consome_alcool', label: 'Consome álcool regularmente?', hasInfo: false },
+  { id: 'pratica_atividade_fisica', label: 'Pratica atividade física regularmente?', hasInfo: false },
+  { id: 'gravida', label: 'Está grávida?', hasInfo: true },
+  { id: 'amamentando', label: 'Está amamentando?', hasInfo: false },
+]
+
+// Intake — psicologia.
+const PSYCHOLOGY_QUESTIONS: AnamneseQuestion[] = [
+  { id: 'terapia_previa', label: 'Já fez terapia antes?', hasInfo: true },
+  { id: 'medicacao_psiquiatrica', label: 'Faz uso de medicação psiquiátrica?', hasInfo: true },
+  { id: 'diagnostico_previo', label: 'Já recebeu diagnóstico de algum transtorno?', hasInfo: true },
+  { id: 'acompanhamento_atual', label: 'Está em acompanhamento médico/psiquiátrico atual?', hasInfo: true },
+  { id: 'historico_familiar_saude_mental', label: 'Tem histórico familiar de transtorno mental?', hasInfo: true },
+  { id: 'situacao_crise', label: 'Está passando por alguma situação de crise no momento?', hasInfo: true },
+  { id: 'pensamento_autolesao', label: 'Tem tido pensamentos de se machucar ou de que não vale a pena viver?', hasInfo: true },
+]
+
+// Intake — fisioterapia. Combina com a escala de dor corporal (aba separada).
+const PHYSIO_QUESTIONS: AnamneseQuestion[] = [
+  { id: 'fisioterapia_previa', label: 'Já fez fisioterapia antes?', hasInfo: true },
+  { id: 'cirurgia_recente', label: 'Teve alguma cirurgia nos últimos 12 meses?', hasInfo: true },
+  { id: 'fratura_lesao', label: 'Tem alguma fratura ou lesão diagnosticada?', hasInfo: true },
+  { id: 'limitacao_movimento', label: 'Tem alguma limitação de movimento?', hasInfo: true },
+  { id: 'usa_orteses', label: 'Usa aparelho ortopédico (órtese, bengala, cadeira de rodas)?', hasInfo: true },
+  { id: 'pratica_atividade_fisica', label: 'Pratica atividade física regularmente?', hasInfo: false },
+  { id: 'doenca_cronica', label: 'Tem diagnóstico de alguma doença crônica (hipertensão, diabetes, etc)?', hasInfo: true },
+]
+
 // Intake de caso — advocacia. Mesma estrutura (sim/não + observação), perguntas
 // trocadas pro contexto jurídico (ver task_plan_advocacia.md).
 const LEGAL_QUESTIONS: AnamneseQuestion[] = [
@@ -44,9 +82,9 @@ const LEGAL_QUESTIONS: AnamneseQuestion[] = [
 
 const QUESTIONS_BY_NICHE: Record<string, AnamneseQuestion[]> = {
   dentista: HEALTH_QUESTIONS,
-  medicina: HEALTH_QUESTIONS,
-  fisioterapia: HEALTH_QUESTIONS,
-  psicologia: HEALTH_QUESTIONS,
+  medicina: MEDICAL_QUESTIONS,
+  fisioterapia: PHYSIO_QUESTIONS,
+  psicologia: PSYCHOLOGY_QUESTIONS,
   advogado: LEGAL_QUESTIONS,
 }
 
