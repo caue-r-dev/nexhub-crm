@@ -30,3 +30,25 @@ export async function toggleServiceAction(id: string, active: boolean) {
   if (error) return { error: error.message }
   revalidatePath('/configuracoes/servicos')
 }
+
+export async function updateServiceAction(id: string, name: string, defaultValue: number) {
+  if (!name.trim()) return { error: 'Informe um nome.' }
+  if (defaultValue < 0) return { error: 'Valor não pode ser negativo.' }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('services')
+    .update({ name: name.trim(), default_value: defaultValue })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/configuracoes/servicos')
+}
+
+export async function deleteServiceAction(id: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('services').delete().eq('id', id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/configuracoes/servicos')
+}
