@@ -80,11 +80,18 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    if (pathname !== ONBOARDING_ROUTE && tenant && !tenant.onboarding_completed) {
-      return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url))
-    }
-    if (pathname === ONBOARDING_ROUTE && tenant?.onboarding_completed) {
-      return NextResponse.redirect(new URL('/', request.url))
+    // Onboarding só é checado depois da troca de senha resolvida — senão
+    // um usuário com must_change_password=true e onboarding pendente cai
+    // num loop infinito entre /trocar-senha e /onboarding (cada rota
+    // redireciona pra outra), confirmado em produção com o "This page
+    // couldn't load" do Chrome.
+    if (!userRow?.must_change_password) {
+      if (pathname !== ONBOARDING_ROUTE && tenant && !tenant.onboarding_completed) {
+        return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url))
+      }
+      if (pathname === ONBOARDING_ROUTE && tenant?.onboarding_completed) {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
     }
   }
 
