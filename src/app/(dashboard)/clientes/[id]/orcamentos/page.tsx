@@ -51,6 +51,7 @@ export default async function OrcamentosPage({
         services={services ?? []}
         professionals={professionals ?? []}
         isDentist={nicheSlug === 'dentista'}
+        isAdvogado={nicheSlug === 'advogado'}
       />
 
       <div className="flex flex-col gap-3">

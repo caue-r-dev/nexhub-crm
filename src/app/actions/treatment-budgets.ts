@@ -11,6 +11,9 @@ export type BudgetInput = {
   installments: number
   discount: number
   professionalId?: string
+  feeType?: 'fixo' | 'exito' | 'misto'
+  successFeePercent?: number
+  caseValue?: number
 }
 
 export async function createBudgetAction(clientId: string, input: BudgetInput) {
@@ -32,6 +35,9 @@ export async function createBudgetAction(clientId: string, input: BudgetInput) {
     installments: input.installments || 1,
     discount: input.discount,
     professional_id: input.professionalId || null,
+    fee_type: input.feeType || null,
+    success_fee_percent: input.successFeePercent || null,
+    case_value: input.caseValue || null,
   })
 
   if (error) return { error: error.message }

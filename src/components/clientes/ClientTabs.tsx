@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ANAMNESE_EVOLUCOES_NICHES, PAIN_MAP_NICHES } from '@/lib/niche-features'
+import { ANAMNESE_EVOLUCOES_NICHES, PAIN_MAP_NICHES, PROCESSOS_NICHES } from '@/lib/niche-features'
 
 export function ClientTabs({
   clientId,
@@ -11,15 +11,26 @@ export function ClientTabs({
   nicheSlug: string | null
 }) {
   const isDentist = nicheSlug === 'dentista'
+  const isAdvogado = nicheSlug === 'advogado'
   const hasAnamneseEvolucoes = !!nicheSlug && ANAMNESE_EVOLUCOES_NICHES.has(nicheSlug)
   const hasPainMap = !!nicheSlug && PAIN_MAP_NICHES.has(nicheSlug)
+  const hasProcessos = !!nicheSlug && PROCESSOS_NICHES.has(nicheSlug)
 
   const tabs = [
     { key: 'ficha', label: 'Ficha', href: `/clientes/${clientId}` },
-    hasAnamneseEvolucoes && { key: 'anamnese', label: 'Anamnese', href: `/clientes/${clientId}/anamnese` },
+    hasProcessos && { key: 'processos', label: 'Processos', href: `/clientes/${clientId}/processos` },
+    hasAnamneseEvolucoes && {
+      key: 'anamnese',
+      label: isAdvogado ? 'Intake' : 'Anamnese',
+      href: `/clientes/${clientId}/anamnese`,
+    },
     isDentist && { key: 'tratamentos', label: 'Tratamentos', href: `/clientes/${clientId}/tratamentos` },
-    { key: 'orcamentos', label: 'Orçamentos', href: `/clientes/${clientId}/orcamentos` },
-    hasAnamneseEvolucoes && { key: 'evolucoes', label: 'Evoluções', href: `/clientes/${clientId}/evolucoes` },
+    { key: 'orcamentos', label: isAdvogado ? 'Honorários' : 'Orçamentos', href: `/clientes/${clientId}/orcamentos` },
+    hasAnamneseEvolucoes && {
+      key: 'evolucoes',
+      label: isAdvogado ? 'Andamento' : 'Evoluções',
+      href: `/clientes/${clientId}/evolucoes`,
+    },
     hasPainMap && { key: 'dor', label: 'Avaliação de dor', href: `/clientes/${clientId}/dor` },
     isDentist && { key: 'proteses', label: 'Próteses', href: `/clientes/${clientId}/proteses` },
   ].filter((t): t is { key: string; label: string; href: string } => !!t)

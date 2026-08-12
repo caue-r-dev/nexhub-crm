@@ -298,6 +298,7 @@ export interface Database {
           booking_expires_at: string | null
           followup_atraso_sent_at: string | null
           followup_falta_sent_at: string | null
+          processo_id: string | null
         }
         Insert: {
           id?: string
@@ -321,6 +322,7 @@ export interface Database {
           booking_expires_at?: string | null
           followup_atraso_sent_at?: string | null
           followup_falta_sent_at?: string | null
+          processo_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['appointments']['Insert']>
         Relationships: [
@@ -469,6 +471,9 @@ export interface Database {
           followup_day3_sent_at: string | null
           followup_day7_sent_at: string | null
           professional_id: string | null
+          fee_type: 'fixo' | 'exito' | 'misto' | null
+          success_fee_percent: number | null
+          case_value: number | null
         }
         Insert: {
           id?: string
@@ -485,6 +490,9 @@ export interface Database {
           followup_day3_sent_at?: string | null
           followup_day7_sent_at?: string | null
           professional_id?: string | null
+          fee_type?: 'fixo' | 'exito' | 'misto' | null
+          success_fee_percent?: number | null
+          case_value?: number | null
         }
         Update: Partial<Database['public']['Tables']['treatment_budgets']['Insert']>
         Relationships: [
@@ -879,6 +887,72 @@ export interface Database {
             foreignKeyName: 'services_tenant_id_fkey'
             columns: ['tenant_id']
             referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      processos: {
+        Row: {
+          id: string
+          tenant_id: string
+          client_id: string
+          numero_cnj: string | null
+          vara_comarca: string | null
+          tipo_acao: string | null
+          area_direito: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          client_id: string
+          numero_cnj?: string | null
+          vara_comarca?: string | null
+          tipo_acao?: string | null
+          area_direito?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['processos']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'processos_client_id_fkey'
+            columns: ['client_id']
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      prazos: {
+        Row: {
+          id: string
+          tenant_id: string
+          processo_id: string
+          tipo_prazo: string
+          data_fatal: string
+          status: 'pendente' | 'cumprido'
+          alerta_dias_antes: number
+          alerta_enviado_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          processo_id: string
+          tipo_prazo: string
+          data_fatal: string
+          status?: 'pendente' | 'cumprido'
+          alerta_dias_antes?: number
+          alerta_enviado_at?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['prazos']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'prazos_processo_id_fkey'
+            columns: ['processo_id']
+            referencedRelation: 'processos'
             referencedColumns: ['id']
           },
         ]

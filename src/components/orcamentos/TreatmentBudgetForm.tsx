@@ -32,17 +32,22 @@ export function TreatmentBudgetForm({
   services,
   professionals,
   isDentist,
+  isAdvogado,
 }: {
   clientId: string
   services: Service[]
   professionals: Professional[]
   isDentist: boolean
+  isAdvogado?: boolean
 }) {
   const [items, setItems] = useState<BudgetItem[]>([emptyItem()])
   const [downPayment, setDownPayment] = useState(0)
   const [installments, setInstallments] = useState(1)
   const [discount, setDiscount] = useState(0)
   const [professionalId, setProfessionalId] = useState('')
+  const [feeType, setFeeType] = useState<'fixo' | 'exito' | 'misto'>('fixo')
+  const [successFeePercent, setSuccessFeePercent] = useState('')
+  const [caseValue, setCaseValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [creatingServiceAt, setCreatingServiceAt] = useState<number | null>(null)
@@ -113,6 +118,9 @@ export function TreatmentBudgetForm({
         installments,
         discount,
         professionalId,
+        feeType: isAdvogado ? feeType : undefined,
+        successFeePercent: isAdvogado ? Number(successFeePercent) || undefined : undefined,
+        caseValue: isAdvogado ? Number(caseValue) || undefined : undefined,
       })
       if (result && 'error' in result) {
         setError(result.error ?? null)
@@ -121,6 +129,8 @@ export function TreatmentBudgetForm({
         setDownPayment(0)
         setInstallments(1)
         setDiscount(0)
+        setSuccessFeePercent('')
+        setCaseValue('')
       }
     })
   }
@@ -256,6 +266,47 @@ export function TreatmentBudgetForm({
       <button type="button" onClick={addItem} className="self-start text-sm font-medium text-accent">
         + Adicionar item
       </button>
+
+      {isAdvogado && (
+        <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border p-3">
+          <span className="text-sm font-medium text-text">Honorário</span>
+          <div className="flex gap-4">
+            {(['fixo', 'exito', 'misto'] as const).map((t) => (
+              <label key={t} className="flex items-center gap-1.5 text-sm text-text">
+                <input type="radio" name="feeType" checked={feeType === t} onChange={() => setFeeType(t)} />
+                {t === 'fixo' ? 'Fixo' : t === 'exito' ? 'Êxito' : 'Misto'}
+              </label>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {feeType !== 'fixo' && (
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-text-secondary">% de êxito</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  className="rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-text outline-none focus:border-accent"
+                  value={successFeePercent}
+                  onChange={(e) => setSuccessFeePercent(e.target.value)}
+                />
+              </label>
+            )}
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-text-secondary">Valor da causa (R$)</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                className="rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-text outline-none focus:border-accent"
+                value={caseValue}
+                onChange={(e) => setCaseValue(e.target.value)}
+              />
+            </label>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3">
         <label className="flex flex-col gap-1">

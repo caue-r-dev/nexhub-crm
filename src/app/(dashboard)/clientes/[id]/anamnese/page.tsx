@@ -32,6 +32,7 @@ export default async function AnamnesePage({
       <AnamnesisForm
         clientId={id}
         initial={anamnesis?.questionnaire as Partial<AnamneseQuestionnaire> | undefined}
+        nicheSlug={nicheSlug}
       />
     </div>
   )

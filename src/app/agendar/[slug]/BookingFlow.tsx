@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ANAMNESE_QUESTIONS, type AnamneseQuestionnaire } from '@/lib/anamnese-questions'
+import { getAnamneseQuestions, type AnamneseQuestionnaire } from '@/lib/anamnese-questions'
+import { ANAMNESE_EVOLUCOES_NICHES } from '@/lib/niche-features'
 
 type Professional = { id: string; name: string }
 type ProcedureType = { id: string; name: string }
@@ -12,11 +13,15 @@ export function BookingFlow({
   slug,
   professionals,
   procedureTypes,
+  nicheSlug,
 }: {
   slug: string
   professionals: Professional[]
   procedureTypes: ProcedureType[]
+  nicheSlug: string | null
 }) {
+  const ANAMNESE_QUESTIONS = getAnamneseQuestions(nicheSlug)
+  const showAnamnese = !!nicheSlug && ANAMNESE_EVOLUCOES_NICHES.has(nicheSlug)
   const [professionalId, setProfessionalId] = useState('')
   const [procedureTypeId, setProcedureTypeId] = useState('')
   const [slots, setSlots] = useState<string[]>([])
@@ -203,11 +208,16 @@ export function BookingFlow({
         </label>
       </section>
 
+      {showAnamnese && (
       <section className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">3. Ficha de saúde (opcional)</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
+          {nicheSlug === 'advogado' ? '3. Sobre o caso (opcional)' : '3. Ficha de saúde (opcional)'}
+        </h2>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-text">O que você está sentindo?</span>
+          <span className="text-sm font-medium text-text">
+            {nicheSlug === 'advogado' ? 'Resuma o caso' : 'O que você está sentindo?'}
+          </span>
           <textarea
             rows={2}
             className="rounded-lg border border-border bg-bg px-3 py-2 text-text outline-none focus:border-accent"
@@ -218,7 +228,7 @@ export function BookingFlow({
 
         <details className="rounded-lg border border-border">
           <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-text">
-            Perguntas de saúde (ajuda o profissional a te atender melhor)
+            {nicheSlug === 'advogado' ? 'Perguntas sobre o caso' : 'Perguntas de saúde (ajuda o profissional a te atender melhor)'}
           </summary>
           <div className="flex flex-col divide-y divide-border border-t border-border">
             {ANAMNESE_QUESTIONS.map((q) => {
@@ -263,6 +273,7 @@ export function BookingFlow({
           </div>
         </details>
       </section>
+      )}
 
       {error && <p className="text-sm text-status-cancelled">{error}</p>}
 

@@ -8,10 +8,12 @@ export default async function AgendarPage({ params }: { params: Promise<{ slug: 
 
   const { data: tenant } = await admin
     .from('tenants')
-    .select('id, name, slug, public_booking_enabled')
+    .select('id, name, slug, public_booking_enabled, niche_id')
     .eq('slug', slug)
     .single()
   if (!tenant) notFound()
+
+  const { data: niche } = await admin.from('niches').select('slug').eq('id', tenant.niche_id).single()
 
   if (!tenant.public_booking_enabled) {
     return (
@@ -48,6 +50,7 @@ export default async function AgendarPage({ params }: { params: Promise<{ slug: 
         slug={slug}
         professionals={professionals ?? []}
         procedureTypes={procedureTypes ?? []}
+        nicheSlug={niche?.slug ?? null}
       />
     </div>
   )

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { upsertAnamnesisAction } from '@/app/actions/anamnesis'
-import { ANAMNESE_QUESTIONS, type AnamneseQuestionnaire } from '@/lib/anamnese-questions'
+import { getAnamneseQuestions, type AnamneseQuestionnaire } from '@/lib/anamnese-questions'
 
 const EMPTY: AnamneseQuestionnaire = {
   queixa_principal: '',
@@ -12,10 +12,13 @@ const EMPTY: AnamneseQuestionnaire = {
 export function AnamnesisForm({
   clientId,
   initial,
+  nicheSlug,
 }: {
   clientId: string
   initial?: Partial<AnamneseQuestionnaire>
+  nicheSlug: string | null
 }) {
+  const ANAMNESE_QUESTIONS = getAnamneseQuestions(nicheSlug)
   const [form, setForm] = useState<AnamneseQuestionnaire>({
     queixa_principal: initial?.queixa_principal ?? '',
     answers: initial?.answers ?? {},
@@ -56,7 +59,7 @@ export function AnamnesisForm({
   return (
     <form onSubmit={handleSubmit} className="flex max-w-2xl flex-col gap-5">
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-text">Queixa principal</span>
+        <span className="text-sm font-medium text-text">{nicheSlug === 'advogado' ? 'Resumo do caso' : 'Queixa principal'}</span>
         <textarea
           rows={2}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"

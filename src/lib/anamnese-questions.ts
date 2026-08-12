@@ -4,8 +4,8 @@ export type AnamneseQuestion = {
   hasInfo: boolean
 }
 
-// Mesmo roteiro de perguntas de uma anamnese odontológica padrão.
-export const ANAMNESE_QUESTIONS: AnamneseQuestion[] = [
+// Roteiro de saúde — dentista, medicina, fisioterapia, psicologia.
+const HEALTH_QUESTIONS: AnamneseQuestion[] = [
   { id: 'pressao_alta', label: 'Tem pressão alta?', hasInfo: true },
   { id: 'alergia', label: 'Possui alguma alergia? (Como penicilinas, AAS ou outra)', hasInfo: true },
   { id: 'alteracao_sanguinea', label: 'Possui alguma alteração sanguínea?', hasInfo: true },
@@ -29,6 +29,31 @@ export const ANAMNESE_QUESTIONS: AnamneseQuestion[] = [
   { id: 'amamentando', label: 'Está amamentando?', hasInfo: false },
   { id: 'anticoncepcional', label: 'Toma anticoncepcional?', hasInfo: true },
 ]
+
+// Intake de caso — advocacia. Mesma estrutura (sim/não + observação), perguntas
+// trocadas pro contexto jurídico (ver task_plan_advocacia.md).
+const LEGAL_QUESTIONS: AnamneseQuestion[] = [
+  { id: 'processo_em_andamento', label: 'Já existe processo em andamento sobre esse caso?', hasInfo: true },
+  { id: 'urgencia', label: 'O caso tem urgência (prazo próximo, risco iminente)?', hasInfo: true },
+  { id: 'possui_documentos', label: 'Possui documentos relacionados ao caso (contratos, notificações, etc)?', hasInfo: true },
+  { id: 'partes_envolvidas', label: 'Há outras partes envolvidas além de você?', hasInfo: true },
+  { id: 'acordo_extrajudicial', label: 'Já tentou acordo extrajudicial?', hasInfo: true },
+  { id: 'representado_advogado', label: 'Já foi representado por outro advogado nesse caso?', hasInfo: true },
+  { id: 'prazo_conhecido', label: 'Existe algum prazo processual já conhecido?', hasInfo: true },
+]
+
+const QUESTIONS_BY_NICHE: Record<string, AnamneseQuestion[]> = {
+  dentista: HEALTH_QUESTIONS,
+  medicina: HEALTH_QUESTIONS,
+  fisioterapia: HEALTH_QUESTIONS,
+  psicologia: HEALTH_QUESTIONS,
+  advogado: LEGAL_QUESTIONS,
+}
+
+export function getAnamneseQuestions(nicheSlug: string | null): AnamneseQuestion[] {
+  if (!nicheSlug) return HEALTH_QUESTIONS
+  return QUESTIONS_BY_NICHE[nicheSlug] ?? HEALTH_QUESTIONS
+}
 
 export type AnamneseAnswer = { value: 'sim' | 'nao' | 'nao_sei' | ''; info?: string }
 export type AnamneseQuestionnaire = {
