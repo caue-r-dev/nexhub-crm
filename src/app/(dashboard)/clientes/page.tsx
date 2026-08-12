@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Search, Plus, Users, Phone, Upload, Download } from 'lucide-react'
+import { Search, Plus, Users, Phone, Upload, Download, Megaphone } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 
 function initials(name: string) {
@@ -34,6 +34,13 @@ export default async function ClientesPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-text">Clientes</h1>
         <div className="flex items-center gap-2">
+          <Link
+            href="/clientes/campanhas"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
+          >
+            <Megaphone className="h-4 w-4" />
+            <span className="hidden sm:inline">Campanhas</span>
+          </Link>
           <a
             href="/api/clientes/export"
             className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"

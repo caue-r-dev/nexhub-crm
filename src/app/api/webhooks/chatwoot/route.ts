@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { confirmAppointment, cancelAppointment, findPendingAppointmentByPhone } from '@/lib/appointment-automation'
 import { getBotReply, markEscalatedIfHumanSent } from '@/lib/bot-engine'
+import { markCampaignRecipientResponded } from '@/lib/campaigns'
 import { sendWhatsAppText } from '@/lib/evolution'
 import { isExistingClient } from '@/lib/existing-client'
 
@@ -97,6 +98,11 @@ export async function POST(request: Request) {
   }
 
   if (payload.message_type !== 'incoming') return NextResponse.json({ ok: true })
+
+  // Qualquer resposta desse telefone depois de uma campanha marca
+  // "respondido" no relatório — não precisa ser resposta específica sobre
+  // a campanha, só sinal de que a pessoa reagiu à mensagem.
+  await markCampaignRecipientResponded(tenant.id, phone)
 
   const appointmentId = await findPendingAppointmentByPhone(tenant.id, phone)
 

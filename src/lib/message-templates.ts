@@ -15,6 +15,9 @@ export type TemplateContext = {
   horario_consulta?: string
   procedimento?: string
   link_agendamento?: string
+  nome_cliente?: string
+  ultima_visita?: string
+  valor_orcamento?: string
 }
 
 export type StoredTemplate = { content: string; active: boolean; label: string | null; hidden: boolean }
@@ -76,4 +79,6 @@ export const TEMPLATE_KEYS = [
   { key: 'followup_atraso', label: 'Follow-up — atraso' },
   { key: 'escalar_atendimento_humano', label: 'Escalonamento pra atendimento humano (IA não sabe responder)' },
   { key: 'contato_recorrente', label: 'Contato que já falou antes (sessão expirada)' },
+  { key: 'campanha_sem_visita', label: 'Campanha — sem visita há um tempo' },
+  { key: 'campanha_orcamento_aberto', label: 'Campanha — orçamento em aberto' },
 ] as const

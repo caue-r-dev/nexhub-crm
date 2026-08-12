@@ -1002,6 +1002,68 @@ export interface Database {
           },
         ]
       }
+      campaigns: {
+        Row: {
+          id: string
+          tenant_id: string
+          filter_type: 'sem_visita' | 'orcamento_aberto'
+          filter_days: number
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          filter_type: 'sem_visita' | 'orcamento_aberto'
+          filter_days: number
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['campaigns']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'campaigns_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      campaign_recipients: {
+        Row: {
+          id: string
+          campaign_id: string
+          client_id: string
+          phone: string
+          message: string
+          status: 'pending' | 'sent' | 'failed'
+          sent_at: string | null
+          responded_at: string | null
+          error: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          client_id: string
+          phone: string
+          message: string
+          status?: 'pending' | 'sent' | 'failed'
+          sent_at?: string | null
+          responded_at?: string | null
+          error?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['campaign_recipients']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'campaign_recipients_campaign_id_fkey'
+            columns: ['campaign_id']
+            referencedRelation: 'campaigns'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
