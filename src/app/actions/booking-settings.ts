@@ -10,6 +10,7 @@ export type BookingSettingsInput = {
   slotDurationMinutes: number
   bufferMinutes: number
   bookingHoldMinutes: number
+  publicBookingEnabled: boolean
 }
 
 const SLUG_PATTERN = /^[a-z0-9-]+$/
@@ -35,6 +36,7 @@ export async function updateBookingSettingsAction(input: BookingSettingsInput) {
       slot_duration_minutes: input.slotDurationMinutes,
       buffer_minutes: input.bufferMinutes,
       booking_hold_minutes: input.bookingHoldMinutes,
+      public_booking_enabled: input.publicBookingEnabled,
     })
     .eq('id', tenant.id)
 

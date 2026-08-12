@@ -110,6 +110,7 @@ export interface Database {
           last_whatsapp_state: string | null
           bot_enabled: boolean
           bot_context_notes: string | null
+          public_booking_enabled: boolean
         }
         Insert: {
           id?: string
@@ -155,6 +156,7 @@ export interface Database {
           last_whatsapp_state?: string | null
           bot_enabled?: boolean
           bot_context_notes?: string | null
+          public_booking_enabled?: boolean
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [

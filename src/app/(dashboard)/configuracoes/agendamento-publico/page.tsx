@@ -20,6 +20,7 @@ export default async function AgendamentoPublicoPage() {
             slotDurationMinutes: tenant.slot_duration_minutes,
             bufferMinutes: tenant.buffer_minutes,
             bookingHoldMinutes: tenant.booking_hold_minutes,
+            publicBookingEnabled: tenant.public_booking_enabled,
           }}
         />
       )}

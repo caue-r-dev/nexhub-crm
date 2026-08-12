@@ -12,6 +12,7 @@ export function BookingSettingsForm({
     slotDurationMinutes: number
     bufferMinutes: number
     bookingHoldMinutes: number
+    publicBookingEnabled: boolean
   }
 }) {
   const [slug, setSlug] = useState(initial.slug)
@@ -19,6 +20,7 @@ export function BookingSettingsForm({
   const [slotDurationMinutes, setSlotDurationMinutes] = useState(String(initial.slotDurationMinutes))
   const [bufferMinutes, setBufferMinutes] = useState(String(initial.bufferMinutes))
   const [bookingHoldMinutes, setBookingHoldMinutes] = useState(String(initial.bookingHoldMinutes))
+  const [publicBookingEnabled, setPublicBookingEnabled] = useState(initial.publicBookingEnabled)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -33,6 +35,7 @@ export function BookingSettingsForm({
         slotDurationMinutes: Number(slotDurationMinutes),
         bufferMinutes: Number(bufferMinutes),
         bookingHoldMinutes: Number(bookingHoldMinutes),
+        publicBookingEnabled,
       })
       if (result && 'error' in result) {
         setError(result.error ?? null)
@@ -44,6 +47,20 @@ export function BookingSettingsForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={publicBookingEnabled}
+          onChange={(e) => setPublicBookingEnabled(e.target.checked)}
+        />
+        <span className="text-sm font-medium text-text">Agendamento público ativo</span>
+      </label>
+      {!publicBookingEnabled && (
+        <p className="text-sm text-text-secondary">
+          Desligado: o link mostra uma mensagem pedindo pra falar por WhatsApp, e o bot/lembretes param de mandar o link — agendamento passa a ser combinado manualmente.
+        </p>
+      )}
+
       <label className="flex flex-col gap-1">
         <span className="text-sm font-medium text-text">Link público (slug)</span>
         <div className="flex items-center gap-1 text-sm text-text-secondary">

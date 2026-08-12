@@ -57,6 +57,7 @@ type TenantInfo = {
   business_hours: BusinessHours | null
   slug: string | null
   bot_context_notes: string | null
+  public_booking_enabled: boolean
 }
 
 export function isSessionExpired(updatedAt: string | null, now: Date, maxHours = 12): boolean {
@@ -166,7 +167,7 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
 
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexhub.nexvix.com.br'
-  const linkAgendamento = tenant.slug ? `${appUrl}/agendar/${tenant.slug}` : ''
+  const linkAgendamento = tenant.slug && tenant.public_booking_enabled ? `${appUrl}/agendar/${tenant.slug}` : ''
 
   const { data: firstProfessional } = await admin
     .from('professionals')
@@ -207,7 +208,9 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
     primeiro_contato: `Dar boas-vindas em nome de "${tenant.name}" e perguntar o nome do contato.`,
     pergunta_queixa: 'Perguntar qual a necessidade específica ou o que a pessoa gostaria de resolver.',
     explicacao_processo: `Explicar que o primeiro passo é um atendimento inicial de avaliação${firstProfessional?.name ? ` com ${firstProfessional.name}` : ''}, que vai entender a necessidade e montar um plano personalizado.`,
-    valor_e_horarios: `Informar o valor${valorConsulta ? ` (${valorConsulta})` : ''}, o horário de atendimento${horarioAtendimento ? ` (${horarioAtendimento})` : ''} e mandar o link de agendamento${linkAgendamento ? ` (${linkAgendamento})` : ''}.`,
+    valor_e_horarios: tenant.public_booking_enabled
+      ? `Informar o valor${valorConsulta ? ` (${valorConsulta})` : ''}, o horário de atendimento${horarioAtendimento ? ` (${horarioAtendimento})` : ''} e mandar o link de agendamento${linkAgendamento ? ` (${linkAgendamento})` : ''}.`
+      : `Informar o valor${valorConsulta ? ` (${valorConsulta})` : ''} e o horário de atendimento${horarioAtendimento ? ` (${horarioAtendimento})` : ''}, avisar que vai verificar a disponibilidade e confirmar o melhor horário por mensagem em seguida — não existe link de agendamento pra mandar.`,
   }
 
   const roteiro = await buildRoteiro(tenant.id, DEFAULTS)

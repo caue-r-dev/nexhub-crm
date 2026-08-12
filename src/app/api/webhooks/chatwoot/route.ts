@@ -82,7 +82,7 @@ export async function POST(request: Request) {
   const { data: tenant } = await admin
     .from('tenants')
     .select(
-      'id, name, address, business_hours, slug, evolution_base_url, evolution_api_key, evolution_instance_name, bot_enabled, bot_context_notes'
+      'id, name, address, business_hours, slug, evolution_base_url, evolution_api_key, evolution_instance_name, bot_enabled, bot_context_notes, public_booking_enabled'
     )
     .eq('chatwoot_account_id', accountId)
     .single()
