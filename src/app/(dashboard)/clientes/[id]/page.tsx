@@ -8,8 +8,7 @@ import { ClientTabs } from '@/components/clientes/ClientTabs'
 import { ClientPhotoUpload } from '@/components/clientes/ClientPhotoUpload'
 import { ClientDocuments } from '@/components/clientes/ClientDocuments'
 import { ClinicalDocumentGenerator } from '@/components/clientes/ClinicalDocumentGenerator'
-
-const HEALTH_NICHES = new Set(['dentista', 'medicina', 'fisioterapia', 'psicologia', 'nutricionista'])
+import { ATESTADO_RECEITA_NICHES } from '@/lib/niche-features'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
@@ -78,7 +77,7 @@ export default async function FichaClientePage({
         </Link>
       </div>
 
-      {nicheSlug === 'dentista' && <ClientTabs clientId={id} active="ficha" />}
+      <ClientTabs clientId={id} active="ficha" nicheSlug={nicheSlug} />
 
       {tenant && (
         <ClientPhotoUpload clientId={id} tenantId={tenant.id} initialPhotoPath={client.photo_path} initials={initials} />
@@ -174,7 +173,7 @@ export default async function FichaClientePage({
 
       {tenant && <ClientDocuments clientId={id} tenantId={tenant.id} />}
 
-      {nicheSlug && HEALTH_NICHES.has(nicheSlug) && (
+      {nicheSlug && ATESTADO_RECEITA_NICHES.has(nicheSlug) && (
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-text">Atestado / Receita</h2>
           <ClinicalDocumentGenerator clientId={id} professionals={professionals ?? []} />

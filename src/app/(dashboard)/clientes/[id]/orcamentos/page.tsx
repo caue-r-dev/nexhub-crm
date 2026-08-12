@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { ClientTabs } from '@/components/clientes/ClientTabs'
 import { TreatmentBudgetForm } from '@/components/orcamentos/TreatmentBudgetForm'
 import { ApproveBudgetButton } from '@/components/orcamentos/ApproveBudgetButton'
@@ -17,6 +18,7 @@ export default async function OrcamentosPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const nicheSlug = await getCurrentTenantNicheSlug()
 
   const { data: client } = await supabase.from('clients').select('id, name').eq('id', id).single()
   if (!client) notFound()
@@ -42,9 +44,14 @@ export default async function OrcamentosPage({
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold text-text">{client.name}</h1>
-      <ClientTabs clientId={id} active="orcamentos" />
+      <ClientTabs clientId={id} active="orcamentos" nicheSlug={nicheSlug} />
 
-      <TreatmentBudgetForm clientId={id} services={services ?? []} professionals={professionals ?? []} />
+      <TreatmentBudgetForm
+        clientId={id}
+        services={services ?? []}
+        professionals={professionals ?? []}
+        isDentist={nicheSlug === 'dentista'}
+      />
 
       <div className="flex flex-col gap-3">
         {budgets?.length ? (

@@ -28,13 +28,14 @@ import {
 import { signOutAction } from '@/app/actions/auth'
 import { SubscriptionRenewModal } from '@/components/SubscriptionRenewModal'
 import type { SubscriptionStatus } from '@/lib/supabase/types'
+import { ESTOQUE_NICHES } from '@/lib/niche-features'
 
 const LINKS = [
   { href: '/', label: 'Início', icon: Home },
   { href: '/agenda', label: 'Agenda', icon: Calendar },
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/financeiro', label: 'Financeiro', icon: Wallet },
-  { href: '/estoque', label: 'Estoque', icon: Package },
+  { href: '/estoque', label: 'Estoque', icon: Package, nicheGate: ESTOQUE_NICHES },
   { href: '/atendimento', label: 'Atendimento', icon: MessageCircle },
 ]
 
@@ -58,10 +59,13 @@ const textFull = { color: 'var(--sidebar-text)' }
 
 export function Sidebar({
   subscription,
+  nicheSlug,
 }: {
   subscription: { status: SubscriptionStatus; daysLeft: number | null }
+  nicheSlug: string | null
 }) {
   const pathname = usePathname()
+  const visibleLinks = LINKS.filter((link) => !link.nicheGate || (nicheSlug && link.nicheGate.has(nicheSlug)))
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showRenewModal, setShowRenewModal] = useState(false)
@@ -134,7 +138,7 @@ export function Sidebar({
         </div>
 
         <nav className="sidebar-nav flex flex-1 flex-col gap-1 overflow-y-auto px-2">
-          {LINKS.map((link) => {
+          {visibleLinks.map((link) => {
             const active = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)
             const Icon = link.icon
             return (

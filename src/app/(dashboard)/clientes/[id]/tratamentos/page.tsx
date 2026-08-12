@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { ClientTabs } from '@/components/clientes/ClientTabs'
 import { TreatmentForm } from '@/components/tratamentos/TreatmentForm'
 import { TreatmentStatusSelect } from '@/components/tratamentos/TreatmentStatusSelect'
@@ -12,6 +13,8 @@ export default async function TratamentosPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const nicheSlug = await getCurrentTenantNicheSlug()
+  if (nicheSlug !== 'dentista') notFound()
 
   const { data: client } = await supabase.from('clients').select('id, name').eq('id', id).single()
   if (!client) notFound()
@@ -30,7 +33,7 @@ export default async function TratamentosPage({
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold text-text">{client.name}</h1>
-      <ClientTabs clientId={id} active="tratamentos" />
+      <ClientTabs clientId={id} active="tratamentos" nicheSlug={nicheSlug} />
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-text">Odontograma</h2>

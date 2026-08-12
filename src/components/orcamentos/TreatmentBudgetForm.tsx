@@ -31,10 +31,12 @@ export function TreatmentBudgetForm({
   clientId,
   services,
   professionals,
+  isDentist,
 }: {
   clientId: string
   services: Service[]
   professionals: Professional[]
+  isDentist: boolean
 }) {
   const [items, setItems] = useState<BudgetItem[]>([emptyItem()])
   const [downPayment, setDownPayment] = useState(0)
@@ -166,18 +168,20 @@ export function TreatmentBudgetForm({
                 value={item.description}
                 onChange={(e) => updateItem(i, { description: e.target.value })}
               />
-              <select
-                className="w-24 rounded-lg border border-border bg-bg px-2 py-2 text-sm text-text outline-none focus:border-accent"
-                value={item.tooth_number}
-                onChange={(e) => updateItem(i, { tooth_number: e.target.value })}
-              >
-                <option value="">Dente</option>
-                {ALL_TEETH.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+              {isDentist && (
+                <select
+                  className="w-24 rounded-lg border border-border bg-bg px-2 py-2 text-sm text-text outline-none focus:border-accent"
+                  value={item.tooth_number}
+                  onChange={(e) => updateItem(i, { tooth_number: e.target.value })}
+                >
+                  <option value="">Dente</option>
+                  {ALL_TEETH.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              )}
               <input
                 type="number"
                 min={1}
