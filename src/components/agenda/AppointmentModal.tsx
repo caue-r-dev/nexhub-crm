@@ -147,32 +147,42 @@ export function AppointmentModal({
   async function handleCreateClient() {
     if (!newClientName.trim()) return
     setCreatingClient(true)
-    const result = await createClientQuickAction({ name: newClientName, phone: newClientPhone })
-    setCreatingClient(false)
-    if ('error' in result) {
-      setError(result.error ?? null)
-      return
+    try {
+      const result = await createClientQuickAction({ name: newClientName, phone: newClientPhone })
+      if ('error' in result) {
+        setError(result.error ?? null)
+        return
+      }
+      setClients((prev) => [...prev, result.client])
+      setClientId(result.client.id)
+      setShowNewClient(false)
+      setNewClientName('')
+      setNewClientPhone('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível cadastrar o cliente.')
+    } finally {
+      setCreatingClient(false)
     }
-    setClients((prev) => [...prev, result.client])
-    setClientId(result.client.id)
-    setShowNewClient(false)
-    setNewClientName('')
-    setNewClientPhone('')
   }
 
   async function handleCreateLabel() {
     if (!newLabelName.trim()) return
     setCreatingLabel(true)
-    const result = await createLabelAction({ name: newLabelName, color: newLabelColor })
-    setCreatingLabel(false)
-    if ('error' in result) {
-      setError(result.error ?? null)
-      return
+    try {
+      const result = await createLabelAction({ name: newLabelName, color: newLabelColor })
+      if ('error' in result) {
+        setError(result.error ?? null)
+        return
+      }
+      setLabels((prev) => [...prev, result.label])
+      setLabelId(result.label.id)
+      setShowNewLabel(false)
+      setNewLabelName('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível criar a etiqueta.')
+    } finally {
+      setCreatingLabel(false)
     }
-    setLabels((prev) => [...prev, result.label])
-    setLabelId(result.label.id)
-    setShowNewLabel(false)
-    setNewLabelName('')
   }
 
   function handleSubmit(e: React.FormEvent) {

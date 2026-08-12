@@ -60,7 +60,7 @@ export function ProfessionalForm({
       </div>
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-text">Registro profissional (CRO/CRM)</span>
+        <span className="text-sm font-medium text-text">Registro profissional</span>
         <input
           className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
           value={registrationNumber}
