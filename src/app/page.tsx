@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
   Check,
   MessageCircle,
@@ -227,9 +228,9 @@ export default function NexHubLanding() {
           <a href="#confianca" className="hover:opacity-70">Confiabilidade</a>
         </div>
         <div className="flex items-center gap-4">
-          <button className="text-sm font-medium" style={{ color: "#0F6E56" }}>
+          <Link href="/login" className="text-sm font-medium hover:opacity-80" style={{ color: "#0F6E56" }}>
             Entrar
-          </button>
+          </Link>
           <a
             href={WHATSAPP_LINK}
             target="_blank"
