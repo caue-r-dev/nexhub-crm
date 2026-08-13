@@ -42,7 +42,7 @@ export function ResetPasswordForm() {
         setError(error.message)
         return
       }
-      router.replace('/')
+      router.replace('/painel')
     })
   }
 

@@ -35,7 +35,7 @@ import { ESTOQUE_NICHES, PROCESSOS_NICHES } from '@/lib/niche-features'
 const VETERINARIO_NICHES = new Set(['veterinario'])
 
 const LINKS = [
-  { href: '/', label: 'Início', icon: Home },
+  { href: '/painel', label: 'Início', icon: Home },
   { href: '/agenda', label: 'Agenda', icon: Calendar },
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/animais', label: 'Animais', icon: PawPrint, nicheGate: VETERINARIO_NICHES },
@@ -123,7 +123,7 @@ export function Sidebar({
         } ${collapsed ? 'md:w-16' : 'md:w-60'}`}
       >
         <div className="flex h-16 items-center justify-between px-3">
-          <Link href="/" className="flex min-w-0 items-center gap-2">
+          <Link href="/painel" className="flex min-w-0 items-center gap-2">
             {collapsed ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src="/brand/nexhub-icon.png" alt="NexHub" className="hidden h-8 w-8 shrink-0 md:block" />
@@ -145,7 +145,7 @@ export function Sidebar({
 
         <nav className="sidebar-nav flex flex-1 flex-col gap-1 overflow-y-auto px-2">
           {visibleLinks.map((link) => {
-            const active = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)
+            const active = link.href === '/painel' ? pathname === '/painel' : pathname.startsWith(link.href)
             const Icon = link.icon
             return (
               <Link

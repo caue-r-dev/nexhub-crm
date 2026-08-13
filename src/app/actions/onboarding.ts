@@ -34,5 +34,5 @@ export async function completeOnboardingAction(input: OnboardingInput): Promise<
 
   if (error) return { error: error.message }
 
-  redirect('/')
+  redirect('/painel')
 }

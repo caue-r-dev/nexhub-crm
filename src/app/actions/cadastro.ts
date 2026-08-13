@@ -64,5 +64,5 @@ export async function cadastroAction(input: CadastroInput): Promise<CadastroResu
     return { error: signInError.message }
   }
 
-  redirect('/')
+  redirect('/painel')
 }

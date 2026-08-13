@@ -12,7 +12,7 @@ export async function loginAction(input: { email: string; password: string }) {
     return { error: error.message }
   }
 
-  redirect('/')
+  redirect('/painel')
 }
 
 export async function forgotPasswordAction(

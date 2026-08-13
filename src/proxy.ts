@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login', '/cadastro', '/reset-password']
+const DASHBOARD_HOME = '/painel'
 // Acessível com ou sem sessão — paciente sem conta usa pra marcar consulta
 // sozinho, mas funcionário logado também pode abrir pra conferir o próprio
 // link. Diferente de PUBLIC_ROUTES: não redireciona quem já está logado.
@@ -48,8 +49,11 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
   const isOpenRoute = OPEN_ROUTES.some((route) => pathname.startsWith(route))
+  // "/" é a landing page pública — quem não está logado vê ela direto, sem
+  // ricochetear pro /login (diferente do resto do dashboard).
+  const isLanding = pathname === '/'
 
-  if (!user && !isPublicRoute && !isOpenRoute) {
+  if (!user && !isPublicRoute && !isOpenRoute && !isLanding) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -57,11 +61,20 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
+  // Quem já está logado e cai na landing vai direto pro painel — não faz
+  // sentido mostrar página de marketing pra quem já é cliente.
+  if (user && isLanding) {
+    return NextResponse.redirect(new URL(DASHBOARD_HOME, request.url))
+  }
+  if (!user && isLanding) {
+    return response
+  }
+
   // /reset-password é público mas o link de recovery do Supabase autentica o
   // usuário (sessão temporária só pra trocar a senha) — não pode cair na
   // regra abaixo ou o redirect tira o usuário da tela antes dele trocar.
   if (user && isPublicRoute && pathname !== '/reset-password') {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL(DASHBOARD_HOME, request.url))
   }
 
   if (user && !isPublicRoute) {
@@ -81,7 +94,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(TROCAR_SENHA_ROUTE, request.url))
     }
     if (!userRow?.must_change_password && pathname === TROCAR_SENHA_ROUTE) {
-      return NextResponse.redirect(new URL('/', request.url))
+      return NextResponse.redirect(new URL(DASHBOARD_HOME, request.url))
     }
 
     // Onboarding só é checado depois da troca de senha resolvida — senão
@@ -94,7 +107,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url))
       }
       if (pathname === ONBOARDING_ROUTE && tenant?.onboarding_completed) {
-        return NextResponse.redirect(new URL('/', request.url))
+        return NextResponse.redirect(new URL(DASHBOARD_HOME, request.url))
       }
     }
   }

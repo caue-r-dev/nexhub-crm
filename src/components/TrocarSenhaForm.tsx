@@ -32,7 +32,7 @@ export function TrocarSenhaForm() {
         setError(result.error)
         return
       }
-      router.replace('/')
+      router.replace('/painel')
       router.refresh()
     })
   }
