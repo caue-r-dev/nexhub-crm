@@ -81,6 +81,9 @@ export async function createAppointmentAction(input: AppointmentInput) {
   })
 
   if (error) {
+    if (error.code === '23P01') {
+      return { error: 'Esse profissional já tem outro compromisso nesse horário.' }
+    }
     return { error: error.message }
   }
 

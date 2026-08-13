@@ -211,6 +211,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     .select('id')
     .single()
 
+  if (apptError?.code === '23P01') {
+    return NextResponse.json({ error: 'Esse horário acabou de ser ocupado. Escolha outro.' }, { status: 409 })
+  }
   if (apptError || !appointment) {
     return NextResponse.json({ error: apptError?.message ?? 'Erro ao criar agendamento.' }, { status: 500 })
   }
