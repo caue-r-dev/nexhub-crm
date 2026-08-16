@@ -10,35 +10,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTemplate, getStoredTemplate } from '@/lib/message-templates'
 import { decideBotTurn, HANDOFF_FALLBACK_MESSAGE, type ConversationMessage } from '@/lib/conversational-bot'
-import { sendWhatsAppText } from '@/lib/evolution'
-import { getConnectionState } from '@/lib/evolution-admin'
 import type { BusinessHours } from '@/lib/supabase/types'
-
-// Mesmo canal do alerta de saúde do WhatsApp (whatsapp-health/route.ts) —
-// SEMPRE a instância pessoal do admin, nunca uma instância de cliente real
-// (incidente confirmado em produção com o alerta antigo, ver commit
-// c98d911). Avisa só o admin, nunca o paciente nem a clínica — dono decidiu
-// não expor falha de julgamento da IA pra quem não sabe o que fazer com
-// isso.
-const ALERT_PHONE = '15981504416'
-const ALERT_RELAY_INSTANCE_NAME = process.env.ALERT_RELAY_INSTANCE_NAME || 'nexhub-006c5168'
-
-// Só dispara na TRANSIÇÃO pra escalado (edge-triggered) — não repete alerta
-// a cada mensagem enquanto a conversa continuar pausada. Best-effort: falha
-// no alerta nunca deve derrubar o fluxo principal do bot.
-async function alertAdminOfUnexpectedEscalation(tenantName: string, phone: string): Promise<void> {
-  try {
-    const relayState = await getConnectionState(ALERT_RELAY_INSTANCE_NAME)
-    if (relayState !== 'open') return
-    await sendWhatsAppText(
-      { baseUrl: process.env.EVOLUTION_BASE_URL!, apiKey: process.env.EVOLUTION_API_KEY!, instanceName: ALERT_RELAY_INSTANCE_NAME },
-      ALERT_PHONE,
-      `⚠️ Bot pausou sozinho (handoff da IA) — ${tenantName}, contato ${phone}. Conversa esperando atendimento manual.`
-    )
-  } catch (e) {
-    console.error('[bot-engine] falha ao alertar admin sobre escalação:', e)
-  }
-}
 
 const WEEKDAY_LABELS: Record<keyof BusinessHours, string> = {
   monday: 'seg',
@@ -411,10 +383,6 @@ export async function getBotReply(
   if (!saved) {
     console.error(`[bot-engine] perdeu a corrida de gravação mesmo com lock: tenant=${tenant.id} phone=${phone}`)
     return null
-  }
-
-  if (turn.handoff && !state.escalated) {
-    await alertAdminOfUnexpectedEscalation(tenant.name, phone)
   }
 
   return turn.reply
