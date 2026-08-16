@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { isSessionExpired, isOutgoingMessageFresh } from './bot-engine'
+import { isSessionExpired, isOutgoingMessageFresh, isClosedToday } from './bot-engine'
+import type { BusinessHours } from './supabase/types'
+
+const activeDay = { start: '09:00', end: '18:00', active: true }
+const inactiveDay = { start: '09:00', end: '18:00', active: false }
 
 describe('isSessionExpired', () => {
   it('retorna false quando updatedAt é null (sessão nunca salva)', () => {
@@ -72,5 +76,42 @@ describe('isOutgoingMessageFresh', () => {
     const createdAtSec = now / 1000 - 50
     expect(isOutgoingMessageFresh(createdAtSec, now, 30)).toBe(false)
     expect(isOutgoingMessageFresh(createdAtSec, now, 60)).toBe(true)
+  })
+})
+
+describe('isClosedToday', () => {
+  // 2023-01-01 é domingo, 2023-01-02 é segunda — datas âncora conhecidas,
+  // sem depender da data "hoje" do sistema.
+  const sunday = new Date(2023, 0, 1)
+  const monday = new Date(2023, 0, 2)
+
+  it('retorna false quando business_hours é null (sem horário configurado)', () => {
+    expect(isClosedToday(null, sunday)).toBe(false)
+  })
+
+  it('retorna true no domingo quando domingo está desativado', () => {
+    const hours: BusinessHours = {
+      monday: activeDay,
+      tuesday: activeDay,
+      wednesday: activeDay,
+      thursday: activeDay,
+      friday: activeDay,
+      saturday: inactiveDay,
+      sunday: inactiveDay,
+    }
+    expect(isClosedToday(hours, sunday)).toBe(true)
+  })
+
+  it('retorna false na segunda quando segunda está ativa', () => {
+    const hours: BusinessHours = {
+      monday: activeDay,
+      tuesday: activeDay,
+      wednesday: activeDay,
+      thursday: activeDay,
+      friday: activeDay,
+      saturday: inactiveDay,
+      sunday: inactiveDay,
+    }
+    expect(isClosedToday(hours, monday)).toBe(false)
   })
 })

@@ -46,6 +46,42 @@ function formatBusinessHours(hours: BusinessHours | null): string {
 const DEFAULT_CONTATO_RECORRENTE =
   'Olá! Que bom ter você de volta. Já te conhecemos por aqui — em breve alguém da equipe retorna sua mensagem. Se for urgente, me conta o que você precisa que já sinalizamos.'
 
+const DEFAULT_MENSAGEM_AUSENCIA =
+  'Hoje não temos atendimento por aqui — assim que abrirmos, te respondemos! Se for urgente, deixa sua mensagem que já vemos com atenção assim que voltarmos.'
+
+// Date.getDay() é 0=domingo...6=sábado — mesma ordem usada aqui pra bater
+// com a chave certa de BusinessHours.
+const WEEKDAY_ORDER: (keyof BusinessHours)[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+// Checagem determinística (não depende da IA "saber" que hoje é feriado/
+// fim de semana) — muitos profissionais não atendem sábado/domingo, e
+// confiar só no julgamento do Gemini pra isso é arriscado. Sem horário
+// configurado pra hoje = considera fechado (fail-safe: sem atendente,
+// melhor avisar do que fingir que tem alguém disponível).
+export function isClosedToday(businessHours: BusinessHours | null, now: Date): boolean {
+  if (!businessHours) return false
+  const key = WEEKDAY_ORDER[now.getDay()]
+  return businessHours[key]?.active !== true
+}
+
+// Feriado nacional (BrasilAPI, gratuita, sem cadastro) — não cobre feriado
+// municipal/estadual nem recesso específico da clínica, só o calendário
+// nacional. Falha de rede/timeout nunca deve travar o atendimento normal —
+// fail-safe pro lado de "não é feriado" (segue o fluxo normal), já que a
+// checagem de dia da semana continua valendo de qualquer jeito.
+async function isNationalHoliday(now: Date): Promise<boolean> {
+  try {
+    const year = now.getFullYear()
+    const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`, { signal: AbortSignal.timeout(3000) })
+    if (!res.ok) return false
+    const holidays = (await res.json()) as { date: string }[]
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    return holidays.some((h) => h.date === todayStr)
+  } catch {
+    return false
+  }
+}
+
 const ROTEIRO_STAGES = [
   { key: 'primeiro_contato', label: 'Primeiro contato' },
   { key: 'pergunta_queixa', label: 'Entender a necessidade' },
@@ -261,6 +297,22 @@ export async function getBotReply(
   // ficou mudo pra "quais as formas de pagamento?" só porque tinha mandado
   // o link na resposta anterior — não fazia sentido).
   if (state.escalated) return null
+
+  // Hoje o dia não tem atendimento (fim de semana/feriado sem horário
+  // marcado) — checagem determinística, não depende da IA reconhecer isso
+  // sozinha. Vale pra qualquer contato (lead novo, recorrente ou cliente
+  // já cadastrado), sempre na frente dos outros casos.
+  const now = new Date()
+  if (isClosedToday(tenant.business_hours, now) || (await isNationalHoliday(now))) {
+    const message = await resolveTemplate(tenant.id, 'mensagem_ausencia', { nome_clinica: tenant.name }, DEFAULT_MENSAGEM_AUSENCIA)
+    const saved = await saveConversationStateIfUnchanged(tenant.id, phone, state.expectedUpdatedAt, {
+      messages: [...state.messages, { role: 'paciente', text: incomingText }, { role: 'bot', text: message }],
+      captured_data: state.captured_data,
+      done: state.done,
+      escalated: true,
+    })
+    return saved ? message : null
+  }
 
   // Lead que já falou antes e a sessão expirou (mas NUNCA virou cliente de
   // fato) — não repete o discurso de lead novo, manda um "recebemos, já te

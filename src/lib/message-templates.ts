@@ -80,7 +80,7 @@ const DEFAULT_TEMPLATE_CONTENT: Record<(typeof TEMPLATE_KEYS)[number]['key'], st
   primeiro_contato: 'Olá! Boas-vindas à {{nome_clinica}}. Ficamos felizes com seu contato! Pra te conhecer melhor: qual o seu nome?',
   pergunta_queixa: 'Prazer! Pra te atender melhor, me conta: o que você está buscando ou o que gostaria de resolver?',
   explicacao_processo:
-    'Combinamos assim: primeiro um atendimento inicial com {{nome_profissional}}, pra entender direitinho o que você precisa e te passar todos os detalhes. Podemos agendar esse primeiro atendimento?',
+    'Levando em conta o que o paciente disse ser a necessidade dele, explicar que o primeiro passo é um atendimento inicial com {{nome_profissional}}, focado exatamente nisso, que vai entender melhor o caso e montar um plano personalizado. Perguntar se pode agendar esse atendimento inicial.',
   valor_e_horarios: 'O valor do atendimento inicial é {{valor_consulta}}. Atendemos {{horario_atendimento}}. Quando prefere vir?',
   agendamento_confirmado:
     'Agendado para {{data_consulta}} às {{horario_consulta}}! Pra facilitar sua vinda: aceitamos Pix, cartão e dinheiro. Ficamos em {{endereco}}. Chegue com 5 minutos de antecedência. Qualquer dúvida é só chamar — te esperamos!',
@@ -94,6 +94,8 @@ const DEFAULT_TEMPLATE_CONTENT: Record<(typeof TEMPLATE_KEYS)[number]['key'], st
     'Olá! Que bom ter você de volta. Já te conhecemos por aqui — em breve alguém da equipe retorna sua mensagem. Se for urgente, me conta o que você precisa que já sinalizamos.',
   campanha_sem_visita: 'Olá {{nome_cliente}}! Faz um tempo que não te vemos por aqui (última visita: {{ultima_visita}}). Quer marcar um retorno?',
   campanha_orcamento_aberto: 'Olá {{nome_cliente}}! Seu orçamento de {{valor_orcamento}} continua disponível. Posso te ajudar a agendar?',
+  mensagem_ausencia:
+    'Hoje não temos atendimento por aqui — assim que abrirmos, te respondemos! Se for urgente, deixa sua mensagem que já vemos com atenção assim que voltarmos.',
 }
 
 // Chamado uma vez, logo após criar o tenant (ver src/app/actions/cadastro.ts)
@@ -123,4 +125,5 @@ export const TEMPLATE_KEYS = [
   { key: 'contato_recorrente', label: 'Contato que já falou antes (sessão expirada)' },
   { key: 'campanha_sem_visita', label: 'Campanha — sem visita há um tempo' },
   { key: 'campanha_orcamento_aberto', label: 'Campanha — orçamento em aberto' },
+  { key: 'mensagem_ausencia', label: 'Mensagem de ausência (fora do dia/horário de atendimento)' },
 ] as const
