@@ -13,6 +13,9 @@ import { getBotReply, markEscalatedIfHumanSent } from '@/lib/bot-engine'
 import { markCampaignRecipientResponded } from '@/lib/campaigns'
 import { sendWhatsAppText } from '@/lib/evolution'
 import { isExistingClient } from '@/lib/existing-client'
+import { acquireContactLock, releaseContactLock } from '@/lib/contact-lock'
+import { resolveTemplate } from '@/lib/message-templates'
+import { HANDOFF_FALLBACK_MESSAGE } from '@/lib/conversational-bot'
 
 function normalize(text: string): string {
   return text
@@ -129,20 +132,47 @@ export async function POST(request: Request) {
   // de cada estágio, não decide o fluxo). Quem já é cliente cadastrado não
   // recebe o discurso de "lead novo", mas ainda recebe um aviso de
   // recebimento (ver getBotReply) — nunca silêncio total sem explicação.
+  //
+  // Lock por contato (tenant_id + phone) serializa mensagens seguidas do
+  // MESMO contato — sem isso, duas mensagens quase simultâneas rodam a IA
+  // em paralelo e a que perde a corrida de gravação em conversation_state
+  // é descartada em silêncio (bug confirmado em produção). Contatos
+  // diferentes nunca esperam um pelo outro.
   if (tenant.bot_enabled && tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
+    const evolutionConfig = {
+      baseUrl: tenant.evolution_base_url,
+      apiKey: tenant.evolution_api_key,
+      instanceName: tenant.evolution_instance_name,
+    }
+
+    const lockToken = await acquireContactLock(tenant.id, phone)
+    if (!lockToken) {
+      // Orçamento de espera pelo lock estourou (fila desse contato
+      // específico muito cheia) — desiste de esperar a vez e manda a
+      // mensagem de ausência direto, sem chamar a IA. Fallback puramente
+      // determinístico, nunca fica em silêncio.
+      console.error(`[chatwoot-webhook] lock ocupado além do orçamento de espera: tenant=${tenant.id} phone=${phone}`)
+      try {
+        const fallback = await resolveTemplate(tenant.id, 'escalar_atendimento_humano', {}, HANDOFF_FALLBACK_MESSAGE)
+        await sendWhatsAppText(evolutionConfig, phone, fallback)
+      } catch (e) {
+        console.error('[chatwoot-webhook] falha ao mandar fallback de lock ocupado:', e)
+      }
+      return NextResponse.json({ ok: true })
+    }
+
     try {
       const alreadyClient = await isExistingClient(tenant.id, phone)
       const reply = await getBotReply(tenant, phone, content, alreadyClient)
       if (reply) {
-        await sendWhatsAppText(
-          { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },
-          phone,
-          reply
-        )
+        await sendWhatsAppText(evolutionConfig, phone, reply)
       }
-    } catch {
+    } catch (e) {
       // Falha do bot não deve derrubar o webhook — mensagem original do
       // paciente já chegou no Chatwoot normalmente, humano pode assumir.
+      console.error('[chatwoot-webhook] erro processando mensagem do bot:', e)
+    } finally {
+      await releaseContactLock(tenant.id, phone, lockToken)
     }
   }
 
