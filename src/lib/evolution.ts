@@ -36,20 +36,39 @@ async function logGhostSocketIncident(instanceName: string, errorMessage: string
   }
 }
 
-// 1 retry automático em falha de rede/status não-2xx antes de desistir —
-// toda falha (mesmo depois do retry) fica logada, nunca engolida em
-// silêncio (aconteceu: falha de envio sumia sem log nenhum no catch do
-// webhook do Chatwoot).
+// 1 retry automático em falha de rede/status 5xx antes de desistir — toda
+// falha (mesmo depois do retry) fica logada, nunca engolida em silêncio
+// (aconteceu: falha de envio sumia sem log nenhum no catch do webhook do
+// Chatwoot). Timeout de 15s no fetch: sem ele, um socket pendurado (ver
+// feedback_evolution_ghost_socket_restart) segura essa chamada
+// indefinidamente, o que também estoura o orçamento do lock de contato
+// (contact-lock.ts).
+//
+// Falha de rede (fetch rejeitando — ECONNRESET, DNS, socket hang-up, o
+// modo de falha mais comum do bug de socket fantasma) sempre retenta,
+// porque não dá pra saber se chegou a entregar. Já status HTTP só retenta
+// em 5xx: 4xx é determinístico (número inválido, apikey errada) — retry
+// não ajuda, só dobra a latência antes de desistir — e um 5xx que chegou
+// DEPOIS da mensagem já ter sido entregue de verdade é raro o bastante
+// pra aceitar o risco de retry, mas 4xx não tem essa desculpa nenhuma.
 async function postToEvolution(config: EvolutionConfig, path: string, body: unknown): Promise<Response> {
   const attempt = () =>
     fetch(`${config.baseUrl}${path}`, {
       method: 'POST',
       headers: { apikey: config.apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
     })
 
-  let res = await attempt()
-  if (!res.ok) {
+  let res: Response
+  try {
+    res = await attempt()
+  } catch (e) {
+    console.error(`[evolution] POST ${path} falhou por erro de rede na 1ª tentativa, tentando de novo:`, e)
+    return attempt()
+  }
+
+  if (!res.ok && res.status >= 500) {
     console.error(`[evolution] POST ${path} falhou (status ${res.status}) na 1ª tentativa, tentando de novo`)
     res = await attempt()
   }

@@ -17,6 +17,12 @@ import { acquireContactLock, releaseContactLock } from '@/lib/contact-lock'
 import { resolveTemplate } from '@/lib/message-templates'
 import { HANDOFF_FALLBACK_MESSAGE } from '@/lib/conversational-bot'
 
+// Pior caso de uma invocação: queries no Supabase + até 9s de poll
+// esperando o lock (WAIT_BUDGET_MS) + até ~46s de processamento (Gemini
+// com retry + envio WhatsApp com retry, ver contact-lock.ts) se ela
+// conseguir a vez — passa fácil do limite default de função serverless.
+export const maxDuration = 60
+
 function normalize(text: string): string {
   return text
     .trim()

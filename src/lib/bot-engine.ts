@@ -341,7 +341,10 @@ export async function getBotReply(
   // Perdeu a corrida: outra mensagem concorrente do mesmo contato já
   // escreveu nessa conversa enquanto essa aqui rodava — não manda, senão
   // duplica/desalinha a resposta.
-  if (!saved) return null
+  if (!saved) {
+    console.error(`[bot-engine] perdeu a corrida de gravação mesmo com lock: tenant=${tenant.id} phone=${phone}`)
+    return null
+  }
 
   return turn.reply
 }

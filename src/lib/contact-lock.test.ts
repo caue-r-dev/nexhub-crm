@@ -8,9 +8,9 @@ describe('isLockStale', () => {
     expect(isLockStale(lockedAt, now)).toBe(false)
   })
 
-  it('retorna true pra lock mais velho que o limite padrão (~20s)', () => {
+  it('retorna true pra lock mais velho que o limite padrão (~60s)', () => {
     const lockedAt = '2026-08-16T12:00:00-03:00'
-    const now = new Date('2026-08-16T12:00:25-03:00')
+    const now = new Date('2026-08-16T12:01:05-03:00')
     expect(isLockStale(lockedAt, now)).toBe(true)
   })
 

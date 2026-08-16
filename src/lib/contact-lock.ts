@@ -7,7 +7,12 @@
 // processamento (chamada ao Gemini, envio WhatsApp) terminar.
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const STALE_LOCK_MS = 20_000
+// Pior caso real de retenção do lock: até 16s só na chamada ao Gemini
+// (DEFAULT_TIMEOUT_MS = 8000 em conversational-bot.ts, vezes 2 tentativas
+// de retry) + várias queries no Supabase + até duas tentativas de envio
+// pro WhatsApp (postToEvolution, 15s de timeout cada = até 30s) — dá pra
+// passar de 20s tranquilo. 60s cobre esse pior caso (~46s) com boa margem.
+const STALE_LOCK_MS = 60_000
 const WAIT_BUDGET_MS = 9_000
 const POLL_INTERVAL_MS = 300
 
