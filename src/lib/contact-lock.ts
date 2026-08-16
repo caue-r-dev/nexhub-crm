@@ -21,10 +21,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function tryClaim(tenantId: string, phone: string): Promise<boolean> {
+async function tryClaim(tenantId: string, phone: string): Promise<string | null> {
   const admin = createAdminClient()
-  const { error } = await admin.from('contact_locks').insert({ tenant_id: tenantId, contact_phone: phone })
-  return !error
+  const lockedAt = new Date().toISOString()
+  const { error } = await admin.from('contact_locks').insert({ tenant_id: tenantId, contact_phone: phone, locked_at: lockedAt })
+  return error ? null : lockedAt
 }
 
 async function clearIfStale(tenantId: string, phone: string): Promise<void> {
@@ -50,19 +51,28 @@ async function clearIfStale(tenantId: string, phone: string): Promise<void> {
 
 // Tenta pegar o lock; se outro processo do mesmo contato já tá segurando,
 // espera até WAIT_BUDGET_MS liberando (limpando lock morto no caminho).
-// Retorna false só quando estourou o orçamento de espera — quem chamar
-// deve mandar o fallback de ausência direto nesse caso, sem IA.
-export async function acquireContactLock(tenantId: string, phone: string): Promise<boolean> {
+// Retorna o token locked_at do claim (passar pra releaseContactLock) ou
+// null se estourou o orçamento de espera — quem chamar deve mandar o
+// fallback de ausência direto nesse caso, sem IA.
+export async function acquireContactLock(tenantId: string, phone: string): Promise<string | null> {
   const deadline = Date.now() + WAIT_BUDGET_MS
   while (Date.now() < deadline) {
-    if (await tryClaim(tenantId, phone)) return true
+    const claimed = await tryClaim(tenantId, phone)
+    if (claimed) return claimed
     await clearIfStale(tenantId, phone)
     await sleep(POLL_INTERVAL_MS)
   }
   return tryClaim(tenantId, phone)
 }
 
-export async function releaseContactLock(tenantId: string, phone: string): Promise<void> {
+// Só apaga se o lock ainda for o mesmo que essa chamada reclamou
+// (locked_at bate) — se outro processo já reclamou a linha nesse
+// meio-tempo (lock anterior expirou por STALE_LOCK_MS e foi reclamado de
+// novo), essa chamada NÃO apaga o lock do novo dono. Sem isso, um
+// processo lento que demora mais que STALE_LOCK_MS pra terminar apagaria
+// o lock de quem assumiu no meio do caminho, reabrindo a race condition
+// original.
+export async function releaseContactLock(tenantId: string, phone: string, lockedAt: string): Promise<void> {
   const admin = createAdminClient()
-  await admin.from('contact_locks').delete().eq('tenant_id', tenantId).eq('contact_phone', phone)
+  await admin.from('contact_locks').delete().eq('tenant_id', tenantId).eq('contact_phone', phone).eq('locked_at', lockedAt)
 }
