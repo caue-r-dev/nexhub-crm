@@ -127,12 +127,12 @@ export async function POST(request: Request) {
   // Sem consulta pendente pra confirmar/cancelar — passa pro bot de
   // primeiro contato (fluxo linear por template; a IA só humaniza o texto
   // de cada estágio, não decide o fluxo). Quem já é cliente cadastrado não
-  // recebe o discurso de "lead novo" — mensagem chega no Chatwoot normal,
-  // atendimento fica por conta de humano.
+  // recebe o discurso de "lead novo", mas ainda recebe um aviso de
+  // recebimento (ver getBotReply) — nunca silêncio total sem explicação.
   if (tenant.bot_enabled && tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
     try {
       const alreadyClient = await isExistingClient(tenant.id, phone)
-      const reply = alreadyClient ? null : await getBotReply(tenant, phone, content)
+      const reply = await getBotReply(tenant, phone, content, alreadyClient)
       if (reply) {
         await sendWhatsAppText(
           { baseUrl: tenant.evolution_base_url, apiKey: tenant.evolution_api_key, instanceName: tenant.evolution_instance_name },

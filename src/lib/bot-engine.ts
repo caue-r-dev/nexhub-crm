@@ -209,7 +209,12 @@ async function buildRoteiro(
 
 // Retorna o texto de resposta pra enviar, ou null se a conversa já tiver
 // terminado (link já enviado, "done") ou estiver escalada pra humano.
-export async function getBotReply(tenant: TenantInfo, phone: string, incomingText: string): Promise<string | null> {
+export async function getBotReply(
+  tenant: TenantInfo,
+  phone: string,
+  incomingText: string,
+  isExistingClient = false
+): Promise<string | null> {
   const state = await getConversationState(tenant.id, phone)
   // `escalated` é silêncio total (humano assumiu). `done` NÃO é — só quer
   // dizer "já mandou o link, não insista de novo à toa"; o bot continua
@@ -218,11 +223,13 @@ export async function getBotReply(tenant: TenantInfo, phone: string, incomingTex
   // o link na resposta anterior — não fazia sentido).
   if (state.escalated) return null
 
-  // Já falou com a gente antes (mesmo que a sessão tenha expirado) —
-  // não repete o roteiro de lead novo perguntando tudo de novo. Manda
-  // um "boas-vindas de volta" fixo e já escala pra humano — dono decidiu
-  // que ele mesmo assume a partir daqui.
-  if (state.hasHistory && state.isNewSession) {
+  // Cliente já cadastrado (ou lead que já falou antes e a sessão expirou)
+  // não deve receber o discurso de lead novo — manda um "recebemos, já te
+  // retornamos" fixo e escala pra humano. Isso SEMPRE dispara pra cliente
+  // já cadastrado, mesmo na primeira mensagem que ele manda depois de virar
+  // cliente — sem isso o webhook simplesmente ficava mudo (nem esse aviso
+  // saía), indistinguível de bot quebrado pra quem tá do outro lado.
+  if (isExistingClient || (state.hasHistory && state.isNewSession)) {
     const message = await resolveTemplate(tenant.id, 'contato_recorrente', { nome_clinica: tenant.name }, DEFAULT_CONTATO_RECORRENTE)
     const saved = await saveConversationStateIfUnchanged(tenant.id, phone, state.expectedUpdatedAt, {
       messages: [...state.messages, { role: 'paciente', text: incomingText }, { role: 'bot', text: message }],
