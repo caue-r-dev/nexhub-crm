@@ -314,7 +314,7 @@ export async function getBotReply(
   // (remarcar, cancelar, reenviar comprovante) ou que foge dos dados
   // conhecidos — mesma régua de handoff de sempre, não um bloqueio raso.
   const roteiro = isExistingClient
-    ? '1. Responder a dúvida do cliente usando só o que está em dados_conhecidos (endereço, horário, valor, profissional, link). Não repita saudação de boas-vindas nem pergunte nome de novo — já é cliente conhecido.\n2. Se o pedido exigir ação (remarcar, cancelar, reenviar comprovante/Pix, alterar agendamento) ou fugir do que os dados conhecidos cobrem, marque "handoff": true com uma resposta curta tipo "vou verificar e te retorno".'
+    ? '1. Responder a dúvida do cliente usando só o que está em dados_conhecidos (endereço, horário, valor, profissional, link, agendamento do paciente se houver). Não repita saudação de boas-vindas nem pergunte nome de novo — já é cliente conhecido.\n2. Pedido pra marcar/agendar um horário novo é self-service normal — mande o link de agendamento, isso NÃO é handoff.\n3. Só marque "handoff": true quando o pedido for pra REMARCAR ou CANCELAR um agendamento que já existe, reenviar comprovante/Pix, ou for algo que foge completamente do que dados_conhecidos cobre — nesses casos, resposta curta tipo "vou verificar e te retorno".'
     : await buildRoteiro(tenant.id, {
         primeiro_contato: `Dar boas-vindas em nome de "${tenant.name}" e perguntar o nome do contato.`,
         pergunta_queixa: 'Perguntar qual a necessidade específica ou o que a pessoa gostaria de resolver.',
