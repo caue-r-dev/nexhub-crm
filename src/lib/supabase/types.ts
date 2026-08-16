@@ -1130,6 +1130,27 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['evolution_incidents']['Insert']>
         Relationships: []
       }
+      contact_locks: {
+        Row: {
+          tenant_id: string
+          contact_phone: string
+          locked_at: string
+        }
+        Insert: {
+          tenant_id: string
+          contact_phone: string
+          locked_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['contact_locks']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'contact_locks_tenant_id_fkey'
+            columns: ['tenant_id']
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       prostheses: {
         Row: {
           id: string
