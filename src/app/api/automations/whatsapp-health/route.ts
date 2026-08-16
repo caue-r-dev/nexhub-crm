@@ -1,19 +1,27 @@
 // Chamado pelo n8n (cron periódico) — nunca pelo frontend. Varre todos os
 // tenants com instância Evolution configurada, confere o estado real da
-// conexão e avisa por WhatsApp (relay por qualquer instância que esteja
-// aberta) se algum estiver caído. Objetivo: descobrir a desconexão em
-// minutos, não quando o cliente reclamar.
+// conexão e avisa por WhatsApp se algum estiver caído. Objetivo: descobrir
+// a desconexão em minutos, não quando o cliente reclamar.
 //
 // Edge-triggered: só avisa quando o estado MUDA de aberto pra caído (ou
 // vice-versa), nunca repete o mesmo alerta a cada execução do cron —
 // antes mandava a mensagem de novo toda vez que rodava enquanto o tenant
 // continuasse desconectado, virou spam no WhatsApp do admin.
+//
+// O relay do alerta é SEMPRE a instância pessoal do admin (nunca uma
+// instância de cliente real) — incidente confirmado em produção: o alerta
+// pegava "qualquer instância aberta" pra relay e mandou aviso interno pelo
+// WhatsApp de uma clínica cliente pro celular do admin. Se a instância do
+// admin não estiver aberta, o alerta simplesmente não sai por WhatsApp
+// (fica só no retorno da rota pro log do n8n) — nunca cai pra fallback de
+// cliente.
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getConnectionState } from '@/lib/evolution-admin'
 import { sendWhatsAppText } from '@/lib/evolution'
 
 const ALERT_PHONE = '15981504416'
+const ALERT_RELAY_INSTANCE_NAME = process.env.ALERT_RELAY_INSTANCE_NAME || 'nexhub-006c5168'
 
 export async function POST(request: Request) {
   const apiKey = request.headers.get('x-api-key')
@@ -34,7 +42,6 @@ export async function POST(request: Request) {
 
   const down: { id: string; name: string; state: string }[] = []
   const recovered: { id: string; name: string }[] = []
-  let healthyInstanceName: string | null = null
 
   for (const tenant of tenants ?? []) {
     if (!tenant.evolution_instance_name) continue
@@ -47,7 +54,6 @@ export async function POST(request: Request) {
     }
 
     if (state === 'open') {
-      if (!healthyInstanceName) healthyInstanceName = tenant.evolution_instance_name
       if (tenant.last_whatsapp_state && tenant.last_whatsapp_state !== 'open') {
         recovered.push({ id: tenant.id, name: tenant.name })
       }
@@ -63,20 +69,24 @@ export async function POST(request: Request) {
   }
 
   let alertSent = false
-  if ((down.length > 0 || recovered.length > 0) && healthyInstanceName) {
+  if (down.length > 0 || recovered.length > 0) {
     const lines: string[] = []
     if (down.length > 0) lines.push(`⚠️ Caiu agora:\n${down.map((d) => `- ${d.name} (${d.state})`).join('\n')}`)
     if (recovered.length > 0) lines.push(`✅ Voltou:\n${recovered.map((r) => `- ${r.name}`).join('\n')}`)
     const message = lines.join('\n\n')
     try {
-      await sendWhatsAppText(
-        { baseUrl: process.env.EVOLUTION_BASE_URL!, apiKey: process.env.EVOLUTION_API_KEY!, instanceName: healthyInstanceName },
-        ALERT_PHONE,
-        message
-      )
-      alertSent = true
+      const relayState = await getConnectionState(ALERT_RELAY_INSTANCE_NAME)
+      if (relayState === 'open') {
+        await sendWhatsAppText(
+          { baseUrl: process.env.EVOLUTION_BASE_URL!, apiKey: process.env.EVOLUTION_API_KEY!, instanceName: ALERT_RELAY_INSTANCE_NAME },
+          ALERT_PHONE,
+          message
+        )
+        alertSent = true
+      }
     } catch {
-      // Sem instância saudável pra relay ou falha no envio — down list ainda
+      // Instância de relay do admin caída/inexistente ou falha no envio —
+      // NUNCA cai pra instância de cliente como fallback. down list ainda
       // fica disponível na resposta pra quem chamou (log do n8n).
     }
   }
