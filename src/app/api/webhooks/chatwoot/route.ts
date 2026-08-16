@@ -101,8 +101,20 @@ export async function POST(request: Request) {
   // "outgoing" cobre tanto o reply automático do bot quanto o dono
   // digitando direto no celular (não existe webhook nativo do WhatsApp
   // que diferencie os dois) — só serve pra detectar assunção manual.
+  //
+  // Reconectar o WhatsApp faz o Chatwoot reimportar o histórico inteiro da
+  // conversa (config de import ligada) e replay isso como eventos
+  // "outgoing" de novo — inclusive respostas antigas do próprio bot. Sem
+  // filtrar por idade, toda reconexão escalava (silenciava) qualquer
+  // conversa com histórico, mesmo sem humano ter digitado nada agora.
+  // `created_at` do Chatwoot vem em segundos unix; só trata como assunção
+  // manual de verdade se a mensagem for recente.
+  const OUTGOING_MAX_AGE_SEC = 120
   if (payload.message_type === 'outgoing') {
-    await markEscalatedIfHumanSent(tenant.id, phone, content)
+    const ageSec = payload.created_at ? Date.now() / 1000 - payload.created_at : 0
+    if (ageSec < OUTGOING_MAX_AGE_SEC) {
+      await markEscalatedIfHumanSent(tenant.id, phone, content)
+    }
     return NextResponse.json({ ok: true })
   }
 
