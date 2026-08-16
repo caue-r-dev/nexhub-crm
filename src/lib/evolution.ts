@@ -36,25 +36,35 @@ async function logGhostSocketIncident(instanceName: string, errorMessage: string
   }
 }
 
-export async function sendWhatsAppText(
-  config: EvolutionConfig,
-  phone: string,
-  text: string
-): Promise<void> {
+// 1 retry automático em falha de rede/status não-2xx antes de desistir —
+// toda falha (mesmo depois do retry) fica logada, nunca engolida em
+// silêncio (aconteceu: falha de envio sumia sem log nenhum no catch do
+// webhook do Chatwoot).
+async function postToEvolution(config: EvolutionConfig, path: string, body: unknown): Promise<Response> {
+  const attempt = () =>
+    fetch(`${config.baseUrl}${path}`, {
+      method: 'POST',
+      headers: { apikey: config.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+  let res = await attempt()
+  if (!res.ok) {
+    console.error(`[evolution] POST ${path} falhou (status ${res.status}) na 1ª tentativa, tentando de novo`)
+    res = await attempt()
+  }
+  return res
+}
+
+export async function sendWhatsAppText(config: EvolutionConfig, phone: string, text: string): Promise<void> {
   const number = normalizePhone(phone)
   if (!number) throw new Error('Telefone inválido.')
 
-  const res = await fetch(`${config.baseUrl}/message/sendText/${config.instanceName}`, {
-    method: 'POST',
-    headers: {
-      apikey: config.apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ number, text }),
-  })
+  const res = await postToEvolution(config, `/message/sendText/${config.instanceName}`, { number, text })
 
   if (!res.ok) {
     const body = await res.text()
+    console.error(`[evolution] envio de texto falhou definitivamente (${config.instanceName}): ${res.status} ${body}`)
     await logGhostSocketIncident(config.instanceName, body)
     throw new Error(`Evolution API ${res.status}: ${body}`)
   }
@@ -99,24 +109,18 @@ export async function sendWhatsAppImage(
 
   const base64 = imageDataUrl.replace(/^data:image\/\w+;base64,/, '')
 
-  const res = await fetch(`${config.baseUrl}/message/sendMedia/${config.instanceName}`, {
-    method: 'POST',
-    headers: {
-      apikey: config.apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      number,
-      mediatype: 'image',
-      mimetype: 'image/png',
-      media: base64,
-      fileName: 'pix-qrcode.png',
-      caption,
-    }),
+  const res = await postToEvolution(config, `/message/sendMedia/${config.instanceName}`, {
+    number,
+    mediatype: 'image',
+    mimetype: 'image/png',
+    media: base64,
+    fileName: 'pix-qrcode.png',
+    caption,
   })
 
   if (!res.ok) {
     const body = await res.text()
+    console.error(`[evolution] envio de imagem falhou definitivamente (${config.instanceName}): ${res.status} ${body}`)
     await logGhostSocketIncident(config.instanceName, body)
     throw new Error(`Evolution API ${res.status}: ${body}`)
   }
