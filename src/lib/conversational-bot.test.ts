@@ -90,4 +90,28 @@ describe('decideBotTurn', () => {
     const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', customMessage, generate)
     expect(result).toEqual({ reply: customMessage, extractedFacts: {}, handoff: true, done: false })
   })
+
+  it('tenta de novo uma vez quando a IA falha na primeira tentativa, e usa o resultado da segunda', async () => {
+    let calls = 0
+    const generate = async () => {
+      calls++
+      if (calls === 1) throw new Error('falha de rede transitória')
+      return JSON.stringify({ reply: 'Oi! (segunda tentativa)', extracted_facts: {}, handoff: false, done: false })
+    }
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', HANDOFF_FALLBACK_MESSAGE, generate)
+    expect(calls).toBe(2)
+    expect(result.reply).toBe('Oi! (segunda tentativa)')
+    expect(result.handoff).toBe(false)
+  })
+
+  it('cai pro fallback só depois de falhar nas duas tentativas (não em loop infinito)', async () => {
+    let calls = 0
+    const generate = async () => {
+      calls++
+      throw new Error('fora do ar')
+    }
+    const result = await decideBotTurn(roteiro, knownFacts, {}, [], 'oi', HANDOFF_FALLBACK_MESSAGE, generate)
+    expect(calls).toBe(2)
+    expect(result).toEqual({ reply: HANDOFF_FALLBACK_MESSAGE, extractedFacts: {}, handoff: true, done: false })
+  })
 })

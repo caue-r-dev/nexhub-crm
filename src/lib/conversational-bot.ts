@@ -161,12 +161,24 @@ export async function decideBotTurn(
   generate: GenerateFn = defaultGenerate,
   timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<BotTurn> {
+  const prompt = buildTurnPrompt(roteiro, knownFacts, capturedFacts, history, incomingText)
+
+  // 1 retry automático em falha de timeout/rede antes de cair no handoff
+  // determinístico — nunca depende da IA "lembrar" de responder. Falha de
+  // JSON inválido não passa por aqui (parseTurn trata isso sem lançar
+  // erro), só falha de chamada externa mesmo.
   try {
-    const prompt = buildTurnPrompt(roteiro, knownFacts, capturedFacts, history, incomingText)
+    const raw = await withTimeout(generate(prompt), timeoutMs)
+    return parseTurn(raw, knownFacts, handoffMessage)
+  } catch (firstErr) {
+    console.error('[conversational-bot] 1ª tentativa falhou, tentando de novo:', firstErr)
+  }
+
+  try {
     const raw = await withTimeout(generate(prompt), timeoutMs)
     return parseTurn(raw, knownFacts, handoffMessage)
   } catch (err) {
-    console.error('[conversational-bot] turno falhou, escalando:', err)
+    console.error('[conversational-bot] turno falhou após retry, escalando:', err)
     return { reply: handoffMessage, extractedFacts: {}, handoff: true, done: false }
   }
 }
