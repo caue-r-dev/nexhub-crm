@@ -108,6 +108,7 @@ export interface Database {
           social_media: string | null
           website_url: string | null
           last_whatsapp_state: string | null
+          connecting_since: string | null
           bot_enabled: boolean
           bot_context_notes: string | null
           public_booking_enabled: boolean
@@ -154,6 +155,7 @@ export interface Database {
           social_media?: string | null
           website_url?: string | null
           last_whatsapp_state?: string | null
+          connecting_since?: string | null
           bot_enabled?: boolean
           bot_context_notes?: string | null
           public_booking_enabled?: boolean

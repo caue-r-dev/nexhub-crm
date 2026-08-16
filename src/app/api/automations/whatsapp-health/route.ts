@@ -23,6 +23,16 @@ import { sendWhatsAppText } from '@/lib/evolution'
 const ALERT_PHONE = '15981504416'
 const ALERT_RELAY_INSTANCE_NAME = process.env.ALERT_RELAY_INSTANCE_NAME || 'nexhub-006c5168'
 
+// Instância nova (ou sessão que perdeu o par) fica em "connecting" até
+// alguém escanear o QR — isso é normal e não deve virar restart automático,
+// senão qualquer tenant demorando pra escanear derruba clientes reais que
+// estão bem (restart é global, ver evolution-restart.ts). Só depois de
+// preso por muito tempo SEM nenhuma transição pra "open" é que trata como o
+// bug de socket fantasma (mesma assinatura de sempre) e deixa o self-heal
+// reiniciar sozinho — folga generosa de propósito pra nunca incomodar
+// atendimento real por impaciência de QR.
+const CONNECTING_STUCK_THRESHOLD_MS = 20 * 60_000
+
 export async function POST(request: Request) {
   const apiKey = request.headers.get('x-api-key')
   if (!apiKey || apiKey !== process.env.AUTOMATION_API_KEY) {
@@ -33,7 +43,7 @@ export async function POST(request: Request) {
 
   const { data: tenants, error } = await admin
     .from('tenants')
-    .select('id, name, evolution_instance_name, last_whatsapp_state')
+    .select('id, name, evolution_instance_name, last_whatsapp_state, connecting_since')
     .not('evolution_instance_name', 'is', null)
 
   if (error) {
@@ -42,6 +52,7 @@ export async function POST(request: Request) {
 
   const down: { id: string; name: string; state: string }[] = []
   const recovered: { id: string; name: string }[] = []
+  const stuckConnecting: { id: string; name: string; instanceName: string; stuckSince: string }[] = []
 
   for (const tenant of tenants ?? []) {
     if (!tenant.evolution_instance_name) continue
@@ -57,15 +68,39 @@ export async function POST(request: Request) {
       if (tenant.last_whatsapp_state && tenant.last_whatsapp_state !== 'open') {
         recovered.push({ id: tenant.id, name: tenant.name })
       }
+      if (tenant.connecting_since) {
+        await admin.from('tenants').update({ connecting_since: null }).eq('id', tenant.id)
+      }
     } else if (tenant.last_whatsapp_state === 'open' || tenant.last_whatsapp_state === null) {
       // Só entra na lista de alerta na TRANSIÇÃO pra caído — se já estava
       // caído no ciclo anterior, não repete.
       down.push({ id: tenant.id, name: tenant.name, state })
     }
 
+    if (state === 'connecting') {
+      if (!tenant.connecting_since) {
+        await admin.from('tenants').update({ connecting_since: new Date().toISOString() }).eq('id', tenant.id)
+      } else if (Date.now() - new Date(tenant.connecting_since).getTime() > CONNECTING_STUCK_THRESHOLD_MS) {
+        stuckConnecting.push({ id: tenant.id, name: tenant.name, instanceName: tenant.evolution_instance_name, stuckSince: tenant.connecting_since })
+        // Reinicia o relógio já aqui — sem isso, cada execução do cron
+        // enquanto o incidente ainda não foi processado pelo self-heal
+        // insere um incidente novo pro mesmo travamento.
+        await admin.from('tenants').update({ connecting_since: new Date().toISOString() }).eq('id', tenant.id)
+      }
+    } else if (tenant.connecting_since) {
+      await admin.from('tenants').update({ connecting_since: null }).eq('id', tenant.id)
+    }
+
     if (state !== tenant.last_whatsapp_state) {
       await admin.from('tenants').update({ last_whatsapp_state: state }).eq('id', tenant.id)
     }
+  }
+
+  for (const tenant of stuckConnecting) {
+    await admin.from('evolution_incidents').insert({
+      instance_name: tenant.instanceName,
+      error_message: `connecting preso desde ${tenant.stuckSince} (>${CONNECTING_STUCK_THRESHOLD_MS / 60_000}min sem parear) - tenant ${tenant.name}`,
+    })
   }
 
   let alertSent = false
@@ -91,5 +126,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ checked: tenants?.length ?? 0, down, recovered, alertSent })
+  return NextResponse.json({ checked: tenants?.length ?? 0, down, recovered, stuckConnecting, alertSent })
 }
