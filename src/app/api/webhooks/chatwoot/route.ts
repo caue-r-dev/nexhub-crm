@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { confirmAppointment, cancelAppointment, findPendingAppointmentByPhone } from '@/lib/appointment-automation'
-import { getBotReply, markEscalatedIfHumanSent } from '@/lib/bot-engine'
+import { getBotReply, markEscalatedIfHumanSent, isOutgoingMessageFresh } from '@/lib/bot-engine'
 import { markCampaignRecipientResponded } from '@/lib/campaigns'
 import { sendWhatsAppText } from '@/lib/evolution'
 import { isExistingClient } from '@/lib/existing-client'
@@ -103,16 +103,12 @@ export async function POST(request: Request) {
   // que diferencie os dois) — só serve pra detectar assunção manual.
   //
   // Reconectar o WhatsApp faz o Chatwoot reimportar o histórico inteiro da
-  // conversa (config de import ligada) e replay isso como eventos
-  // "outgoing" de novo — inclusive respostas antigas do próprio bot. Sem
-  // filtrar por idade, toda reconexão escalava (silenciava) qualquer
-  // conversa com histórico, mesmo sem humano ter digitado nada agora.
-  // `created_at` do Chatwoot vem em segundos unix; só trata como assunção
-  // manual de verdade se a mensagem for recente.
-  const OUTGOING_MAX_AGE_SEC = 120
+  // conversa e replay isso como eventos "outgoing" de novo — inclusive
+  // respostas antigas do próprio bot. `isOutgoingMessageFresh` filtra por
+  // idade (formato de `created_at` não é garantido — ver comentário na
+  // função) pra reimport de histórico não escalar/silenciar o bot à toa.
   if (payload.message_type === 'outgoing') {
-    const ageSec = payload.created_at ? Date.now() / 1000 - payload.created_at : 0
-    if (ageSec < OUTGOING_MAX_AGE_SEC) {
+    if (isOutgoingMessageFresh(payload.created_at, Date.now())) {
       await markEscalatedIfHumanSent(tenant.id, phone, content)
     }
     return NextResponse.json({ ok: true })

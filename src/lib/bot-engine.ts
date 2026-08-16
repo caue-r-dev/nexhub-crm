@@ -69,6 +69,45 @@ export function isSessionExpired(updatedAt: string | null, now: Date, maxHours =
   return elapsedMs > maxHours * 60 * 60 * 1000
 }
 
+// Reconectar o WhatsApp faz o Chatwoot reimportar o histórico inteiro da
+// conversa e replay isso como eventos "outgoing" de novo — inclusive
+// respostas antigas do próprio bot, de anos atrás. Sem filtrar por idade,
+// toda reconexão marcava qualquer contato com histórico como "humano
+// assumiu" (silêncio total), sem ninguém ter digitado nada de verdade
+// (confirmado ao vivo: escalated virava true de novo minutos depois de
+// desbloquear manualmente, com updated_at sem mudar).
+//
+// `created_at` não tem formato garantido entre payload de webhook e
+// resposta da API REST do Chatwoot nesse projeto (já existe divergência
+// confirmada: `message_type` vem string no webhook, enum numérico na REST,
+// para o mesmo campo conceitual) — então essa função NUNCA assume um
+// formato único. Detecta segundos vs milissegundos por magnitude, tenta
+// parsear string como data, e sempre falha pro lado seguro (`true` =
+// "recente, continua tratando como possível assunção humana") quando não
+// dá pra interpretar o valor — o pior caso de um `false` errado é
+// desligar a detecção de assunção manual pra sempre, silenciosamente, o
+// que é bem pior que só rodar a checagem de conteúdo à toa numa mensagem
+// velha.
+export function isOutgoingMessageFresh(createdAt: unknown, nowMs: number, maxAgeSec = 120): boolean {
+  if (createdAt === null || createdAt === undefined) return true
+
+  let createdAtMs: number
+  if (typeof createdAt === 'number') {
+    // Timestamp em segundos unix tem ~10 dígitos, em milissegundos ~13 —
+    // diferencia por magnitude (1e12 ≈ ano 2001 em ms) em vez de assumir
+    // uma unidade fixa.
+    createdAtMs = createdAt > 1e12 ? createdAt : createdAt * 1000
+  } else if (typeof createdAt === 'string') {
+    const parsed = Date.parse(createdAt)
+    if (Number.isNaN(parsed)) return true
+    createdAtMs = parsed
+  } else {
+    return true
+  }
+
+  return nowMs - createdAtMs < maxAgeSec * 1000
+}
+
 type ConversationState = {
   captured_data: Record<string, string>
   messages: ConversationMessage[]
