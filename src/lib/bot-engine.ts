@@ -262,6 +262,33 @@ export async function getBotReply(
   const valorConsulta = firstService?.default_value != null ? `R$ ${firstService.default_value.toFixed(2)}` : ''
   const horarioAtendimento = formatBusinessHours(tenant.business_hours)
 
+  // Cliente já cadastrado costuma perguntar sobre o próprio agendamento
+  // ("que horas é minha consulta?") — sem esse fato aqui a IA teria que
+  // escalar tudo por não saber responder, mesmo sendo pergunta básica.
+  let proximoAgendamento: string | null = null
+  if (isExistingClient) {
+    const digits = phone.replace(/\D/g, '')
+    const { data: clients } = await admin.from('clients').select('id, phone').eq('tenant_id', tenant.id).not('phone', 'is', null)
+    const clientIds = (clients ?? []).filter((c) => c.phone?.replace(/\D/g, '').endsWith(digits.slice(-8))).map((c) => c.id)
+    if (clientIds.length > 0) {
+      const { data: appt } = await admin
+        .from('appointments')
+        .select('datetime')
+        .in('client_id', clientIds)
+        .in('status', ['pending', 'confirmed'])
+        .gte('datetime', new Date().toISOString())
+        .order('datetime', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (appt) {
+        const dt = new Date(appt.datetime)
+        const data = dt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+        const hora = dt.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })
+        proximoAgendamento = `Agendamento do paciente: ${data} às ${hora}`
+      }
+    }
+  }
+
   const knownFacts = [
     `Nome: ${tenant.name}`,
     tenant.address ? `Endereço: ${tenant.address}` : null,
@@ -270,6 +297,7 @@ export async function getBotReply(
     horarioAtendimento ? `Horário de atendimento: ${horarioAtendimento}` : null,
     linkAgendamento ? `Link de agendamento: ${linkAgendamento}` : null,
     tenant.bot_context_notes ? `Observações adicionais: ${tenant.bot_context_notes}` : null,
+    proximoAgendamento,
     state.done
       ? 'O link de agendamento já foi enviado nesta conversa (veja o histórico) — não repita o link nem insista em agendar de novo à toa, mas continue respondendo normalmente qualquer pergunta nova que o paciente fizer.'
       : null,

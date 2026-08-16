@@ -83,7 +83,7 @@ const DEFAULT_TEMPLATE_CONTENT: Record<(typeof TEMPLATE_KEYS)[number]['key'], st
     'Combinamos assim: primeiro um atendimento inicial com {{nome_profissional}}, pra entender direitinho o que você precisa e te passar todos os detalhes. Podemos agendar esse primeiro atendimento?',
   valor_e_horarios: 'O valor do atendimento inicial é {{valor_consulta}}. Atendemos {{horario_atendimento}}. Quando prefere vir?',
   agendamento_confirmado:
-    'Agendado! Pra facilitar sua vinda: aceitamos Pix, cartão e dinheiro. Ficamos em {{endereco}}. Chegue com 5 minutos de antecedência. Qualquer dúvida é só chamar — te esperamos!',
+    'Agendado para {{data_consulta}} às {{horario_consulta}}! Pra facilitar sua vinda: aceitamos Pix, cartão e dinheiro. Ficamos em {{endereco}}. Chegue com 5 minutos de antecedência. Qualquer dúvida é só chamar — te esperamos!',
   orientacao_procedimento_longo:
     'Só um aviso: seu atendimento vai levar mais tempo que o normal. Pra ficar mais confortável: use roupas leves, pode trazer fone de ouvido, e pode se alimentar normalmente antes. Qualquer coisa é só pedir!',
   followup_falta_sem_remarcar:

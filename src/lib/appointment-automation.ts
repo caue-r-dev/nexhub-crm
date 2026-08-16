@@ -8,6 +8,16 @@ import { sendWhatsAppText, sendWhatsAppImage } from '@/lib/evolution'
 import { generatePixQr } from '@/lib/pix'
 import { resolveTemplate } from '@/lib/message-templates'
 
+const BR_TZ = 'America/Sao_Paulo'
+
+function formatDateBR(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-BR', { timeZone: BR_TZ })
+}
+
+function formatTimeBR(iso: string): string {
+  return new Date(iso).toLocaleTimeString('pt-BR', { timeZone: BR_TZ, hour: '2-digit', minute: '2-digit' })
+}
+
 type TenantEvolutionFields = {
   name: string
   address: string | null
@@ -24,7 +34,7 @@ export async function confirmAppointment(
   const { data: appt, error: fetchError } = await admin
     .from('appointments')
     .select(
-      'id, tenant_id, deposit_amount, client_id, clients(name, phone), tenants(name, address, evolution_base_url, evolution_api_key, evolution_instance_name, pix_key, pix_receiver_name, default_deposit_amount)'
+      'id, tenant_id, datetime, deposit_amount, client_id, clients(name, phone), tenants(name, address, evolution_base_url, evolution_api_key, evolution_instance_name, pix_key, pix_receiver_name, default_deposit_amount)'
     )
     .eq('id', appointmentId)
     .single()
@@ -75,8 +85,10 @@ export async function confirmAppointment(
         nome_paciente: client.name,
         endereco: tenant.address ?? '',
         valor_sinal: depositAmount != null ? `R$ ${depositAmount.toFixed(2)}` : '',
+        data_consulta: formatDateBR(appt.datetime),
+        horario_consulta: formatTimeBR(appt.datetime),
       },
-      `Agendado! Pra facilitar sua vinda: aceitamos Pix, cartão e dinheiro. Te esperamos na ${tenant.name}!`
+      `Agendado para ${formatDateBR(appt.datetime)} às ${formatTimeBR(appt.datetime)}! Pra facilitar sua vinda: aceitamos Pix, cartão e dinheiro. Te esperamos na ${tenant.name}!`
     )
     await sendWhatsAppText(evolutionConfig, client.phone, message)
   } catch (e) {
