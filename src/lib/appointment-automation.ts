@@ -70,7 +70,12 @@ export async function confirmAppointment(
     const message = await resolveTemplate(
       appt.tenant_id,
       'agendamento_confirmado',
-      { nome_clinica: tenant.name, nome_paciente: client.name, endereco: tenant.address ?? '' },
+      {
+        nome_clinica: tenant.name,
+        nome_paciente: client.name,
+        endereco: tenant.address ?? '',
+        valor_sinal: depositAmount != null ? `R$ ${depositAmount.toFixed(2)}` : '',
+      },
       `Agendado! Pra facilitar sua vinda: aceitamos Pix, cartão e dinheiro. Te esperamos na ${tenant.name}!`
     )
     await sendWhatsAppText(evolutionConfig, client.phone, message)

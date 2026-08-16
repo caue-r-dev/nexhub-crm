@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { seedDefaultTemplates } from '@/lib/message-templates'
 import type { PaletteType } from '@/lib/supabase/types'
 
 export type CadastroInput = {
@@ -44,6 +45,8 @@ export async function cadastroAction(input: CadastroInput): Promise<CadastroResu
     await admin.auth.admin.deleteUser(authData.user.id)
     return { error: tenantError?.message ?? 'Não foi possível criar o tenant.' }
   }
+
+  await seedDefaultTemplates(tenant.id)
 
   const { error: userError } = await admin.from('users').insert({
     tenant_id: tenant.id,
