@@ -144,7 +144,7 @@ export function BookingFlow({
             <span className="text-sm font-medium text-text">Horário</span>
             {loadingSlots && <p className="text-sm text-text-secondary">Carregando horários...</p>}
             {!loadingSlots && slots.length === 0 && (
-              <p className="text-sm text-text-secondary">Nenhum horário disponível nos próximos 14 dias.</p>
+              <p className="text-sm text-text-secondary">Nenhum horário disponível nos próximos 7 dias.</p>
             )}
             <div className="grid grid-cols-3 gap-2">
               {slots.map((slot) => {

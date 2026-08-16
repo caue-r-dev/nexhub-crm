@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { computeFreeSlots, type BusyInterval } from '@/lib/availability'
 
-const BOOKING_WINDOW_DAYS = 14
+const BOOKING_WINDOW_DAYS = 7
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
