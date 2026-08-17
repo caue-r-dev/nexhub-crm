@@ -155,7 +155,20 @@ const HIDDEN_KEYS_BY_GROUP: Record<NicheGroup, TemplateKey[]> = {
     'campanha_sem_visita',
     'campanha_orcamento_aberto',
   ],
-  juridico: [],
+  // "orientacao_procedimento_longo" é 100% de saúde ("roupas leves", "fone
+  // de ouvido", "se alimentar antes") e dispara automático pra qualquer
+  // atendimento >= PROCEDIMENTO_LONGO_MIN — uma reunião jurídica de 90min
+  // mandaria essa mensagem sem nenhum sentido pro cliente.
+  juridico: ['orientacao_procedimento_longo'],
+}
+
+// Cartão escondido (HIDDEN_KEYS_BY_GROUP) não deve só sumir da tela de
+// edição — resolveTemplate filtra hidden=true e cai no fallback hardcoded,
+// que reproduziria o mesmo texto fora de contexto. Quem dispara uma
+// automação opcional (não essencial ao fluxo) deve checar isso antes de
+// mandar a mensagem.
+export function isTemplateHiddenForNiche(nicheSlug: string | null | undefined, templateKey: TemplateKey): boolean {
+  return HIDDEN_KEYS_BY_GROUP[nicheGroupOf(nicheSlug)].includes(templateKey)
 }
 
 // Chamado uma vez, logo após criar o tenant (ver src/app/actions/cadastro.ts)

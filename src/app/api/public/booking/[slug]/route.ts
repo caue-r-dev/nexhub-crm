@@ -4,7 +4,7 @@ import { normalizePhone, fetchWhatsAppProfilePictureUrl } from '@/lib/evolution'
 import { confirmAppointment } from '@/lib/appointment-automation'
 import { notifyTenantOfBooking } from '@/lib/booking-notifications'
 import { sendWelcomeMessageIfConfigured } from '@/lib/welcome-message'
-import { resolveTemplate } from '@/lib/message-templates'
+import { resolveTemplate, isTemplateHiddenForNiche } from '@/lib/message-templates'
 import { sendWhatsAppText } from '@/lib/evolution'
 import type { AnamneseQuestionnaire } from '@/lib/anamnese-questions'
 import { nicheTermsFor } from '@/lib/niche-terms'
@@ -235,7 +235,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     )
   }
 
-  if (durationMin >= PROCEDIMENTO_LONGO_MIN && tenant.evolution_base_url && tenant.evolution_api_key && tenant.evolution_instance_name) {
+  if (
+    durationMin >= PROCEDIMENTO_LONGO_MIN &&
+    !isTemplateHiddenForNiche(niche?.slug ?? null, 'orientacao_procedimento_longo') &&
+    tenant.evolution_base_url &&
+    tenant.evolution_api_key &&
+    tenant.evolution_instance_name
+  ) {
     try {
       const message = await resolveTemplate(
         tenant.id,
