@@ -6,6 +6,7 @@ export type PaletteType = 'petroleo' | 'bege' | 'neutro'
 export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'done' | 'no_show'
 export type AppointmentType = 'consulta' | 'compromisso'
 export type TransactionStatus = 'receivable' | 'received' | 'overdue'
+export type TransactionType = 'receita' | 'despesa'
 export type SubscriptionStatus = 'trial' | 'active' | 'overdue' | 'cancelled'
 
 export type OdontogramStatus =
@@ -371,6 +372,8 @@ export interface Database {
           due_date: string | null
           created_at: string
           guia_number: string | null
+          type: TransactionType
+          description: string | null
         }
         Insert: {
           id?: string
@@ -382,6 +385,8 @@ export interface Database {
           due_date?: string | null
           created_at?: string
           guia_number?: string | null
+          type?: TransactionType
+          description?: string | null
         }
         Update: Partial<Database['public']['Tables']['transactions']['Insert']>
         Relationships: [

@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { CircleCheck, Clock, TriangleAlert, Plus, Wallet } from 'lucide-react'
+import { CircleCheck, Clock, TriangleAlert, Plus, Wallet, TrendingDown, Scale } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { TransactionStatusSelect } from '@/components/financeiro/TransactionStatusSelect'
 import { RevenueChart } from '@/components/financeiro/RevenueChart'
 import { RevenueAreaChart } from '@/components/financeiro/RevenueAreaChart'
 import { BR_TZ } from '@/lib/date-range'
+import type { TransactionType } from '@/lib/supabase/types'
 
 function formatBRL(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -20,7 +21,14 @@ function initials(name: string) {
     .toUpperCase()
 }
 
-type Transaction = { amount: number; status: string; due_date: string | null; created_at: string }
+type Transaction = {
+  amount: number
+  status: string
+  due_date: string | null
+  created_at: string
+  type: string
+  description: string | null
+}
 
 const MONTH_LABEL = new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: BR_TZ })
 
@@ -33,6 +41,7 @@ function buildMonthlyData(rows: Transaction[]) {
   })
 
   for (const t of rows) {
+    if (t.type === 'despesa') continue
     const dateStr = t.due_date ?? t.created_at.slice(0, 10)
     const key = dateStr.slice(0, 7)
     const bucket = buckets.find((b) => b.key === key)
@@ -53,9 +62,14 @@ export default async function FinanceiroPage() {
     .order('due_date', { ascending: true, nullsFirst: false })
 
   const rows = transactions ?? []
-  const recebido = rows.filter((t) => t.status === 'received').reduce((sum, t) => sum + t.amount, 0)
-  const aReceber = rows.filter((t) => t.status === 'receivable').reduce((sum, t) => sum + t.amount, 0)
-  const pendencias = rows.filter((t) => t.status === 'overdue').reduce((sum, t) => sum + t.amount, 0)
+  const receitas = rows.filter((t) => t.type !== 'despesa')
+  const despesas = rows.filter((t) => t.type === 'despesa')
+  const recebido = receitas.filter((t) => t.status === 'received').reduce((sum, t) => sum + t.amount, 0)
+  const aReceber = receitas.filter((t) => t.status === 'receivable').reduce((sum, t) => sum + t.amount, 0)
+  const pendencias = receitas.filter((t) => t.status === 'overdue').reduce((sum, t) => sum + t.amount, 0)
+  const despesasPagas = despesas.filter((t) => t.status === 'received').reduce((sum, t) => sum + t.amount, 0)
+  const despesasAPagar = despesas.filter((t) => t.status !== 'received').reduce((sum, t) => sum + t.amount, 0)
+  const saldoLiquido = recebido - despesasPagas
 
   const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -102,6 +116,25 @@ export default async function FinanceiroPage() {
             <p className="text-3xl font-semibold text-text">{formatBRL(pendencias)}</p>
           </div>
         </div>
+        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-status-cancelled/10">
+            <TrendingDown className="h-7 w-7 text-status-cancelled" />
+          </div>
+          <div>
+            <p className="text-sm text-text-secondary">Despesas pagas</p>
+            <p className="text-3xl font-semibold text-text">{formatBRL(despesasPagas)}</p>
+            {despesasAPagar > 0 && <p className="text-xs text-text-secondary">+ {formatBRL(despesasAPagar)} a pagar</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-5 rounded-xl border border-border bg-surface p-7 sm:col-span-2">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent-soft">
+            <Scale className="h-7 w-7 text-accent" />
+          </div>
+          <div>
+            <p className="text-sm text-text-secondary">Saldo líquido (recebido − despesas pagas)</p>
+            <p className={`text-3xl font-semibold ${saldoLiquido < 0 ? 'text-status-cancelled' : 'text-text'}`}>{formatBRL(saldoLiquido)}</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -112,17 +145,23 @@ export default async function FinanceiroPage() {
       <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
         {rows.length ? (
           rows.map((t) => {
+            const isDespesa = t.type === 'despesa'
             const clientName = (t.clients as { name: string } | null)?.name ?? null
+            const title = isDespesa ? t.description ?? 'Despesa' : clientName ?? 'Sem cliente'
             const isLate = !!t.due_date && t.due_date < todayStr && t.status !== 'received'
 
             return (
               <div key={t.id} className="flex items-center gap-4 px-5 py-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
-                  {clientName ? initials(clientName) : '—'}
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    isDespesa ? 'bg-status-cancelled/10 text-status-cancelled' : 'bg-accent-soft text-accent'
+                  }`}
+                >
+                  {isDespesa ? '−' : clientName ? initials(clientName) : '—'}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-text">{clientName ?? 'Sem cliente'}</p>
+                  <p className="truncate font-medium text-text">{title}</p>
                   {t.guia_number && (
                     <p className="text-xs text-text-secondary">Guia {t.guia_number}</p>
                   )}
@@ -132,9 +171,12 @@ export default async function FinanceiroPage() {
                   {t.due_date ? new Date(`${t.due_date}T00:00:00`).toLocaleDateString('pt-BR') : '—'}
                 </span>
 
-                <span className="w-28 text-right font-medium text-text">{formatBRL(t.amount)}</span>
+                <span className={`w-28 text-right font-medium ${isDespesa ? 'text-status-cancelled' : 'text-text'}`}>
+                  {isDespesa ? '- ' : ''}
+                  {formatBRL(t.amount)}
+                </span>
 
-                <TransactionStatusSelect id={t.id} status={t.status} />
+                <TransactionStatusSelect id={t.id} status={t.status} type={t.type as TransactionType} />
               </div>
             )
           })
