@@ -6,9 +6,11 @@ import { updateBotSettingsAction } from '@/app/actions/bot-settings'
 export function BotSettingsForm({
   initialBotEnabled,
   initialBotContextNotes,
+  observacoesPlaceholder,
 }: {
   initialBotEnabled: boolean
   initialBotContextNotes: string
+  observacoesPlaceholder: string
 }) {
   const [botEnabled, setBotEnabled] = useState(initialBotEnabled)
   const [botContextNotes, setBotContextNotes] = useState(initialBotContextNotes)
@@ -48,7 +50,7 @@ export function BotSettingsForm({
       </p>
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-text">Observações pra IA (convênios, estacionamento, etc)</span>
+        <span className="text-sm font-medium text-text">Observações pra IA (detalhes específicos do seu negócio)</span>
         <textarea
           rows={4}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
@@ -57,10 +59,10 @@ export function BotSettingsForm({
             setBotContextNotes(e.target.value)
             setSaved(false)
           }}
-          placeholder="Ex: aceitamos convênio X e Y, temos estacionamento gratuito, atendemos em libras..."
+          placeholder={observacoesPlaceholder}
         />
         <span className="text-xs text-text-secondary">
-          Usado pelo bot pra responder perguntas do paciente que fogem do roteiro fixo.
+          Usado pelo bot pra responder perguntas do cliente que fogem do roteiro fixo.
         </span>
       </label>
 

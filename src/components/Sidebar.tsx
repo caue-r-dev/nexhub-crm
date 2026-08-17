@@ -31,6 +31,7 @@ import { signOutAction } from '@/app/actions/auth'
 import { SubscriptionRenewModal } from '@/components/SubscriptionRenewModal'
 import type { SubscriptionStatus } from '@/lib/supabase/types'
 import { ESTOQUE_NICHES, PROCESSOS_NICHES } from '@/lib/niche-features'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 const VETERINARIO_NICHES = new Set(['veterinario'])
 
@@ -46,7 +47,7 @@ const LINKS = [
 ]
 
 const SETTINGS_LINKS = [
-  { href: '/configuracoes/clinica', label: 'Dados da clínica', icon: Building2 },
+  { href: '/configuracoes/clinica', label: 'Dados da clínica', labelKey: 'businessDataLabel' as const, icon: Building2 },
   { href: '/configuracoes/horarios', label: 'Horário', icon: ClockIcon },
   { href: '/configuracoes/pix', label: 'Pix', icon: QrCode },
   { href: '/configuracoes/procedimentos', label: 'Procedimentos', icon: ListChecks },
@@ -72,6 +73,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname()
   const visibleLinks = LINKS.filter((link) => !link.nicheGate || (nicheSlug && link.nicheGate.has(nicheSlug)))
+  const terms = nicheTermsFor(nicheSlug)
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showRenewModal, setShowRenewModal] = useState(false)
@@ -193,7 +195,7 @@ export function Sidebar({
                       }}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{link.label}</span>
+                      <span className="truncate">{link.labelKey ? terms[link.labelKey] : link.label}</span>
                     </Link>
                   )
                 })}

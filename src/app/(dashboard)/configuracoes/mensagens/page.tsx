@@ -1,9 +1,11 @@
 import { MessageTemplatesForm } from '@/components/configuracoes/MessageTemplatesForm'
 import { BotSettingsForm } from '@/components/configuracoes/BotSettingsForm'
-import { getCurrentTenant } from '@/lib/tenant'
+import { getCurrentTenant, getCurrentTenantNicheSlug } from '@/lib/tenant'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 export default async function MensagensConfigPage() {
-  const tenant = await getCurrentTenant()
+  const [tenant, nicheSlug] = await Promise.all([getCurrentTenant(), getCurrentTenantNicheSlug()])
+  const terms = nicheTermsFor(nicheSlug)
 
   return (
     <div className="flex flex-col gap-6">
@@ -21,6 +23,7 @@ export default async function MensagensConfigPage() {
         <BotSettingsForm
           initialBotEnabled={tenant.bot_enabled}
           initialBotContextNotes={tenant.bot_context_notes ?? ''}
+          observacoesPlaceholder={terms.observacoesPlaceholder}
         />
       )}
       <MessageTemplatesForm />
