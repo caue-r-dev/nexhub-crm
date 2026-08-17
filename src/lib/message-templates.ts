@@ -4,6 +4,7 @@
 // evita template divergir de contexto pra contexto.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { HANDOFF_FALLBACK_MESSAGE } from '@/lib/conversational-bot'
+import { nicheGroupOf, type NicheGroup } from '@/lib/niche-terms'
 
 export type TemplateContext = {
   nome_clinica?: string
@@ -132,18 +133,45 @@ const NICHE_OVERRIDES: Record<string, Partial<Record<TemplateKey, string>>> = {
   advogado: ADVOGADO_OVERRIDES,
 }
 
+// Salão/beleza tem procedimento simples o bastante pra não precisar de
+// "explicação do processo" nem dos cards de acompanhamento mais elaborados
+// (procedimento longo, follow-up de falta/atraso, campanha) — dono pediu
+// só 5 cards visíveis pra esse grupo: primeiro contato, procedimento
+// desejado, valor+link, confirmação e ausência. `hidden: true` some da
+// lista em /configuracoes/mensagens (mesmo botão "Excluir" que o dono já
+// usa manualmente) sem apagar a linha — se algum dia precisar, ainda dá
+// pra reativar direto no banco. `escalar_atendimento_humano` e
+// `contato_recorrente` escondidos também caem no fallback padrão do
+// código (ainda funcionam, só não aparecem pra edição).
+const HIDDEN_KEYS_BY_GROUP: Record<NicheGroup, TemplateKey[]> = {
+  saude: [],
+  beleza: [
+    'explicacao_processo',
+    'orientacao_procedimento_longo',
+    'followup_falta_sem_remarcar',
+    'followup_atraso',
+    'escalar_atendimento_humano',
+    'contato_recorrente',
+    'campanha_sem_visita',
+    'campanha_orcamento_aberto',
+  ],
+  juridico: [],
+}
+
 // Chamado uma vez, logo após criar o tenant (ver src/app/actions/cadastro.ts)
 // — insere o roteiro padrão completo pra todo template_key ainda sem linha,
-// com o tom certo pro nicho escolhido no cadastro. Idempotente (on conflict
-// do nothing) pra poder rodar de novo com segurança em tenants antigos que
-// nasceram antes dessa seed existir.
+// com o tom e a lista de cards certos pro nicho escolhido no cadastro.
+// Idempotente (on conflict do nothing) pra poder rodar de novo com
+// segurança em tenants antigos que nasceram antes dessa seed existir.
 export async function seedDefaultTemplates(tenantId: string, nicheSlug: string | null): Promise<void> {
   const overrides = (nicheSlug && NICHE_OVERRIDES[nicheSlug]) || {}
+  const hiddenKeys = new Set(HIDDEN_KEYS_BY_GROUP[nicheGroupOf(nicheSlug)])
   const admin = createAdminClient()
   const rows = TEMPLATE_KEYS.map(({ key }) => ({
     tenant_id: tenantId,
     template_key: key,
     content: overrides[key] ?? BASE_TEMPLATE_CONTENT[key],
+    hidden: hiddenKeys.has(key),
   }))
   await admin.from('message_templates').upsert(rows, { onConflict: 'tenant_id,template_key', ignoreDuplicates: true })
 }
