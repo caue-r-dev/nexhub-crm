@@ -100,6 +100,8 @@ export function AppointmentModal({
   initialDatetime,
   initialProfessionalId,
   onClose,
+  personLabel,
+  bookingWord,
 }: {
   clients: Client[]
   labels: Label[]
@@ -110,6 +112,8 @@ export function AppointmentModal({
   initialDatetime?: Date
   initialProfessionalId?: string
   onClose: () => void
+  personLabel: string
+  bookingWord: string
 }) {
   const router = useRouter()
   const [type, setType] = useState<AppointmentType>('consulta')
@@ -245,9 +249,9 @@ export function AppointmentModal({
             <button
               type="button"
               onClick={() => setType('consulta')}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm ${type === 'consulta' ? 'bg-accent text-white' : 'text-text'}`}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm capitalize ${type === 'consulta' ? 'bg-accent text-white' : 'text-text'}`}
             >
-              Consulta
+              {bookingWord}
             </button>
             <button
               type="button"
@@ -261,7 +265,7 @@ export function AppointmentModal({
           {type === 'consulta' ? (
             <div className="flex flex-col gap-2">
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-text">Paciente</span>
+                <span className="text-sm font-medium text-text">{personLabel}</span>
                 <ClientCombobox
                   clients={clients}
                   value={clientId}
@@ -274,7 +278,7 @@ export function AppointmentModal({
 
               {!showNewClient ? (
                 <button type="button" onClick={() => setShowNewClient(true)} className="self-start text-sm font-medium text-accent">
-                  + Cadastrar novo paciente
+                  + Cadastrar novo {personLabel.toLowerCase()}
                 </button>
               ) : (
                 <div className="flex flex-col gap-2 rounded-lg border border-border p-3">

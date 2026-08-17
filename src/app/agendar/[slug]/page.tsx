@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BookingFlow } from './BookingFlow'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 export default async function AgendarPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -14,13 +15,14 @@ export default async function AgendarPage({ params }: { params: Promise<{ slug: 
   if (!tenant) notFound()
 
   const { data: niche } = await admin.from('niches').select('slug').eq('id', tenant.niche_id).single()
+  const terms = nicheTermsFor(niche?.slug ?? null)
 
   if (!tenant.public_booking_enabled) {
     return (
       <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-2 px-4 py-10 text-center">
         <h1 className="text-2xl font-semibold text-text">{tenant.name}</h1>
         <p className="text-text-secondary">
-          Agendamento pelo site está desativado no momento. Fale com a gente pelo WhatsApp pra marcar sua consulta.
+          Agendamento pelo site está desativado no momento. Fale com a gente pelo WhatsApp pra marcar {terms.bookingWordArticle} {terms.bookingWord}.
         </p>
       </div>
     )
@@ -43,7 +45,9 @@ export default async function AgendarPage({ params }: { params: Promise<{ slug: 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 px-4 py-10">
       <div>
-        <h1 className="text-2xl font-semibold text-text">Agendar consulta — {tenant.name}</h1>
+        <h1 className="text-2xl font-semibold text-text capitalize">
+          Agendar {terms.bookingWord} — {tenant.name}
+        </h1>
         <p className="text-text-secondary">Escolha o profissional, o procedimento e um horário disponível.</p>
       </div>
       <BookingFlow

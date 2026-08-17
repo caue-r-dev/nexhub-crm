@@ -28,7 +28,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     .single()
 
   if (!tenant) {
-    return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 })
+    return NextResponse.json({ error: 'Negócio não encontrado.' }, { status: 404 })
   }
 
   let slotDurationMinutes = tenant.slot_duration_minutes

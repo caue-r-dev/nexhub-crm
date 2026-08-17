@@ -7,10 +7,14 @@ export function PixSettingsForm({
   initialKey,
   initialName,
   initialDefaultDepositAmount,
+  personLabelLower,
+  bookingWord,
 }: {
   initialKey: string
   initialName: string
   initialDefaultDepositAmount: string
+  personLabelLower: string
+  bookingWord: string
 }) {
   const [pixKey, setPixKey] = useState(initialKey)
   const [pixReceiverName, setPixReceiverName] = useState(initialName)
@@ -74,7 +78,7 @@ export function PixSettingsForm({
           }}
         />
         <span className="text-xs text-text-secondary">
-          Usado quando o paciente confirma a consulta pelo WhatsApp — manda o PIX desse valor
+          Usado quando o {personLabelLower} confirma a {bookingWord} pelo WhatsApp — manda o PIX desse valor
           automático. Vazio = não manda PIX na confirmação automática.
         </span>
       </label>

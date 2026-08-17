@@ -10,6 +10,7 @@ export function ClinicProfileForm({
   initialCnpj,
   initialSocialMedia,
   initialWebsiteUrl,
+  siteLabel,
 }: {
   initialPhone: string
   initialEmail: string
@@ -17,6 +18,7 @@ export function ClinicProfileForm({
   initialCnpj: string
   initialSocialMedia: string
   initialWebsiteUrl: string
+  siteLabel: string
 }) {
   const [phone, setPhone] = useState(initialPhone)
   const [email, setEmail] = useState(initialEmail)
@@ -110,7 +112,7 @@ export function ClinicProfileForm({
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-text">Site da clínica</span>
+        <span className="text-sm font-medium text-text">{siteLabel}</span>
         <input
           className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
           value={websiteUrl}
@@ -118,10 +120,10 @@ export function ClinicProfileForm({
             setWebsiteUrl(e.target.value)
             setSaved(false)
           }}
-          placeholder="https://minhaclinica.com.br (opcional)"
+          placeholder="https://meusite.com.br (opcional)"
         />
         <span className="text-xs text-text-secondary">
-          Se preenchido, o botão &quot;Site da clínica&quot; na agenda abre esse link direto.
+          Se preenchido, o botão &quot;{siteLabel}&quot; na agenda abre esse link direto.
         </span>
       </label>
 

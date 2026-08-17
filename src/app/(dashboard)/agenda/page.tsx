@@ -20,6 +20,8 @@ import { NewAppointmentButton } from '@/components/agenda/NewAppointmentButton'
 import { AppointmentModalHost } from '@/components/agenda/AppointmentModalHost'
 import { initials } from '@/lib/professional-colors'
 import { SiteClinicaButton } from '@/components/configuracoes/SiteClinicaButton'
+import { getCurrentTenantNicheSlug } from '@/lib/tenant'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 const WEEKDAY_LABEL = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
@@ -66,6 +68,7 @@ export default async function AgendaPage({
   const supabase = await createClient()
 
   const { data: tenant } = await supabase.from('tenants').select('website_url').single()
+  const terms = nicheTermsFor(await getCurrentTenantNicheSlug())
 
   const { data: professionals } = await supabase
     .from('professionals')
@@ -133,7 +136,7 @@ export default async function AgendaPage({
             </Link>
           </div>
 
-          <SiteClinicaButton websiteUrl={tenant?.website_url ?? null} />
+          <SiteClinicaButton websiteUrl={tenant?.website_url ?? null} siteLabel={terms.siteLabel} businessWord={terms.businessWord} />
           <NewAppointmentButton />
         </div>
       </div>
@@ -166,6 +169,8 @@ export default async function AgendaPage({
         packages={modalPackages ?? []}
         professionalHours={professionalHours ?? []}
         existingAppointments={rows.map((r) => ({ professional_id: r.professional_id, datetime: r.datetime, duration_min: r.duration_min }))}
+        personLabel={terms.personLabel}
+        bookingWord={terms.bookingWord}
       />
     </div>
     </AgendaModalProvider>

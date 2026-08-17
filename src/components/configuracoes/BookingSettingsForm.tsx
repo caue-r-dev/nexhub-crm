@@ -5,6 +5,7 @@ import { updateBookingSettingsAction } from '@/app/actions/booking-settings'
 
 export function BookingSettingsForm({
   initial,
+  personLabelLower,
 }: {
   initial: {
     slug: string
@@ -14,6 +15,7 @@ export function BookingSettingsForm({
     bookingHoldMinutes: number
     publicBookingEnabled: boolean
   }
+  personLabelLower: string
 }) {
   const [slug, setSlug] = useState(initial.slug)
   const [notificationPhone, setNotificationPhone] = useState(initial.notificationPhone)
@@ -107,7 +109,7 @@ export function BookingSettingsForm({
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-text">Tempo pro paciente pagar o sinal antes de expirar (minutos)</span>
+        <span className="text-sm font-medium text-text">Tempo pro {personLabelLower} pagar o sinal antes de expirar (minutos)</span>
         <input
           type="number"
           min={10}

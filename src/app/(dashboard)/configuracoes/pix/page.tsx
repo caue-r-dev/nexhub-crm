@@ -1,8 +1,10 @@
-import { getCurrentTenant } from '@/lib/tenant'
+import { getCurrentTenant, getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { PixSettingsForm } from '@/components/configuracoes/PixSettingsForm'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 export default async function PixConfigPage() {
-  const tenant = await getCurrentTenant()
+  const [tenant, nicheSlug] = await Promise.all([getCurrentTenant(), getCurrentTenantNicheSlug()])
+  const terms = nicheTermsFor(nicheSlug)
 
   return (
     <div className="flex flex-col gap-6">
@@ -18,6 +20,8 @@ export default async function PixConfigPage() {
           initialKey={tenant.pix_key ?? ''}
           initialName={tenant.pix_receiver_name ?? tenant.name}
           initialDefaultDepositAmount={tenant.default_deposit_amount?.toString() ?? ''}
+          personLabelLower={terms.personLabelLower}
+          bookingWord={terms.bookingWord}
         />
       )}
     </div>

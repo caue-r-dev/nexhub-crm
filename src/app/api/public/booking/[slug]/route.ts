@@ -7,6 +7,7 @@ import { sendWelcomeMessageIfConfigured } from '@/lib/welcome-message'
 import { resolveTemplate } from '@/lib/message-templates'
 import { sendWhatsAppText } from '@/lib/evolution'
 import type { AnamneseQuestionnaire } from '@/lib/anamnese-questions'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 // Baixa a foto de perfil do WhatsApp do contato e sobe no bucket privado
 // client-files, no mesmo padrão usado pelo upload manual — best-effort, uma
@@ -70,14 +71,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   const { data: tenant } = await admin
     .from('tenants')
     .select(
-      'id, name, slot_duration_minutes, buffer_minutes, booking_hold_minutes, notification_phone, evolution_base_url, evolution_api_key, evolution_instance_name, welcome_message'
+      'id, name, slot_duration_minutes, buffer_minutes, booking_hold_minutes, notification_phone, evolution_base_url, evolution_api_key, evolution_instance_name, welcome_message, niche_id'
     )
     .eq('slug', slug)
     .single()
 
   if (!tenant) {
-    return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 })
+    return NextResponse.json({ error: 'Negócio não encontrado.' }, { status: 404 })
   }
+
+  const { data: niche } = await admin.from('niches').select('slug').eq('id', tenant.niche_id).single()
+  const terms = nicheTermsFor(niche?.slug ?? null)
 
   const { data: procedureType } = await admin
     .from('procedure_types')
@@ -157,7 +161,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       .select('id')
       .single()
     if (clientError || !newClient) {
-      return NextResponse.json({ error: clientError?.message ?? 'Erro ao cadastrar paciente.' }, { status: 500 })
+      return NextResponse.json({ error: clientError?.message ?? `Erro ao cadastrar ${terms.personLabelLower}.` }, { status: 500 })
     }
     clientId = newClient.id
     await sendWelcomeMessageIfConfigured(tenant, { name: body.patientName.trim(), phone: body.patientPhone.trim() })
@@ -226,7 +230,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   if ('error' in confirmResult) {
     await admin.from('appointments').delete().eq('id', appointment.id)
     return NextResponse.json(
-      { error: 'Não conseguimos confirmar seu agendamento. Tente novamente ou entre em contato com a clínica.' },
+      { error: `Não conseguimos confirmar seu agendamento. Tente novamente ou entre em contato ${terms.businessWordIn === 'na' ? 'com a' : 'com o'} ${terms.businessWord}.` },
       { status: 500 }
     )
   }

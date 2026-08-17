@@ -1,12 +1,14 @@
-import { getCurrentTenant } from '@/lib/tenant'
+import { getCurrentTenant, getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { getStoredTemplate } from '@/lib/message-templates'
 import { ReminderSettingsForm } from '@/components/configuracoes/ReminderSettingsForm'
 import { BudgetFollowupSettingsForm } from '@/components/configuracoes/BudgetFollowupSettingsForm'
 import { WelcomeMessageForm } from '@/components/configuracoes/WelcomeMessageForm'
 import { CampaignTemplatesForm } from '@/components/configuracoes/CampaignTemplatesForm'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 export default async function LembretesConfigPage() {
-  const tenant = await getCurrentTenant()
+  const [tenant, nicheSlug] = await Promise.all([getCurrentTenant(), getCurrentTenantNicheSlug()])
+  const terms = nicheTermsFor(nicheSlug)
 
   const [semVisitaTemplate, orcamentoAbertoTemplate] = tenant
     ? await Promise.all([
@@ -21,7 +23,7 @@ export default async function LembretesConfigPage() {
         <div>
           <h1 className="text-2xl font-semibold text-text">Primeiro contato</h1>
           <p className="text-text-secondary">
-            Mensagem enviada automaticamente por WhatsApp assim que um paciente novo é cadastrado
+            Mensagem enviada automaticamente por WhatsApp assim que um {terms.personLabelLower} novo é cadastrado
             (manualmente ou pelo agendamento público). Deixe em branco pra não enviar nada.
           </p>
         </div>
@@ -32,7 +34,7 @@ export default async function LembretesConfigPage() {
         <div>
           <h2 className="text-xl font-semibold text-text">Mensagens de lembrete</h2>
           <p className="text-text-secondary">
-            Texto enviado automaticamente por WhatsApp 24h e 2h antes de cada consulta. Deixe em
+            Texto enviado automaticamente por WhatsApp 24h e 2h antes de cada {terms.bookingWord}. Deixe em
             branco pra usar o texto padrão.
           </p>
         </div>

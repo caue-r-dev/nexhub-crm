@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { updateGoogleReviewLinkAction } from '@/app/actions/satisfaction'
 
-export function GoogleReviewLinkForm({ initialLink }: { initialLink: string }) {
+export function GoogleReviewLinkForm({ initialLink, businessWord }: { initialLink: string; businessWord: string }) {
   const [link, setLink] = useState(initialLink)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +36,7 @@ export function GoogleReviewLinkForm({ initialLink }: { initialLink: string }) {
           placeholder="https://g.page/r/.../review"
         />
         <span className="text-xs text-text-secondary">
-          No Google Maps, busque sua clínica → &quot;Peça avaliações&quot; (ou Google Business Profile
+          No Google Maps, busque seu {businessWord} → &quot;Peça avaliações&quot; (ou Google Business Profile
           → &quot;Receber mais avaliações&quot;) → copie o link e cole aqui.
         </span>
       </label>

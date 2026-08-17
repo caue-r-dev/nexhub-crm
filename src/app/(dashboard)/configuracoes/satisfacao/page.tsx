@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentTenant } from '@/lib/tenant'
+import { getCurrentTenant, getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { GoogleReviewLinkForm } from '@/components/configuracoes/GoogleReviewLinkForm'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 const STARS = '★★★★★'
 
 export default async function SatisfacaoConfigPage() {
-  const tenant = await getCurrentTenant()
+  const [tenant, nicheSlug] = await Promise.all([getCurrentTenant(), getCurrentTenantNicheSlug()])
+  const terms = nicheTermsFor(nicheSlug)
   const supabase = await createClient()
 
   const { data: responses } = tenant
@@ -24,12 +26,12 @@ export default async function SatisfacaoConfigPage() {
         <div>
           <h1 className="text-2xl font-semibold text-text">Pesquisa de satisfação</h1>
           <p className="text-text-secondary">
-            Ao marcar uma consulta como &quot;Realizado&quot;, o paciente recebe um link por WhatsApp
+            Ao marcar um(a) {terms.bookingWord} como &quot;Realizado&quot;, o(a) {terms.personLabelLower} recebe um link por WhatsApp
             pedindo uma nota de 1 a 5. Nota 4 ou 5 leva direto pra avaliação no Google — nota 3 ou
             menos vira feedback privado, só pra você ver aqui.
           </p>
         </div>
-        {tenant && <GoogleReviewLinkForm initialLink={tenant.google_review_link ?? ''} />}
+        {tenant && <GoogleReviewLinkForm initialLink={tenant.google_review_link ?? ''} businessWord={terms.businessWord} />}
       </div>
 
       <div className="flex flex-col gap-3">

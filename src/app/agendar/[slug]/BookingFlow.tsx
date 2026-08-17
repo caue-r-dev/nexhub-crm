@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getAnamneseQuestions, type AnamneseQuestionnaire } from '@/lib/anamnese-questions'
 import { ANAMNESE_EVOLUCOES_NICHES } from '@/lib/niche-features'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 type Professional = { id: string; name: string }
 type ProcedureType = { id: string; name: string }
@@ -20,6 +21,7 @@ export function BookingFlow({
   procedureTypes: ProcedureType[]
   nicheSlug: string | null
 }) {
+  const terms = nicheTermsFor(nicheSlug)
   const ANAMNESE_QUESTIONS = getAnamneseQuestions(nicheSlug)
   const showAnamnese = !!nicheSlug && ANAMNESE_EVOLUCOES_NICHES.has(nicheSlug)
   const [professionalId, setProfessionalId] = useState('')
@@ -194,7 +196,9 @@ export function BookingFlow({
             onChange={(e) => setDocumentValue(e.target.value)}
             placeholder="000.000.000-00"
           />
-          <span className="text-xs text-text-secondary">Demais dados são coletados na clínica.</span>
+          <span className="text-xs text-text-secondary">
+            Demais dados são coletados {terms.businessWordIn} {terms.businessWord}.
+          </span>
         </label>
 
         <label className="flex flex-col gap-1">

@@ -22,6 +22,7 @@ export default async function ClinicaConfigPage() {
           initialCnpj={tenant.cnpj ?? ''}
           initialSocialMedia={tenant.social_media ?? ''}
           initialWebsiteUrl={tenant.website_url ?? ''}
+          siteLabel={terms.siteLabel}
         />
       )}
     </div>

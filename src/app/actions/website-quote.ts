@@ -1,9 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getCurrentTenant } from '@/lib/tenant'
+import { getCurrentTenant, getCurrentTenantNicheSlug } from '@/lib/tenant'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendWhatsAppText } from '@/lib/evolution'
+import { nicheTermsFor } from '@/lib/niche-terms'
 
 // Número do NexHub — quem vende/orça o site fica sabendo na hora que um
 // tenant clicou em "Site da clínica" e não tinha site configurado.
@@ -21,7 +22,8 @@ export async function requestWebsiteQuoteAction() {
     .single()
 
   if (!t?.evolution_base_url || !t.evolution_api_key || !t.evolution_instance_name) {
-    return { error: 'WhatsApp da clínica não está conectado — não deu pra avisar automaticamente. Entre em contato direto.' }
+    const terms = nicheTermsFor(await getCurrentTenantNicheSlug())
+    return { error: `WhatsApp d${terms.businessWordIn === 'na' ? 'a' : 'o'} ${terms.businessWord} não está conectado — não deu pra avisar automaticamente. Entre em contato direto.` }
   }
 
   try {

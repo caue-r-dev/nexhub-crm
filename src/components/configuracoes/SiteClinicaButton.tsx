@@ -7,7 +7,15 @@ import { requestWebsiteQuoteAction, saveWebsiteUrlAction } from '@/app/actions/w
 
 type Step = 'closed' | 'ask' | 'enter-url' | 'sent' | 'saved'
 
-export function SiteClinicaButton({ websiteUrl }: { websiteUrl: string | null }) {
+export function SiteClinicaButton({
+  websiteUrl,
+  siteLabel,
+  businessWord,
+}: {
+  websiteUrl: string | null
+  siteLabel: string
+  businessWord: string
+}) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('closed')
   const [url, setUrl] = useState(websiteUrl ?? '')
@@ -48,7 +56,7 @@ export function SiteClinicaButton({ websiteUrl }: { websiteUrl: string | null })
             className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
           >
             <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">Site da clínica</span>
+            <span className="hidden sm:inline">{siteLabel}</span>
           </a>
           <button
             type="button"
@@ -69,7 +77,7 @@ export function SiteClinicaButton({ websiteUrl }: { websiteUrl: string | null })
           className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text sm:text-sm"
         >
           <Globe className="h-4 w-4" />
-          <span className="hidden sm:inline">Site da clínica</span>
+          <span className="hidden sm:inline">{siteLabel}</span>
         </button>
       )}
 
@@ -78,7 +86,7 @@ export function SiteClinicaButton({ websiteUrl }: { websiteUrl: string | null })
           <div className="flex w-full max-w-sm flex-col gap-4 rounded-xl bg-surface p-6">
             {step === 'ask' && (
               <>
-                <p className="font-medium text-text">Sua clínica já tem um site pronto?</p>
+                <p className="font-medium text-text">Seu {businessWord} já tem um site pronto?</p>
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"

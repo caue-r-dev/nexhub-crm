@@ -17,6 +17,8 @@ export function AppointmentModalHost(props: {
   packages: Package[]
   professionalHours: ProfessionalHour[]
   existingAppointments: ExistingAppt[]
+  personLabel: string
+  bookingWord: string
 }) {
   const { state, closeModal } = useAgendaModal()
   if (!state.open) return null

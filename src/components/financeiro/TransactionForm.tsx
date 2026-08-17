@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { createTransactionAction } from '@/app/actions/transactions'
 import type { TransactionType } from '@/lib/supabase/types'
 
-export function TransactionForm({ clients }: { clients: { id: string; name: string }[] }) {
+export function TransactionForm({ clients, hasConvenio }: { clients: { id: string; name: string }[]; hasConvenio: boolean }) {
   const [type, setType] = useState<TransactionType>('receita')
   const [clientId, setClientId] = useState('')
   const [amount, setAmount] = useState('')
@@ -75,15 +75,17 @@ export function TransactionForm({ clients }: { clients: { id: string; name: stri
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-text">Número da guia (convênio)</span>
-            <input
-              placeholder="Se aplicável"
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
-              value={guiaNumber}
-              onChange={(e) => setGuiaNumber(e.target.value)}
-            />
-          </label>
+          {hasConvenio && (
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-text">Número da guia (convênio)</span>
+              <input
+                placeholder="Se aplicável"
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+                value={guiaNumber}
+                onChange={(e) => setGuiaNumber(e.target.value)}
+              />
+            </label>
+          )}
         </>
       ) : (
         <label className="flex flex-col gap-1">
