@@ -70,13 +70,21 @@ export async function getStoredTemplate(tenantId: string, templateKey: string): 
   return data
 }
 
+type TemplateKey = (typeof TEMPLATE_KEYS)[number]['key']
+
 // Roteiro padrão pra todo tenant novo, criado a partir do script
 // universalizado que o dono validou pra clientes reais (ver
 // 026_atualiza_script_mensagens.sql) — dono personaliza depois em
 // /configuracoes/mensagens. Sem isso, tenant nasce sem nenhuma linha em
 // message_templates e cai nos fallbacks genéricos hardcoded espalhados
 // pelo código, que nunca foram pensados como texto final pro cliente.
-const DEFAULT_TEMPLATE_CONTENT: Record<(typeof TEMPLATE_KEYS)[number]['key'], string> = {
+//
+// BASE usa tom de saúde/clínica ("paciente", "atendimento inicial") — é o
+// texto original validado. Nichos de outra família (beleza, advocacia,
+// personal trainer) sobrescrevem só as etapas que mudam de tom
+// (NICHE_OVERRIDES), o resto (confirmação, follow-up, campanha, ausência)
+// já é neutro o bastante pra qualquer nicho e não precisa duplicar.
+const BASE_TEMPLATE_CONTENT: Record<TemplateKey, string> = {
   primeiro_contato: 'Olá! Boas-vindas à {{nome_clinica}}. Ficamos felizes com seu contato! Pra te conhecer melhor: qual o seu nome?',
   pergunta_queixa: 'Prazer! Pra te atender melhor, me conta: o que você está buscando ou o que gostaria de resolver?',
   explicacao_processo:
@@ -98,16 +106,44 @@ const DEFAULT_TEMPLATE_CONTENT: Record<(typeof TEMPLATE_KEYS)[number]['key'], st
     'Hoje não temos atendimento por aqui — assim que abrirmos, te respondemos! Se for urgente, deixa sua mensagem que já vemos com atenção assim que voltarmos.',
 }
 
+const BELEZA_OVERRIDES: Partial<Record<TemplateKey, string>> = {
+  pergunta_queixa: 'Prazer! Me conta: o que você gostaria de fazer, ou qual procedimento tá buscando?',
+  explicacao_processo:
+    'Levando em conta o que você me contou, explicar que o primeiro passo é agendar um horário com {{nome_profissional}}, que vai te atender com atenção no que você precisa. Perguntar se pode agendar esse horário.',
+  valor_e_horarios: 'O valor desse atendimento é {{valor_consulta}}. Atendemos {{horario_atendimento}}. Quando prefere vir?',
+}
+
+const ADVOGADO_OVERRIDES: Partial<Record<TemplateKey, string>> = {
+  pergunta_queixa: 'Pra te ajudar melhor, me conta: qual é a sua situação ou o que você precisa resolver?',
+  explicacao_processo:
+    'Levando em conta o que você me contou, explicar que o primeiro passo é uma consulta inicial com {{nome_profissional}}, pra entender bem o seu caso e montar a melhor estratégia. Perguntar se pode agendar essa consulta.',
+  valor_e_horarios: 'O valor dessa consulta inicial é {{valor_consulta}}. Atendemos {{horario_atendimento}}. Quando prefere vir?',
+}
+
+// Chave = slug em `niches.slug`. Nicho sem entrada aqui (inclusive "outro")
+// cai no BASE (tom de saúde/clínica) — cobre os nichos de saúde
+// explicitamente por clareza, mesmo sendo o mesmo texto do BASE.
+const NICHE_OVERRIDES: Record<string, Partial<Record<TemplateKey, string>>> = {
+  estetica: BELEZA_OVERRIDES,
+  unhas: BELEZA_OVERRIDES,
+  barbearia: BELEZA_OVERRIDES,
+  cabeleireiro: BELEZA_OVERRIDES,
+  sobrancelha: BELEZA_OVERRIDES,
+  advogado: ADVOGADO_OVERRIDES,
+}
+
 // Chamado uma vez, logo após criar o tenant (ver src/app/actions/cadastro.ts)
-// — insere o roteiro padrão completo pra todo template_key ainda sem linha.
-// Idempotente (on conflict do nothing) pra poder rodar de novo com segurança
-// em tenants antigos que nasceram antes dessa seed existir.
-export async function seedDefaultTemplates(tenantId: string): Promise<void> {
+// — insere o roteiro padrão completo pra todo template_key ainda sem linha,
+// com o tom certo pro nicho escolhido no cadastro. Idempotente (on conflict
+// do nothing) pra poder rodar de novo com segurança em tenants antigos que
+// nasceram antes dessa seed existir.
+export async function seedDefaultTemplates(tenantId: string, nicheSlug: string | null): Promise<void> {
+  const overrides = (nicheSlug && NICHE_OVERRIDES[nicheSlug]) || {}
   const admin = createAdminClient()
   const rows = TEMPLATE_KEYS.map(({ key }) => ({
     tenant_id: tenantId,
     template_key: key,
-    content: DEFAULT_TEMPLATE_CONTENT[key],
+    content: overrides[key] ?? BASE_TEMPLATE_CONTENT[key],
   }))
   await admin.from('message_templates').upsert(rows, { onConflict: 'tenant_id,template_key', ignoreDuplicates: true })
 }

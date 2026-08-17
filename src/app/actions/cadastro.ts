@@ -46,7 +46,8 @@ export async function cadastroAction(input: CadastroInput): Promise<CadastroResu
     return { error: tenantError?.message ?? 'Não foi possível criar o tenant.' }
   }
 
-  await seedDefaultTemplates(tenant.id)
+  const { data: niche } = await admin.from('niches').select('slug').eq('id', nicheId).single()
+  await seedDefaultTemplates(tenant.id, niche?.slug ?? null)
 
   const { error: userError } = await admin.from('users').insert({
     tenant_id: tenant.id,
