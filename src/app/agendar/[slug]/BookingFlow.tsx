@@ -145,10 +145,13 @@ export function BookingFlow({
   return (
     <div className="min-h-screen bg-bg">
       <div className="border-b border-border bg-surface px-6 py-3">
-        <div className="mx-auto flex max-w-5xl items-center gap-2 text-sm text-text-secondary">
-          <span className="font-bold text-accent">NexHub</span>
-          <span>·</span>
-          <span>Agendamento online</span>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2">
+          <h1 className="text-base font-semibold text-text">{clinicName}</h1>
+          <div className="flex items-center gap-2 text-xs text-text-secondary">
+            <span className="font-bold text-accent">NexHub</span>
+            <span>·</span>
+            <span>Agendamento online</span>
+          </div>
         </div>
       </div>
 
