@@ -113,6 +113,8 @@ export interface Database {
           bot_enabled: boolean
           bot_context_notes: string | null
           public_booking_enabled: boolean
+          latitude: number | null
+          longitude: number | null
         }
         Insert: {
           id?: string
@@ -160,6 +162,8 @@ export interface Database {
           bot_enabled?: boolean
           bot_context_notes?: string | null
           public_booking_enabled?: boolean
+          latitude?: number | null
+          longitude?: number | null
         }
         Update: Partial<Database['public']['Tables']['tenants']['Insert']>
         Relationships: [
