@@ -14,7 +14,10 @@ export async function geocodeAddress(
 
   try {
     const url = `${NOMINATIM_URL}?format=json&limit=1&q=${encodeURIComponent(trimmed)}`
-    const res = await fetchImpl(url, { headers: { 'User-Agent': USER_AGENT } })
+    const res = await fetchImpl(url, {
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(5000),
+    })
     if (!res.ok) return null
 
     const results = (await res.json()) as Array<{ lat: string; lon: string }>

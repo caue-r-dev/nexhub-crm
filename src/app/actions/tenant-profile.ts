@@ -24,7 +24,7 @@ export async function updateClinicProfileAction(input: {
   // no link público só não aparece até o endereço geocodificar com sucesso.
   let latitude = tenant.latitude
   let longitude = tenant.longitude
-  if (trimmedAddress !== tenant.address) {
+  if (trimmedAddress !== tenant.address || tenant.latitude == null) {
     const coords = trimmedAddress ? await geocodeAddress(trimmedAddress) : null
     latitude = coords?.latitude ?? null
     longitude = coords?.longitude ?? null

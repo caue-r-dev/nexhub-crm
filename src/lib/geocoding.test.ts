@@ -33,4 +33,16 @@ describe('geocodeAddress', () => {
     expect(result).toBeNull()
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  it('passa um AbortSignal com timeout pra não travar o salvamento se a API não responder', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ lat: '-22.4103', lon: '-46.6844' }],
+    })
+    await geocodeAddress('Av. Brasil, 1200, Jacutinga - MG', fetchMock as unknown as typeof fetch)
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    )
+  })
 })
