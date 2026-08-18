@@ -11,7 +11,7 @@ export default async function ProcedimentosPage() {
   const { data: procedureTypes } = tenant
     ? await supabase
         .from('procedure_types')
-        .select('id, name, active, default_duration_min, protocol')
+        .select('id, name, active, default_duration_min, protocol, price_label')
         .eq('tenant_id', tenant.id)
         .order('name')
     : { data: [] }

@@ -699,6 +699,7 @@ export interface Database {
           created_at: string
           default_duration_min: number | null
           protocol: string | null
+          price_label: string | null
         }
         Insert: {
           id?: string
@@ -708,6 +709,7 @@ export interface Database {
           created_at?: string
           default_duration_min?: number | null
           protocol?: string | null
+          price_label?: string | null
         }
         Update: Partial<Database['public']['Tables']['procedure_types']['Insert']>
         Relationships: [

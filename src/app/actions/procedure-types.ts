@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTenant } from '@/lib/tenant'
 
-export async function createProcedureTypeAction(name: string, defaultDurationMin?: number) {
+export async function createProcedureTypeAction(name: string, defaultDurationMin?: number, priceLabel?: string) {
   if (!name.trim()) return { error: 'Informe um nome.' }
 
   const tenant = await getCurrentTenant()
@@ -15,6 +15,7 @@ export async function createProcedureTypeAction(name: string, defaultDurationMin
     tenant_id: tenant.id,
     name: name.trim(),
     default_duration_min: defaultDurationMin || null,
+    price_label: priceLabel?.trim() || null,
   })
 
   if (error) return { error: error.message }
@@ -45,6 +46,17 @@ export async function updateProcedureTypeProtocolAction(id: string, protocol: st
   const { error } = await supabase
     .from('procedure_types')
     .update({ protocol: protocol.trim() || null })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/configuracoes/procedimentos')
+}
+
+export async function updateProcedureTypePriceLabelAction(id: string, priceLabel: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('procedure_types')
+    .update({ price_label: priceLabel.trim() || null })
     .eq('id', id)
 
   if (error) return { error: error.message }

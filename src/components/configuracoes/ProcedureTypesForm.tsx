@@ -6,6 +6,7 @@ import {
   toggleProcedureTypeAction,
   updateProcedureTypeDurationAction,
   updateProcedureTypeProtocolAction,
+  updateProcedureTypePriceLabelAction,
 } from '@/app/actions/procedure-types'
 
 type ProcedureType = {
@@ -14,11 +15,13 @@ type ProcedureType = {
   active: boolean
   default_duration_min: number | null
   protocol: string | null
+  price_label: string | null
 }
 
 export function ProcedureTypesForm({ initial }: { initial: ProcedureType[] }) {
   const [name, setName] = useState('')
   const [durationMin, setDurationMin] = useState('')
+  const [priceLabel, setPriceLabel] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -26,47 +29,62 @@ export function ProcedureTypesForm({ initial }: { initial: ProcedureType[] }) {
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await createProcedureTypeAction(name, Number(durationMin) || undefined)
+      const result = await createProcedureTypeAction(name, Number(durationMin) || undefined, priceLabel)
       if (result && 'error' in result) {
         setError(result.error ?? null)
       } else {
         setName('')
         setDurationMin('')
+        setPriceLabel('')
       }
     })
   }
 
   return (
     <div className="flex max-w-md flex-col gap-4">
-      <form onSubmit={handleAdd} className="flex items-end gap-2">
-        <label className="flex flex-1 flex-col gap-1">
-          <span className="text-sm font-medium text-text">Novo procedimento</span>
-          <input
-            className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ex: Limpeza"
-          />
-        </label>
-        <label className="flex w-28 flex-col gap-1">
-          <span className="text-sm font-medium text-text">Duração (min)</span>
-          <input
-            type="number"
-            min={5}
-            step={5}
-            className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
-            value={durationMin}
-            onChange={(e) => setDurationMin(e.target.value)}
-            placeholder="30"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={isPending || !name.trim()}
-          className="rounded-lg bg-accent px-4 py-2 font-medium text-white disabled:opacity-40"
-        >
-          Adicionar
-        </button>
+      <form onSubmit={handleAdd} className="flex flex-col gap-2">
+        <div className="flex items-end gap-2">
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-sm font-medium text-text">Novo procedimento</span>
+            <input
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Limpeza"
+            />
+          </label>
+          <label className="flex w-28 flex-col gap-1">
+            <span className="text-sm font-medium text-text">Duração (min)</span>
+            <input
+              type="number"
+              min={5}
+              step={5}
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+              value={durationMin}
+              onChange={(e) => setDurationMin(e.target.value)}
+              placeholder="30"
+            />
+          </label>
+        </div>
+        <div className="flex items-end gap-2">
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-sm font-medium text-text">Preço (opcional)</span>
+            <input
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-text outline-none focus:border-accent"
+              value={priceLabel}
+              onChange={(e) => setPriceLabel(e.target.value)}
+              placeholder="Ex: R$ 150 ou A partir de R$ 480"
+            />
+            <span className="text-xs text-text-secondary">Aparece no link público de agendamento. Deixe em branco pra não mostrar preço.</span>
+          </label>
+          <button
+            type="submit"
+            disabled={isPending || !name.trim()}
+            className="rounded-lg bg-accent px-4 py-2 font-medium text-white disabled:opacity-40"
+          >
+            Adicionar
+          </button>
+        </div>
       </form>
 
       {error && <p className="text-sm text-status-cancelled">{error}</p>}
@@ -83,6 +101,7 @@ export function ProcedureTypesForm({ initial }: { initial: ProcedureType[] }) {
 function ProcedureRow({ procedure }: { procedure: ProcedureType }) {
   const [showProtocol, setShowProtocol] = useState(false)
   const [protocol, setProtocol] = useState(procedure.protocol ?? '')
+  const [priceLabel, setPriceLabel] = useState(procedure.price_label ?? '')
   const [saved, setSaved] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -91,6 +110,13 @@ function ProcedureRow({ procedure }: { procedure: ProcedureType }) {
     startTransition(async () => {
       await updateProcedureTypeProtocolAction(procedure.id, protocol)
       setSaved(true)
+    })
+  }
+
+  function savePriceLabel() {
+    if (priceLabel === (procedure.price_label ?? '')) return
+    startTransition(async () => {
+      await updateProcedureTypePriceLabelAction(procedure.id, priceLabel)
     })
   }
 
@@ -135,6 +161,14 @@ function ProcedureRow({ procedure }: { procedure: ProcedureType }) {
           />
         </div>
       </div>
+
+      <input
+        value={priceLabel}
+        onChange={(e) => setPriceLabel(e.target.value)}
+        onBlur={savePriceLabel}
+        placeholder="Preço (opcional) — Ex: R$ 150"
+        className="rounded-lg border border-border bg-bg px-2 py-1.5 text-xs text-text outline-none focus:border-accent"
+      />
 
       {showProtocol && (
         <div className="flex flex-col gap-1.5 rounded-lg border border-dashed border-border p-2">
