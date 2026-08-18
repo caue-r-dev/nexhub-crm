@@ -2,8 +2,10 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentTenant } from '@/lib/tenant'
 import { ProfessionalForm } from '@/components/agenda/ProfessionalForm'
+import { ProfessionalPhotoUpload } from '@/components/agenda/ProfessionalPhotoUpload'
 import { ProfessionalHoursForm } from '@/components/agenda/ProfessionalHoursForm'
 import { ProcedureDurationsForm } from '@/components/agenda/ProcedureDurationsForm'
+import { initials } from '@/lib/professional-colors'
 
 export default async function EditarProfissionalPage({
   params,
@@ -33,6 +35,14 @@ export default async function EditarProfissionalPage({
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-semibold text-text">Editar profissional</h1>
+        {tenant && (
+          <ProfessionalPhotoUpload
+            professionalId={professional.id}
+            tenantId={tenant.id}
+            initialPhotoPath={professional.photo_url}
+            initials={initials(professional.name)}
+          />
+        )}
         <ProfessionalForm
           professionalId={professional.id}
           initial={{
@@ -41,6 +51,7 @@ export default async function EditarProfissionalPage({
             active: professional.active,
             registrationNumber: professional.registration_number ?? undefined,
             role: professional.role ?? undefined,
+            bio: professional.bio ?? undefined,
           }}
         />
       </div>

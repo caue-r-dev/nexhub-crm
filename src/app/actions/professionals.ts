@@ -12,6 +12,7 @@ export type ProfessionalInput = {
   active?: boolean
   registrationNumber?: string
   role?: string
+  bio?: string
 }
 
 // weekday numérico segue Date.getDay() (0=domingo...6=sábado), mesma
@@ -41,6 +42,7 @@ export async function createProfessionalAction(input: ProfessionalInput) {
       color: input.color,
       registration_number: input.registrationNumber?.trim() || null,
       role: input.role?.trim() || null,
+      bio: input.bio?.trim() || null,
     })
     .select('id')
     .single()
@@ -84,6 +86,7 @@ export async function updateProfessionalAction(id: string, input: ProfessionalIn
       active: input.active ?? true,
       registration_number: input.registrationNumber?.trim() || null,
       role: input.role?.trim() || null,
+      bio: input.bio?.trim() || null,
     })
     .eq('id', id)
 
@@ -91,4 +94,12 @@ export async function updateProfessionalAction(id: string, input: ProfessionalIn
 
   revalidatePath('/agenda')
   redirect('/agenda')
+}
+
+export async function updateProfessionalPhotoAction(id: string, photoPath: string | null) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('professionals').update({ photo_url: photoPath }).eq('id', id)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/agenda/profissionais/${id}/editar`)
 }

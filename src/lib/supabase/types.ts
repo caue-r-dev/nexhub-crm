@@ -607,6 +607,8 @@ export interface Database {
           created_at: string
           registration_number: string | null
           role: string | null
+          photo_url: string | null
+          bio: string | null
         }
         Insert: {
           id?: string
@@ -617,6 +619,8 @@ export interface Database {
           created_at?: string
           registration_number?: string | null
           role?: string | null
+          photo_url?: string | null
+          bio?: string | null
         }
         Update: Partial<Database['public']['Tables']['professionals']['Insert']>
         Relationships: [
