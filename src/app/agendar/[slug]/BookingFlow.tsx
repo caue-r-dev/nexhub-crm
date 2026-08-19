@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAnamneseQuestions, type AnamneseQuestionnaire } from '@/lib/anamnese-questions'
 import { ANAMNESE_EVOLUCOES_NICHES } from '@/lib/niche-features'
 import { nicheTermsFor } from '@/lib/niche-terms'
@@ -26,7 +26,7 @@ const EMPTY_ANAMNESE: AnamneseQuestionnaire = { queixa_principal: '', answers: {
 // quem acessa o link está em outro fuso (paciente fora do Brasil, por
 // exemplo), porque eles usam o fuso local da máquina, não o do negócio.
 function groupSlotsByDay(slots: string[]) {
-  const byDay = new Map<string, { label: string; date: string; slots: string[] }>()
+  const byDay = new Map<string, { dayKey: string; label: string; date: string; slots: string[] }>()
   for (const slot of slots) {
     const d = new Date(slot)
     const dayKey = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
@@ -34,7 +34,7 @@ function groupSlotsByDay(slots: string[]) {
       .toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'short' })
       .replace(/^\w/, (c) => c.toUpperCase())
     const dateLabel = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })
-    if (!byDay.has(dayKey)) byDay.set(dayKey, { label, date: dateLabel, slots: [] })
+    if (!byDay.has(dayKey)) byDay.set(dayKey, { dayKey, label, date: dateLabel, slots: [] })
     byDay.get(dayKey)!.slots.push(slot)
   }
   return Array.from(byDay.values())
@@ -80,6 +80,7 @@ export function BookingFlow({
 
   const professionalAtual = professionals.find((p) => p.id === professionalId) ?? professionals[0]
   const dias = useMemo(() => groupSlotsByDay(slots), [slots])
+  const bookingFormRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     setSlots([])
@@ -142,6 +143,15 @@ export function BookingFlow({
     )
   }
 
+  if (professionals.length === 0) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-2 px-4 py-10 text-center">
+        <p className="text-lg font-medium text-text">Agendamento indisponível no momento.</p>
+        <p className="text-text-secondary">Fale direto com a gente pelo WhatsApp pra marcar seu horário.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-bg">
       <div className="border-b border-border bg-surface px-6 py-3">
@@ -163,17 +173,16 @@ export function BookingFlow({
               <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent/10 text-2xl font-bold text-accent">
                 {professionalAtual.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={professionalAtual.photoUrl} alt="" className="h-full w-full object-cover" />
+                  <img src={professionalAtual.photoUrl} alt={professionalAtual.name} className="h-full w-full object-cover" />
                 ) : (
                   initials(professionalAtual.name)
                 )}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-text">{professionalAtual.name}</h1>
+                <h2 className="text-xl font-bold text-text">{professionalAtual.name}</h2>
                 <p className="mt-1 text-sm text-text-secondary">
                   {[professionalAtual.role, professionalAtual.registrationNumber].filter(Boolean).join(' · ')}
                 </p>
-                {address && <p className="text-sm text-text-secondary">{address}</p>}
               </div>
             </div>
           )}
@@ -196,7 +205,10 @@ export function BookingFlow({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setProcedureTypeId(p.id)}
+                    onClick={() => {
+                      setProcedureTypeId(p.id)
+                      bookingFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }}
                     className="rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-white"
                   >
                     Agendar
@@ -226,7 +238,7 @@ export function BookingFlow({
         </div>
 
         {/* COLUNA DIREITA - AGENDAMENTO */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-xl border border-border bg-surface p-5 md:sticky md:top-6">
+        <form ref={bookingFormRef} onSubmit={handleSubmit} className="flex flex-col gap-5 rounded-xl border border-border bg-surface p-5 md:sticky md:top-6">
           <h2 className="text-base font-bold text-text">Agendar atendimento</h2>
 
           {temMaisDeUmProfissional && (
@@ -286,7 +298,7 @@ export function BookingFlow({
               {dias.length > 0 && (
                 <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${dias.length}, 1fr)` }}>
                   {dias.map((dia) => (
-                    <div key={dia.date} className="text-center">
+                    <div key={dia.dayKey} className="text-center">
                       <p className="mb-0.5 text-[11px] font-bold text-text">{dia.label}</p>
                       <p className="mb-2 text-[10px] text-text-secondary">{dia.date}</p>
                       {dia.slots.map((slot) => {
