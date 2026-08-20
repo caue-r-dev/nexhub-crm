@@ -43,9 +43,6 @@ function formatBusinessHours(hours: BusinessHours | null): string {
   return groups.map((g) => `${g.label} ${g.start}-${g.end}`).join(', ')
 }
 
-const DEFAULT_CONTATO_RECORRENTE =
-  'Olá! Que bom ter você de volta. Já te conhecemos por aqui — em breve alguém da equipe retorna sua mensagem. Se for urgente, me conta o que você precisa que já sinalizamos.'
-
 const DEFAULT_MENSAGEM_AUSENCIA =
   'Hoje não temos atendimento por aqui — assim que abrirmos, te respondemos! Se for urgente, deixa sua mensagem que já vemos com atenção assim que voltarmos.'
 
@@ -189,8 +186,12 @@ async function getConversationState(tenantId: string, phone: string): Promise<Co
 
   const expired = isSessionExpired(data.updated_at, new Date())
   return {
-    captured_data: expired ? {} : (data.captured_data as Record<string, string>),
-    messages: expired ? [] : data.messages,
+    // Sessão expirada NÃO apaga o histórico — a IA precisa saber que já
+    // conversou com essa pessoa antes pra não repetir o discurso de
+    // primeiro contato (bug confirmado: lead recorrente virava "cliente
+    // novo" de novo a cada 12h de silêncio).
+    captured_data: data.captured_data as Record<string, string>,
+    messages: data.messages,
     done: expired ? false : data.done,
     escalated: expired ? false : data.escalated,
     expectedUpdatedAt: data.updated_at,
@@ -318,21 +319,6 @@ export async function getBotReply(
     return saved ? message : null
   }
 
-  // Lead que já falou antes e a sessão expirou (mas NUNCA virou cliente de
-  // fato) — não repete o discurso de lead novo, manda um "recebemos, já te
-  // retornamos" fixo e escala pra humano. Cliente já cadastrado é tratado
-  // à parte logo abaixo: continua com a IA, não vai pra silêncio.
-  if (!isExistingClient && state.hasHistory && state.isNewSession) {
-    const message = await resolveTemplate(tenant.id, 'contato_recorrente', { nome_clinica: tenant.name }, DEFAULT_CONTATO_RECORRENTE)
-    const saved = await saveConversationStateIfUnchanged(tenant.id, phone, state.expectedUpdatedAt, {
-      messages: [...state.messages, { role: 'paciente', text: incomingText }, { role: 'bot', text: message }],
-      captured_data: state.captured_data,
-      done: true,
-      escalated: true,
-    })
-    return saved ? message : null
-  }
-
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexhub.nexvix.com.br'
   const linkAgendamento = tenant.slug && tenant.public_booking_enabled ? `${appUrl}/agendar/${tenant.slug}` : ''
@@ -395,6 +381,9 @@ export async function getBotReply(
     proximoAgendamento,
     state.done
       ? 'O link de agendamento já foi enviado nesta conversa (veja o histórico) — não repita o link nem insista em agendar de novo à toa, mas continue respondendo normalmente qualquer pergunta nova que o paciente fizer.'
+      : null,
+    state.isNewSession && state.hasHistory
+      ? 'Essa conversa ficou parada um tempo e voltou agora — já converse com naturalidade usando o que já sabe do histórico (nome, queixa, etc.), sem reiniciar a apresentação nem repetir pergunta já respondida.'
       : null,
   ]
     .filter(Boolean)
