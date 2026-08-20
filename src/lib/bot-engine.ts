@@ -49,10 +49,6 @@ const DEFAULT_CONTATO_RECORRENTE =
 const DEFAULT_MENSAGEM_AUSENCIA =
   'Hoje não temos atendimento por aqui — assim que abrirmos, te respondemos! Se for urgente, deixa sua mensagem que já vemos com atenção assim que voltarmos.'
 
-// Date.getDay() é 0=domingo...6=sábado — mesma ordem usada aqui pra bater
-// com a chave certa de BusinessHours.
-const WEEKDAY_ORDER: (keyof BusinessHours)[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-
 // Checagem determinística (não depende da IA "saber" que hoje é feriado/
 // fim de semana) — muitos profissionais não atendem sábado/domingo, e
 // confiar só no julgamento do Gemini pra isso é arriscado. Sem horário
@@ -60,7 +56,15 @@ const WEEKDAY_ORDER: (keyof BusinessHours)[] = ['sunday', 'monday', 'tuesday', '
 // melhor avisar do que fingir que tem alguém disponível).
 export function isClosedToday(businessHours: BusinessHours | null, now: Date): boolean {
   if (!businessHours) return false
-  const key = WEEKDAY_ORDER[now.getDay()]
+  // getDay() usa hora local do processo (servidor roda em UTC) — perto da
+  // virada do dia em horário de Brasília (a partir das 21h) UTC já é o dia
+  // seguinte, pegando o weekday errado e derrubando o atendimento à toa.
+  // Precisa do dia da semana calculado no fuso de Brasília.
+  const weekday = now.toLocaleDateString('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short' })
+  const weekdayMap: Record<string, keyof BusinessHours> = {
+    Sun: 'sunday', Mon: 'monday', Tue: 'tuesday', Wed: 'wednesday', Thu: 'thursday', Fri: 'friday', Sat: 'saturday',
+  }
+  const key = weekdayMap[weekday]
   return businessHours[key]?.active !== true
 }
 
