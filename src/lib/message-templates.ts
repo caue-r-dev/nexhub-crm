@@ -99,8 +99,13 @@ const BASE_TEMPLATE_CONTENT: Record<TemplateKey, string> = {
     'Olá! Aqui é a {{nome_clinica}}. Vimos que você não conseguiu comparecer no seu último horário e ainda não remarcamos. Sabemos que imprevistos acontecem — quer escolher um novo horário? {{link_agendamento}}',
   followup_atraso: 'Olá! Aqui é a {{nome_clinica}}. Você está chegando? Ficamos preocupados quando não vemos você no horário — está tudo bem?',
   escalar_atendimento_humano: HANDOFF_FALLBACK_MESSAGE,
+  // Repropositado (era mensagem fixa de "sessão expirada" + escalação
+  // pra humano) — hoje é a etapa de disponibilidade de horário do roteiro
+  // de continuação, pro lead que já teve pré-atendimento (ver
+  // CONTINUACAO_STAGES em bot-engine.ts). Mantém a chave antiga pra não
+  // precisar de migração renomeando linhas já existentes em produção.
   contato_recorrente:
-    'Olá! Que bom ter você de volta. Já te conhecemos por aqui — em breve alguém da equipe retorna sua mensagem. Se for urgente, me conta o que você precisa que já sinalizamos.',
+    'Perguntar qual dia e horário a pessoa prefere para o atendimento e avisar que vai verificar a disponibilidade na agenda. Não repetir a explicação de que é preciso passar por uma avaliação inicial antes — isso já foi combinado numa conversa anterior.',
   campanha_sem_visita: 'Olá {{nome_cliente}}! Faz um tempo que não te vemos por aqui (última visita: {{ultima_visita}}). Quer marcar um retorno?',
   campanha_orcamento_aberto: 'Olá {{nome_cliente}}! Seu orçamento de {{valor_orcamento}} continua disponível. Posso te ajudar a agendar?',
   mensagem_ausencia:
@@ -141,8 +146,11 @@ const NICHE_OVERRIDES: Record<string, Partial<Record<TemplateKey, string>>> = {
 // lista em /configuracoes/mensagens (mesmo botão "Excluir" que o dono já
 // usa manualmente) sem apagar a linha — se algum dia precisar, ainda dá
 // pra reativar direto no banco. `escalar_atendimento_humano` e
-// `contato_recorrente` escondidos também caem no fallback padrão do
-// código (ainda funcionam, só não aparecem pra edição).
+// `contato_recorrente` (etapa de disponibilidade do roteiro de
+// continuação) escondidos também caem no fallback padrão do código
+// (ainda funcionam, só não aparecem pra edição) — pra beleza, isso
+// significa que o roteiro de continuação vira só "entender a
+// necessidade", sem etapa de horário.
 const HIDDEN_KEYS_BY_GROUP: Record<NicheGroup, TemplateKey[]> = {
   saude: [],
   beleza: [
@@ -199,7 +207,7 @@ export const TEMPLATE_KEYS = [
   { key: 'followup_falta_sem_remarcar', label: 'Follow-up — faltou e não remarcou' },
   { key: 'followup_atraso', label: 'Follow-up — atraso' },
   { key: 'escalar_atendimento_humano', label: 'Escalonamento pra atendimento humano (IA não sabe responder)' },
-  { key: 'contato_recorrente', label: 'Contato que já falou antes (sessão expirada)' },
+  { key: 'contato_recorrente', label: 'Retomada de conversa — disponibilidade de horário' },
   { key: 'campanha_sem_visita', label: 'Campanha — sem visita há um tempo' },
   { key: 'campanha_orcamento_aberto', label: 'Campanha — orçamento em aberto' },
   { key: 'mensagem_ausencia', label: 'Mensagem de ausência (fora do dia/horário de atendimento)' },

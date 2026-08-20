@@ -90,6 +90,19 @@ const ROTEIRO_STAGES = [
   { key: 'valor_e_horarios', label: 'Valor, horários e link' },
 ] as const
 
+// Lead que já tem nome capturado (já passou pelo primeiro contato) mas
+// ainda não é cliente cadastrado — retoma direto na queixa (só se ainda
+// não souber) e pula reto pra disponibilidade de horário, sem repetir
+// saudação/nome nem a explicação de que precisa de avaliação inicial
+// (já foi dita antes). Reaproveita o card "pergunta_queixa" do primeiro
+// contato; a etapa de disponibilidade usa o card "contato_recorrente"
+// (antigo aviso fixo de sessão expirada, repropositado — ver bot-engine
+// git history) como template próprio e editável.
+const CONTINUACAO_STAGES = [
+  { key: 'pergunta_queixa', label: 'Entender a necessidade (se ainda não souber)' },
+  { key: 'contato_recorrente', label: 'Verificar disponibilidade de horário' },
+] as const
+
 type TenantInfo = {
   id: string
   name: string
@@ -268,10 +281,11 @@ async function saveConversationStateIfUnchanged(
 // conversa, na ordem que fizer sentido, sem ser uma sequência obrigatória.
 async function buildRoteiro(
   tenantId: string,
-  defaults: Record<(typeof ROTEIRO_STAGES)[number]['key'], string>
+  stages: readonly { key: string; label: string }[],
+  defaults: Record<string, string>
 ): Promise<string> {
   const withStored = await Promise.all(
-    ROTEIRO_STAGES.map(async ({ key, label }) => {
+    stages.map(async ({ key, label }) => {
       const stored = await getStoredTemplate(tenantId, key)
       // Card excluído (hidden) pula a etapa inteira em vez de cair no
       // texto padrão — dono decidiu que o bot não deve nem tocar nesse
@@ -370,6 +384,11 @@ export async function getBotReply(
     }
   }
 
+  // hasHistory sozinho pega até troca isolada tipo "Oi"/ausência sem
+  // conversa de verdade ainda — "já tem nome capturado" é sinal mais
+  // confiável de que a pessoa já passou pelo pré-atendimento.
+  const isKnownLead = !isExistingClient && !!state.captured_data?.nome
+
   const knownFacts = [
     `Nome: ${tenant.name}`,
     tenant.address ? `Endereço: ${tenant.address}` : null,
@@ -385,28 +404,36 @@ export async function getBotReply(
     state.isNewSession && state.hasHistory
       ? 'Essa conversa ficou parada um tempo e voltou agora — já converse com naturalidade usando o que já sabe do histórico (nome, queixa, etc.), sem reiniciar a apresentação nem repetir pergunta já respondida.'
       : null,
+    isKnownLead
+      ? 'Essa pessoa já passou pelo primeiro contato antes (já sabe seu nome) — não cumprimente de novo nem pergunte o nome, siga direto pro roteiro de continuação.'
+      : null,
   ]
     .filter(Boolean)
     .join('\n')
 
   const handoffMessage = await resolveTemplate(tenant.id, 'escalar_atendimento_humano', {}, HANDOFF_FALLBACK_MESSAGE)
 
-  // Cliente já cadastrado não recebe o roteiro de venda (nome → queixa →
-  // processo → valor) — já passou por isso. Mas continua com a IA de
-  // verdade pra dúvida pontual (endereço, horário, valor, status do
-  // agendamento), só escalando quando for algo que exige ação humana
-  // (remarcar, cancelar, reenviar comprovante) ou que foge dos dados
-  // conhecidos — mesma régua de handoff de sempre, não um bloqueio raso.
+  // Três roteiros possíveis: cliente cadastrado (dúvida pontual, self-
+  // service), lead que já teve pré-atendimento mas ainda não é cadastrado
+  // (retoma direto na queixa/disponibilidade, sem repetir saudação nem a
+  // explicação de avaliação inicial) e lead 100% novo (roteiro completo
+  // de venda).
   const roteiro = isExistingClient
     ? '1. Responder a dúvida do cliente usando só o que está em dados_conhecidos (endereço, horário, valor, profissional, link, agendamento do paciente se houver). Não repita saudação de boas-vindas nem pergunte nome de novo — já é cliente conhecido.\n2. Pedido pra marcar/agendar um horário novo é self-service normal — mande o link de agendamento, isso NÃO é handoff.\n3. Só marque "handoff": true quando o pedido for pra REMARCAR ou CANCELAR um agendamento que já existe, reenviar comprovante/Pix, ou for algo que foge completamente do que dados_conhecidos cobre — nesses casos, resposta curta tipo "vou verificar e te retorno".'
-    : await buildRoteiro(tenant.id, {
-        primeiro_contato: `Dar boas-vindas em nome de "${tenant.name}" e perguntar o nome do contato.`,
-        pergunta_queixa: 'Perguntar qual a necessidade específica ou o que a pessoa gostaria de resolver.',
-        explicacao_processo: `Explicar que o primeiro passo é um atendimento inicial de avaliação${firstProfessional?.name ? ` com ${firstProfessional.name}` : ''}, que vai entender a necessidade e montar um plano personalizado.`,
-        valor_e_horarios: tenant.public_booking_enabled
-          ? `Informar o valor${valorConsulta ? ` (${valorConsulta})` : ''}, o horário de atendimento${horarioAtendimento ? ` (${horarioAtendimento})` : ''} e mandar o link de agendamento${linkAgendamento ? ` (${linkAgendamento})` : ''}.`
-          : `Informar o valor${valorConsulta ? ` (${valorConsulta})` : ''} e o horário de atendimento${horarioAtendimento ? ` (${horarioAtendimento})` : ''}, avisar que vai verificar a disponibilidade e confirmar o melhor horário por mensagem em seguida — não existe link de agendamento pra mandar.`,
-      })
+    : isKnownLead
+      ? await buildRoteiro(tenant.id, CONTINUACAO_STAGES, {
+          pergunta_queixa: 'Perguntar qual a necessidade específica ou o que a pessoa gostaria de resolver.',
+          contato_recorrente:
+            'Perguntar qual dia e horário a pessoa prefere para o atendimento e avisar que vai verificar a disponibilidade na agenda. Não repetir a explicação de que é preciso passar por uma avaliação inicial antes — isso já foi combinado numa conversa anterior.',
+        })
+      : await buildRoteiro(tenant.id, ROTEIRO_STAGES, {
+          primeiro_contato: `Dar boas-vindas em nome de "${tenant.name}" e perguntar o nome do contato.`,
+          pergunta_queixa: 'Perguntar qual a necessidade específica ou o que a pessoa gostaria de resolver.',
+          explicacao_processo: `Explicar que o primeiro passo é um atendimento inicial de avaliação${firstProfessional?.name ? ` com ${firstProfessional.name}` : ''}, que vai entender a necessidade e montar um plano personalizado.`,
+          valor_e_horarios: tenant.public_booking_enabled
+            ? `Informar o valor${valorConsulta ? ` (${valorConsulta})` : ''}, o horário de atendimento${horarioAtendimento ? ` (${horarioAtendimento})` : ''} e mandar o link de agendamento${linkAgendamento ? ` (${linkAgendamento})` : ''}.`
+            : `Informar o valor${valorConsulta ? ` (${valorConsulta})` : ''} e o horário de atendimento${horarioAtendimento ? ` (${horarioAtendimento})` : ''}, avisar que vai verificar a disponibilidade e confirmar o melhor horário por mensagem em seguida — não existe link de agendamento pra mandar.`,
+        })
 
   const turn = await decideBotTurn(roteiro, knownFacts, state.captured_data, state.messages, incomingText, handoffMessage)
 
